@@ -5,7 +5,6 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "baseUrl": ".",
     "paths": {
       "@workbook": ["../data/web-seed.json"]
     },
