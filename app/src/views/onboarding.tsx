@@ -8,7 +8,7 @@ import { ProviderSetupSection } from './providerSetup';
 
 const METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
-export function OnboardingView({ ds, engine, update, notify, go, setMonth, workspace, chooseWorkspace }: ViewProps) {
+export function OnboardingView({ ds, engine, update, notify, go, setMonth, workspace, chooseWorkspace, onOpenDemo }: ViewProps) {
   const [basics, setBasics] = useState({
     year: ds.settings.targetYear,
     asOf: ds.settings.asOfDate,
@@ -40,6 +40,7 @@ export function OnboardingView({ ds, engine, update, notify, go, setMonth, works
   const sheets = billSheetsFor(ds);
   const balances = engine.accountBalances(ds.settings.asOfDate);
   const done = [ds.accounts.length > 0, ds.people.length > 0, ds.bills.length > 0, ds.transactions.length > 0].filter(Boolean).length;
+  const firstRun = ds.accounts.length === 0 && ds.transactions.length === 0;
 
   const saveBasics = () => {
     if (!basics.asOf || !basics.anchor) return notify('Choose an As-Of date and a Balance Anchor date');
@@ -174,6 +175,28 @@ export function OnboardingView({ ds, engine, update, notify, go, setMonth, works
 
   return (
     <>
+      {firstRun && (
+        <Section
+          title="Start your budget"
+          sub="First run: choose a blank budget you will fill in, or explore the demo with sample data. Nothing is uploaded by either choice."
+          actions={<Badge tone="blue">First run</Badge>}
+        >
+          <div className="workspace-choice">
+            <button type="button" className="workspace-choice-card" onClick={startFresh}>
+              <span className="workspace-choice-icon" aria-hidden="true">▣</span>
+              <strong>Blank budget</strong>
+              <span>Start with one main account and add your own people, bills and transactions.</span>
+              <small>Opens the guided setup below</small>
+            </button>
+            <button type="button" className="workspace-choice-card" onClick={() => onOpenDemo?.()} disabled={!onOpenDemo}>
+              <span className="workspace-choice-icon" aria-hidden="true">◇</span>
+              <strong>Demo workspace</strong>
+              <span>Explore every screen with sample data before entering your own.</span>
+              <small>Nothing you change in the demo is saved</small>
+            </button>
+          </div>
+        </Section>
+      )}
       <Section
         title="Where should this budget live?"
         sub="Choose an account for browser sync, or keep this workspace local to this device."

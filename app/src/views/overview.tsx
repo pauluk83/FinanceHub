@@ -5,6 +5,7 @@ import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct } from '..
 import { groupHolidayTrips } from '../../../core/holidays';
 import { accountsNeedingReview } from '../../../core/accounts';
 import { duplicateGroups } from '../../../core/importDedupe';
+import { providerBalancesForYear } from '../../../core/providerSnapshot';
 
 export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, lastSavedAt, lastSyncedAt, feedbackItems, openFeedback, userEmail }: ViewProps) {
   const [openHolidayTrips, setOpenHolidayTrips] = useState<Set<string>>(() => new Set());
@@ -346,6 +347,7 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
           cards: d.cards.map((c) => ({ name: c.name, balancePence: c.balancePence })),
           people: d.owedByPerson.map((p) => ({ shortName: p.shortName, balancePence: p.balancePence })),
           bills: d.bills.map((b) => ({ name: b.name, amountPence: b.amountPence })),
+          providers: providerBalancesForYear(dataset, year, endDate),
         },
       };
     });

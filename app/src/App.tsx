@@ -32,6 +32,7 @@ import { AppChangelogPage, AppChangelogView } from './views/appChangelog';
 import { Holidays } from './views/holidays';
 import { OnboardingView } from './views/onboarding';
 import { DataHealthView } from './views/health';
+import { NotificationsView } from './views/notifications';
 import { PeoplePortalPage } from './views/peoplePortal';
 import { FeedbackDialog } from './views/feedback';
 import { PORTAL_FEEDBACK_EVENT, readFeedbackForOwner, refreshPortalStatements, type PortalFeedback } from './portal';
@@ -47,6 +48,7 @@ import { readAppLock, writeAppLock } from './appLockStore';
 import { shouldAutoLock, type AppLockConfig } from './appLock';
 import { changedBudgetSections } from './budgetChangelog';
 import { appendAudit, diffRecords } from '../../core/audit';
+import { buildBudgetNotifications, unreadBudgetNotifications } from '../../core/notifications';
 import { AppLockScreen } from './views/appLock';
 
 const SUBTITLES: Record<string, string> = {
@@ -73,7 +75,8 @@ const SUBTITLES: Record<string, string> = {
   virgin: 'Virgin Media contract history',
   statements: 'Filtered account statement with running balance',
   import: 'Bank CSV → review → append (never auto-post)',
-  health: 'Read-only integrity checks across accounts, imports, providers, bills, locks and sync',
+  health: 'Read-only integrity checks across accounts, imports, providers, bills, locks, sync and backups',
+  alerts: 'In-app bill and balance alerts, with read state kept in the budget',
   settings: 'The single source of truth for every screen',
   changelog: 'Your budget history — bills, balances, people and month-end figures',
   appChangelog: 'What changed in each build, with the build id and installer download',
@@ -109,6 +112,11 @@ function monthLockDetails(lock: MonthLock): string[] {
   else {
     const total = bills.reduce((sum, bill) => sum + bill.amountPence, 0);
     details.push(`Bills — ${gbp(total)} total: ${bills.map((bill) => `${bill.name} ${gbp(bill.amountPence)}`).join(' · ')}`);
+  }
+  if (!lock.providers) details.push('Provider balances — not recorded in this snapshot');
+  else if (lock.providers.length === 0) details.push('Provider balances — none loaded');
+  else {
+    details.push(`Provider balances — ${lock.providers.map((provider) => `${provider.name} ${gbp(provider.balancePence)} (${provider.statementRef})`).join(' · ')}`);
   }
   if (lock.note?.trim()) details.push(`Note — ${lock.note.trim()}`);
   return details;
@@ -222,7 +230,7 @@ function readStorageMode(): StorageMode | null {
   return HOSTED_WEB ? 'cloud' : null;
 }
 
-function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorkspace }: { user: AppUser; onSignOut: () => void; localAccount?: LocalAccountControls; demo?: boolean; onChooseWorkspace: (mode: 'account' | 'local') => void }) {
+function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorkspace, onOpenDemo }: { user: AppUser; onSignOut: () => void; localAccount?: LocalAccountControls; demo?: boolean; onChooseWorkspace: (mode: 'account' | 'local') => void; onOpenDemo?: () => void }) {
   const [loaded] = useState<LoadedState>(() => (demo ? { state: demoState(), status: 'ok' } : loadStateWithStatus(user.id)));
   const [state, setState] = useState(() => {
     const dataset = structuredClone(loaded.state.dataset);
@@ -515,6 +523,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     syncConflicts: sync.conflictList,
     resolveSyncConflict: sync.resolveConflict,
     exportSyncConflict: sync.exportConflict,
+    syncHealth: sync.enabled ? { phase: sync.phase, pending: sync.pending, message: sync.message, lastSyncedAt: sync.lastSyncedAt } : undefined,
+    onOpenDemo,
   };
 
   const setupHidden = state.dataset.accounts.length > 0 || state.dataset.transactions.length > 0;
@@ -527,6 +537,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     ? { label: 'Not saved', tone: 'danger', title: `Changes are not being saved. ${saveError}` }
     : syncStatusLabel(sync);
   const feedbackUnread = feedbackItems.filter((item) => !item.readAt).length;
+  const budgetNotifications = buildBudgetNotifications(state.dataset, engine);
+  const notificationUnread = unreadBudgetNotifications(state.dataset, budgetNotifications).length;
 
   const showNavTip = (event: { currentTarget: HTMLElement }, label: string, text: string) => {
     if (!text) return;
@@ -559,6 +571,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       case 'statements': return <Statements {...props} />;
       case 'import': return <ImportView {...props} />;
       case 'health': return <DataHealthView {...props} />;
+      case 'alerts': return <NotificationsView {...props} />;
       case 'settings': return <SettingsView {...props} />;
       case 'appChangelog': return <AppChangelogView {...props} />;
       case 'changelog': return <ChangelogView {...props} />;
@@ -715,6 +728,16 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
                 🔒 Lock
               </button>
             )}
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => setView('alerts')}
+              title={`${notificationUnread} unread bill or balance alert${notificationUnread === 1 ? '' : 's'}`}
+              aria-label={`Notifications${notificationUnread ? `, ${notificationUnread} unread` : ''}`}
+            >
+              <span aria-hidden="true">🔔</span>
+              {notificationUnread > 0 && <span className="feedback-count">{notificationUnread > 9 ? '9+' : notificationUnread}</span>}
+            </button>
             {!demo && (
               <button
                 className="btn ghost feedback-trigger"
@@ -1053,6 +1076,7 @@ export default function App() {
         onSignOut={localAccount ? () => void handleLocalSignOut() : handleLocalExit}
         localAccount={localAccount}
         onChooseWorkspace={chooseWorkspace}
+        onOpenDemo={() => setDemo(true)}
       />
     );
   }
@@ -1104,6 +1128,7 @@ export default function App() {
       user={{ id: session.user.id, email: session.user.email ?? null, local: false }}
       onSignOut={() => void handleSignOut()}
       onChooseWorkspace={chooseWorkspace}
+      onOpenDemo={() => setDemo(true)}
     />
   );
 }

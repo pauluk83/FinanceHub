@@ -23,7 +23,7 @@ test('the default sidebar keeps the expected group order and provider order', ()
   const nav = buildNav(dataset());
   assert.deepEqual(nav.map((group) => group.group), ['Overview', 'Ledger', 'Providers', 'Tools']);
   assert.deepEqual(nav[2].items.map((item) => item.id), ['rent', 'water', 'councilTax', 'o2']);
-  assert.deepEqual(nav[3].items.map((item) => item.id), ['setup', 'statements', 'import', 'health', 'settings', 'appChangelog', 'changelog', 'guides']);
+  assert.deepEqual(nav[3].items.map((item) => item.id), ['setup', 'statements', 'import', 'alerts', 'health', 'settings', 'appChangelog', 'changelog', 'guides']);
 });
 
 test('a hidden item leaves the sidebar and the palette list', () => {
@@ -42,7 +42,7 @@ test('Tools is static: its items cannot be hidden or moved', () => {
   const ds = dataset({ hidden: ['settings', 'guides'], groups: { settings: 'Overview', guides: 'Ledger' } });
   const nav = buildNav(ds);
   const tools = nav.find((group) => group.group === 'Tools');
-  assert.deepEqual(tools?.items.map((item) => item.id), ['setup', 'statements', 'import', 'health', 'settings', 'appChangelog', 'changelog', 'guides']);
+  assert.deepEqual(tools?.items.map((item) => item.id), ['setup', 'statements', 'import', 'alerts', 'health', 'settings', 'appChangelog', 'changelog', 'guides']);
   assert.equal(groupOf(ds, 'settings'), 'Tools');
   assert.equal(groupOf(ds, 'guides'), 'Tools');
 });

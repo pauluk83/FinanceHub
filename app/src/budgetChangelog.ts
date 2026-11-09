@@ -22,7 +22,7 @@ export const BUDGET_CHANGE_SECTIONS: [string, string][] = [
  * Settings keys that only arrange the interface. Hiding or moving a menu item
  * changes no balance, so it must not create a budget history entry.
  */
-const UI_ONLY_SETTINGS = new Set(['navLayout']);
+const UI_ONLY_SETTINGS = new Set(['navLayout', 'notificationReads']);
 
 function comparable(dataset: Dataset, key: string): unknown {
   if (key !== 'settings') return (dataset as unknown as Record<string, unknown>)[key];

@@ -2,6 +2,7 @@ import type { ViewProps } from '../types';
 import { Badge, Card, Empty, Section, Table } from '../components';
 import { buildDataHealth, type HealthCheck } from '../../../core/dataHealth';
 import { billSheetsFor } from '../billSheets';
+import { lastBackupExportedAt, latestRestorePointAt } from '../backupStore';
 
 function severityLabel(severity: HealthCheck['severity']): string {
   if (severity === 'critical') return 'Critical';
@@ -17,10 +18,16 @@ function severityTone(severity: HealthCheck['severity']): string {
   return 'green';
 }
 
-export function DataHealthView({ ds, engine, go, syncConflicts }: ViewProps) {
+export function DataHealthView({ ds, engine, go, syncConflicts, syncHealth, userId }: ViewProps) {
   const report = buildDataHealth(ds, engine, {
     sheets: billSheetsFor(ds),
     syncConflicts: syncConflicts.length,
+    sync: syncHealth,
+    backup: {
+      lastExportedAt: lastBackupExportedAt(userId),
+      lastRestorePointAt: latestRestorePointAt(userId),
+      now: new Date().toISOString(),
+    },
   });
   const findings = report.checks.filter((check) => check.severity !== 'ok');
   const statusLabel = report.status === 'critical'

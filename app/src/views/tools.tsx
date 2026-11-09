@@ -18,6 +18,8 @@ import { createVault, legacySecrets, rotateVault, sealVault, stripLegacySecrets,
 import { AppLockSection } from './appLock';
 import { planYearRollover, rolloverYear } from '../../../core/yearRollover';
 import { GITHUB_REPO_URL } from '../installer';
+import { EncryptedBackupSection } from './backup';
+import { AccountSecuritySection } from './accountSecurity';
 
 function YearRolloverSection({ ds, year, update, setYear, notify }: Pick<ViewProps, 'ds' | 'update' | 'setYear' | 'notify'> & { year: number }) {
   const next = ds.settings.targetYear + 1;
@@ -921,6 +923,8 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
         </div>
       </Section>
 
+      <AccountSecuritySection isLocal={isLocal} notify={notify} signOut={signOut} userEmail={userEmail} />
+
       <AppLockSection config={appLock} onChange={setAppLock} workspace={workspace} notify={notify} />
 
       <Section
@@ -1245,8 +1249,8 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
             }}
           />
           <button className="btn" onClick={() => download('financehub-transactions.csv', toCsv([
-            ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Treatment', 'Status'],
-            ...ds.transactions.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.budgetTreatment, t.status]),
+            ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status'],
+            ...ds.transactions.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.category ?? '', (t.tags ?? []).join(', '), t.budgetTreatment, t.status]),
           ]))}>Export transactions (CSV)</button>
           <div className="toolbar-spacer" />
           <button className="btn danger" onClick={reset}>Reset to imported workbook</button>
@@ -1256,6 +1260,8 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
           <div className="notice info">Provider login details are stored with this budget and shown on their provider pages. Exported backups are plain JSON, so keep them protected.</div>
         </div>
       </Section>
+
+      <EncryptedBackupSection ds={ds} update={update} notify={notify} userId={userId} />
 
       <Section title="About & legal" sub="Ownership, copyright, trademark and the documents that govern your use of FinanceHub">
         <div style={{ padding: 16, display: 'grid', gap: 10 }}>

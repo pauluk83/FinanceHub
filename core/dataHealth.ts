@@ -9,6 +9,8 @@ import type { BillSheet, Dataset, Engine } from './engine.ts';
 import { accountsNeedingReview } from './accounts.ts';
 import { duplicateGroups } from './importDedupe.ts';
 import { providerBlockYear, providerRowsKey } from './providerYears.ts';
+import { providerBalancesForYear } from './providerSnapshot.ts';
+import { monthEnd } from './engine.ts';
 
 export type HealthSeverity = 'ok' | 'info' | 'warning' | 'critical';
 
@@ -41,6 +43,10 @@ export interface DataHealthOptions {
   /** The link sheets the bill editor offers, including historical names. */
   sheets?: readonly BillSheet[];
   syncConflicts?: number;
+  /** Current cloud-sync transport state, if this workspace uses sync. */
+  sync?: { phase?: string; pending?: number; message?: string; lastSyncedAt?: string | null };
+  /** Encrypted backup freshness, if known on this device. */
+  backup?: { lastExportedAt?: string | null; lastRestorePointAt?: string | null; now?: string };
 }
 
 function money(pence: number): string {
@@ -313,6 +319,13 @@ function lockedMonthCheck(ds: Dataset, engine: Engine): HealthCheck {
         dashboard.bills.map((bill) => ({ name: bill.name, balancePence: bill.amountPence })),
       ));
     }
+    if (lock.providers !== undefined) {
+      differences.push(...balanceDifferences(
+        'Provider',
+        lock.providers.map((provider) => ({ name: provider.name, balancePence: provider.balancePence })),
+        providerBalancesForYear(ds, year, monthEnd(year, month)).map((provider) => ({ name: provider.name, balancePence: provider.balancePence })),
+      ));
+    }
 
     if (differences.length) {
       differing += 1;
@@ -390,6 +403,78 @@ function syncConflictCheck(count: number): HealthCheck {
   };
 }
 
+function syncStateCheck(sync: DataHealthOptions['sync']): HealthCheck {
+  if (!sync) {
+    return {
+      id: 'sync-state',
+      title: 'Cloud sync',
+      severity: 'ok',
+      summary: 'Cloud sync is not enabled for this workspace.',
+      items: [],
+    };
+  }
+  const pending = Math.max(0, sync.pending ?? 0);
+  const problem = sync.phase === 'error' || sync.phase === 'conflict' || sync.phase === 'offline' || pending > 0;
+  if (!problem) {
+    return {
+      id: 'sync-state',
+      title: 'Cloud sync',
+      severity: 'ok',
+      summary: sync.lastSyncedAt ? `Last synced ${sync.lastSyncedAt}.` : 'Cloud sync is ready.',
+      items: [],
+      action: { label: 'Open Settings', view: 'settings' },
+    };
+  }
+  const details = [
+    sync.phase ? `Phase: ${sync.phase}.` : '',
+    pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to push.` : '',
+    sync.message ?? '',
+  ].filter(Boolean);
+  return {
+    id: 'sync-state',
+    title: sync.phase === 'conflict' ? 'Sync conflict needs a decision' : 'Cloud sync is not up to date',
+    severity: 'warning',
+    summary: 'The current budget is safe on this device, but the cloud copy is behind or needs attention.',
+    items: details,
+    action: { label: 'Open sync settings', view: 'settings' },
+  };
+}
+
+function backupAgeCheck(backup: DataHealthOptions['backup']): HealthCheck {
+  const now = backup?.now ?? new Date().toISOString();
+  const candidates = [backup?.lastExportedAt, backup?.lastRestorePointAt].filter((value): value is string => Boolean(value));
+  if (!candidates.length) {
+    return {
+      id: 'backup-age',
+      title: 'Encrypted backups',
+      severity: 'info',
+      summary: 'No encrypted backup or restore point is recorded on this device yet.',
+      items: ['Create an encrypted backup in Settings → Data & backups before a large edit or import.'],
+      action: { label: 'Open backups', view: 'settings' },
+    };
+  }
+  const latest = candidates.sort().at(-1) as string;
+  const ageDays = Math.max(0, Math.floor((Date.parse(now) - Date.parse(latest)) / 86_400_000));
+  if (!Number.isFinite(ageDays) || ageDays > 30) {
+    return {
+      id: 'backup-age',
+      title: 'Encrypted backup is old',
+      severity: 'warning',
+      summary: `The newest encrypted backup or restore point is ${Number.isFinite(ageDays) ? `${ageDays} days` : 'an unknown time'} old.`,
+      items: ['Create a fresh restore point in Settings → Data & backups.'],
+      action: { label: 'Open backups', view: 'settings' },
+    };
+  }
+  return {
+    id: 'backup-age',
+    title: 'Encrypted backups',
+    severity: 'ok',
+    summary: `The newest encrypted backup is ${ageDays === 0 ? 'from today' : `${ageDays} day${ageDays === 1 ? '' : 's'} old`}.`,
+    items: [],
+    action: { label: 'Open backups', view: 'settings' },
+  };
+}
+
 export function buildDataHealth(ds: Dataset, engine: Engine, options: DataHealthOptions = {}): DataHealthReport {
   const checks = [
     unknownAccountCheck(ds),
@@ -400,6 +485,8 @@ export function buildDataHealth(ds: Dataset, engine: Engine, options: DataHealth
     lockedMonthCheck(ds, engine),
     dormantAccountCheck(ds),
     syncConflictCheck(options.syncConflicts ?? 0),
+    syncStateCheck(options.sync),
+    backupAgeCheck(options.backup),
   ];
 
   const counts: Record<HealthSeverity, number> = { ok: 0, info: 0, warning: 0, critical: 0 };

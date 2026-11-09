@@ -937,7 +937,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   );
 }
 
-export function Statements({ ds, engine, year, go }: ViewProps) {
+export function Statements({ ds, engine, year, availableYears, go }: ViewProps) {
   const options = [
     ...ds.accounts.map((a) => a.name),
     ...ds.people.map((p) => p.shortName),
@@ -945,6 +945,8 @@ export function Statements({ ds, engine, year, go }: ViewProps) {
   ];
   const [account, setAccount] = useState(options[0] ?? '');
   const [m, setM] = useState('All');
+  const [reportYear, setReportYear] = useState(String(year));
+  useEffect(() => setReportYear(String(year)), [year]);
   if (options.length === 0) {
     return (
       <Section title="Statement" sub="No accounts to report on yet" actions={<button className="btn primary" onClick={() => go('setup')}>Open setup</button>}>
@@ -952,13 +954,14 @@ export function Statements({ ds, engine, year, go }: ViewProps) {
       </Section>
     );
   }
-  const st = engine.statement(account, year, m === 'All' ? null : Number(m));
+  const selectedYear = reportYear === 'All' ? null : Number(reportYear);
+  const st = engine.statement(account, selectedYear, m === 'All' ? null : Number(m));
   const repaid = st.lines.filter((l) => l.type === 'Income');
   const lent = st.lines.filter((l) => l.type === 'Expense');
   const primaryAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || '';
   const anchorAdjusted = account === primaryAccount;
 
-  const exportStatement = () => download(`statement-${account}.csv`, toCsv([
+  const exportStatement = () => download(`statement-${account}-${reportYear}.csv`, toCsv([
     ['Date', 'Description', 'Repaid', 'Lent', 'Balance'],
     ...st.lines.map((l) => [l.date, l.comments, l.type === 'Income' ? (l.amountPence / 100).toFixed(2) : '', l.type === 'Expense' ? (l.amountPence / 100).toFixed(2) : '', (l.runningPence / 100).toFixed(2)]),
   ]));
@@ -977,6 +980,10 @@ export function Statements({ ds, engine, year, go }: ViewProps) {
           <select className="select" value={m} onChange={(e) => setM(e.target.value)} aria-label="Month">
             <option value="All">All months</option>
             {MONTH_LONG.map((label, i) => <option key={label} value={i + 1}>{label}</option>)}
+          </select>
+          <select className="select" value={reportYear} onChange={(e) => setReportYear(e.target.value)} aria-label="Statement year">
+            <option value="All">All years</option>
+            {availableYears.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
           <span className="muted small">{st.lines.length} transactions</span>
         </div>
@@ -999,7 +1006,7 @@ export function Statements({ ds, engine, year, go }: ViewProps) {
         </Table>
         {st.lines.length === 0 && <Empty>No transactions for this account in the selected period.</Empty>}
         <div style={{ padding: '10px 16px' }} className="muted small">
-          Repaid rows: {repaid.length} · Lent rows: {lent.length} · Closing includes the opening balance.
+          Repaid rows: {repaid.length} · Lent rows: {lent.length} · Closing includes the opening balance. {reportYear === 'All' ? 'All years are shown in date order; the opening balance is the account opening.' : ''}
           {anchorAdjusted && ' This statement adds scheduled bills, people cash and Backup Space on the same dates as the Dashboard, so the closing balance matches the account balance.'}
         </div>
       </Section>

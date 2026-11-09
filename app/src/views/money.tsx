@@ -6,6 +6,7 @@ import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
+import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
@@ -20,6 +21,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const [account, setAccount] = useState('All');
   const [type, setType] = useState('All');
   const [mFilter, setMFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [tagFilter, setTagFilter] = useState('All');
   const [page, setPage] = useState(0);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
@@ -34,6 +37,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     amount: '',
     comments: '',
     treatment: '',
+    category: '',
+    tags: '',
   });
 
   const mainAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || 'the main account';
@@ -67,17 +72,22 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       if (account !== 'All' && t.account !== account && !(linkedTo && commentsMention(t.comments, linkedTo))) return false;
       if (type !== 'All' && t.type !== type) return false;
       if (mFilter !== 'All' && Number(t.date.slice(5, 7)) !== Number(mFilter)) return false;
-      if (q && !`${t.comments} ${t.account} ${t.type} ${t.amountPence}`.toLowerCase().includes(q.toLowerCase())) return false;
+      if (!transactionMatches(t, { category: categoryFilter, tag: tagFilter })) return false;
+      if (q && !`${t.comments} ${t.account} ${t.type} ${t.amountPence} ${t.category ?? ''} ${tagsText(t.tags)}`.toLowerCase().includes(q.toLowerCase())) return false;
       return true;
     })
-    .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row), [ds.transactions, account, linkedTo, type, mFilter, q]);
+    .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row), [ds.transactions, account, linkedTo, type, mFilter, categoryFilter, tagFilter, q]);
 
   const linkedCount = linkedTo ? rows.filter((t) => t.account !== linkedTo).length : 0;
   const linkedExpensePence = linkedTo
     ? rows.reduce((sum, t) => sum + (t.type === 'Expense' ? t.amountPence : -t.amountPence), 0)
     : 0;
 
-  useEffect(() => setPage(0), [q, account, type, mFilter]);
+  useEffect(() => setPage(0), [q, account, type, mFilter, categoryFilter, tagFilter]);
+  const categories = useMemo(() => categoryOptions(ds.transactions), [ds.transactions]);
+  const tags = useMemo(() => tagOptions(ds.transactions), [ds.transactions]);
+  const category = normaliseCategory(form.category);
+  const formTags = normaliseTags(form.tags);
 
   const pageSize = 60;
   const pageRows = rows.slice(page * pageSize, (page + 1) * pageSize);
@@ -87,8 +97,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
 
   const exportRows = () => {
     download('financehub-transactions.csv', toCsv([
-      ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Treatment', 'Status'],
-      ...rows.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.budgetTreatment, t.status]),
+      ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status'],
+      ...rows.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.category ?? '', tagsText(t.tags), t.budgetTreatment, t.status]),
     ]));
     notify(`Exported ${rows.length} transactions`);
   };
@@ -137,6 +147,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           legs[0].row = outgoingRow ?? row.row;
           legs[1].row = incomingRow ?? Math.max(0, ...d.transactions.map((t) => t.row)) + 1;
           if (legs[1].row === legs[0].row) legs[1].row = Math.max(...legs.map((l) => l.row)) + 1;
+          for (const leg of legs) { leg.category = category; leg.tags = formTags; }
           d.transactions = [...d.transactions.filter((t) => !drop.has(t.row)), legs[0], legs[1]];
         });
         setEditing(null);
@@ -158,6 +169,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         updated.amountPence = amount;
         updated.comments = form.comments;
         updated.budgetTreatment = form.treatment;
+        updated.category = category;
+        updated.tags = formTags;
         if (kindOf(originalAccount) === 'unknown' && kindOf(form.account) !== 'unknown') {
           d.changelog = d.changelog ?? [];
           (d.changelog as any[]).unshift({
@@ -179,14 +192,16 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     if (form.type === 'Transfer') {
       update((d) => {
         const firstRow = Math.max(0, ...d.transactions.map((t) => t.row)) + 1;
-        d.transactions.push(...buildTransferLegs({
+        const legs = buildTransferLegs({
           date: form.date,
           from: form.account,
           to: form.to,
           amountPence: amount,
           comments: form.comments,
           firstRow,
-        }));
+        });
+        for (const leg of legs) { leg.category = category; leg.tags = formTags; }
+        d.transactions.push(...legs);
       });
       setForm({ ...form, amount: '', comments: '' });
       setAdding(false);
@@ -204,6 +219,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         comments: form.comments,
         status: '',
         budgetTreatment: form.treatment,
+        category,
+        tags: formTags,
       });
     });
     setForm({ ...form, amount: '', comments: '' });
@@ -222,6 +239,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       amount: (t.amountPence / 100).toFixed(2),
       comments: t.comments,
       treatment: paired ? 'Transfer' : t.budgetTreatment,
+      category: t.category ?? '',
+      tags: tagsText(t.tags),
     });
     setEditing(t.row);
     setAdding(true);
@@ -304,7 +323,15 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
             <option value="All">All months</option>
             {MONTH_LONG.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
-          <button className="btn ghost" onClick={() => { setQ(''); setAccount('All'); setType('All'); setMFilter('All'); }}>Clear</button>
+          <select className="select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} aria-label="Category filter">
+            <option value="All">All categories</option>
+            {categories.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+          </select>
+          <select className="select" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Tag filter">
+            <option value="All">All tags</option>
+            {tags.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+          </select>
+          <button className="btn ghost" onClick={() => { setQ(''); setAccount('All'); setType('All'); setMFilter('All'); setCategoryFilter('All'); setTagFilter('All'); }}>Clear</button>
         </div>
 
         {adding && (
@@ -353,6 +380,13 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
             </Field>
             <Field label="Amount (£)"><input className="input" inputMode="decimal" placeholder="0.00" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
             <Field label="Comments"><input className="input" value={form.comments} onChange={(e) => { setLoanPrefilled(false); setForm({ ...form, comments: e.target.value }); }} /></Field>
+            <Field label="Category">
+              <input className="input" list="transaction-categories" placeholder="e.g. Food" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              <datalist id="transaction-categories">{categories.map((entry) => <option key={entry} value={entry} />)}</datalist>
+            </Field>
+            <Field label="Tags" hint="Comma-separated; up to 8">
+              <input className="input" placeholder="weekly, tesco" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+            </Field>
             {form.type !== 'Transfer' && (
               <Field label="Budget treatment">
                 <select className="select" value={form.treatment} onChange={(e) => setForm({ ...form, treatment: e.target.value })}>
@@ -382,7 +416,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           </div>
         )}
 
-        <Table head={['Date', 'Account', 'Type', 'Amount', 'Comments', 'Treatment', 'Status', 'Actions']} numHead={[3]}>
+        <Table head={['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Actions']} numHead={[3]}>
           {pageRows.map((t) => (
             <tr key={t.row}>
               <td className="nowrap muted">{dateUk(t.date)}</td>
@@ -396,6 +430,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
               <td><Badge tone={t.type === 'Income' ? 'green' : 'neutral'}>{t.type}</Badge></td>
               <td className={`num ${t.type === 'Income' ? 'amount pos' : 'amount neg'}`}>{t.type === 'Income' ? '+' : '−'}{gbp(t.amountPence).replace('£', '£')}</td>
               <td className="muted">{t.comments || '—'}</td>
+              <td>{t.category ? <Badge tone="blue">{t.category}</Badge> : <span className="faint">—</span>}</td>
+              <td className="muted small">{(t.tags ?? []).length ? t.tags!.join(', ') : '—'}</td>
               <td>{t.budgetTreatment ? <Badge tone={t.budgetTreatment === 'Transfer' ? 'blue' : 'violet'}>{t.budgetTreatment}</Badge> : <span className="faint">Normal</span>}</td>
               <td>{t.status ? <Badge tone="amber">{t.status}</Badge> : <Badge tone="green">Open</Badge>}</td>
               <td className="nowrap">

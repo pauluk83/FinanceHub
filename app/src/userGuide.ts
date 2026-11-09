@@ -117,17 +117,18 @@ export const USER_GUIDE: GuideEntry[] = [
     id: 'transactions',
     group: 'Ledger',
     title: 'Transactions',
-    summary: 'Every movement in the budget, including transfer legs, refunds and linked people or provider rows.',
+    summary: 'Every movement in the budget, including transfer legs, refunds, categories, free-form tags and linked people or provider rows.',
     steps: [
-      'Filter by account, month, type or free text to find a row, then open it to edit.',
-      'Add, edit or delete rows in open months; locked months reject changes.',
+      'Filter by account, month, type, category, tag or free text to find a row, then open it to edit.',
+      'Add, edit or delete rows in open months; choose one category and up to eight comma-separated tags when useful.',
       'Record a transfer between your own accounts as one transfer — both legs and the balance effect are created together.',
       'Use History on a row to inspect the recorded before/after values and revert an edit or addition.',
       'Deleted rows stay in Trash until restored; restoring a deleted row creates a new audit entry.',
     ],
     notes: [
       'Refund treatment follows the original row type so totals are not inflated.',
-      'A transfer never counts as income or expense; it only moves the balance.',
+      'A transfer never counts as income or expense; it only moves the balance. Its category and tags are applied to both legs.',
+      'Categories and tags are optional labels: they are included in CSV exports and filters, but never change a total, balance or locked month.',
       'Reverting a locked-month row is refused until that month is unlocked.',
     ],
   },
@@ -365,13 +366,13 @@ export const USER_GUIDE: GuideEntry[] = [
     title: 'Statements',
     summary: 'A filtered statement for one account with opening balance, movements and a running balance.',
     steps: [
-      'Pick an account, person or card and a month, or choose All months.',
+      'Pick an account, person or card, a year (or All years) and a month, or choose All months.',
       'Review the opening, repaid/lent and closing balances with every movement in between.',
       'Export the filtered statement as a CSV.',
     ],
     notes: [
       'Statements are a report — edit the underlying rows in Transactions.',
-      'Locked months are included exactly as they were closed.',
+      'Locked months are included exactly as they were closed. All years puts every matching movement in date order.',
     ],
   },
   {
@@ -387,6 +388,21 @@ export const USER_GUIDE: GuideEntry[] = [
     notes: [
       'Imports never post into locked months and never silently overwrite existing rows.',
       'File size and row limits are shown before an import starts.',
+    ],
+  },
+  {
+    id: 'alerts',
+    group: 'Tools',
+    title: 'Notifications',
+    summary: 'In-app alerts for bills due soon, low account balances and high card use.',
+    steps: [
+      'Open the bell in the top bar or Tools → Notifications to see current alerts.',
+      'Mark an alert read after dealing with it; the alert remains visible until the underlying bill or balance changes.',
+      'Use Open to jump to the bill, account or card that caused the alert.',
+    ],
+    notes: [
+      'Alerts are derived from the loaded budget. Marking one read never changes a balance, bill or locked month.',
+      'The read state travels with the budget document, but the reminder itself is in-app only — no email or push notification is sent.',
     ],
   },
   {
@@ -415,6 +431,8 @@ export const USER_GUIDE: GuideEntry[] = [
       'In a local-only workspace, App lock sets a 4–8 digit PIN, a 1–30 minute idle window and a Lock button in the top bar. It applies to this device only and starts locked the next time the workspace opens.',
       'Set the budget year, As-of date, anchor date, theme and Menu layout.',
       'Export a JSON backup, restore the imported workbook, or manage sync and local data in Data & backups.',
+      'For a protected copy, enter a backup passphrase and export an encrypted backup. The seven newest restore points stay on this device.',
+      'Add an authenticator app under Account security, or delete the cloud account and its records permanently.',
     ],
     notes: [
       'Menu layout hides items and moves them between sections; Tools is fixed and can never be hidden or moved.',

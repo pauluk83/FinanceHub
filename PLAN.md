@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-09
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; end-to-end encrypted credential vault, device-local people statement sign-ins, app-wide feedback, the read-only Data Health / Integrity Centre and per-record transaction audit/trash delivered; the owner confirms exposed provider passwords are rotated and the earlier GitHub v2026.11.9 installer assets are refreshed; the audit rebuild is local only; not release-ready — hosted web upload blocked by the FTP host being unreachable, pre-rotation snapshot/backup purge, packaged-security checks and Windows signing remain**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA and self-serve cloud deletion delivered. The owner confirms exposed provider passwords are rotated and the earlier GitHub v2026.11.9 installer assets are refreshed; the current rebuild is local only. Not release-ready — hosted web upload blocked by the FTP host being unreachable, pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -1052,18 +1052,18 @@ Sequence chosen: low-risk, independently verifiable release work first.
 8. [~] Package the Windows build. Unsigned NSIS installer verified and branded icon still to add; signing and signed auto-update are deferred until a certificate is available.
 9. [x] Fixed Starling statement reconciliation and added full statement coverage (P0-7) — closed 2026-11-08.
 10. [~] Complete live cloud, packaged-security and automated UI smoke-test verification. Google sign-in, the local-data consent prompt and one-account cloud sync are verified; packaged OAuth/CSP and UI smoke tests remain. Two-account/RLS and two-device/offline/conflict validation are deferred by the owner.
-11. [~] Started the trust backlog with the **Data Health / Integrity Centre**. The read-only screen and its tests are delivered; backup-age and failed-sync checks still need metadata. P0-8 rotation is confirmed; the old-snapshot purge remains.
+11. [~] Data Health / Integrity Centre delivered, including failed-sync state and backup-age checks. P0-8 rotation is confirmed; the old-snapshot purge remains.
 12. [~] Started the compliance workstream with the **DPIA and ICO pack**. It cannot be closed by code and it gates public distribution, any store submission and every regulatory or security claim.
-13. [ ] Add a safe **Remove local-only copy / Forget this device** action that never resets or uploads cloud data. The leftover local copy has 1,121 rows (one duplicate) versus 1,120 in the cloud.
+13. [x] Added a safe **Remove local copy** action in Settings → Account. It removes only the device-only document and its recovery copies after confirming a saved cloud budget exists; it never uploads or resets cloud data.
 14. [x] Added per-record audit history, revert and transaction trash/undo. Transactions, accounts, people, cards, bills and bill changes are diffed at the update boundary; Transactions exposes row history and recently deleted restore.
-15. [ ] Add one category plus free-form tags to transactions.
-16. [ ] Add the in-app notification centre for bill and balance alerts.
-17. [ ] Add guided first-run setup with a blank-budget or demo choice.
-18. [ ] Add encrypted, versioned backups with seven restore points.
-19. [ ] Add provider balances and statement references to locked-month snapshots and an All years statement view.
-20. [ ] Add failed-sync and backup-age diagnostics to Data Health.
-21. [ ] Add self-serve cloud account deletion plus MFA/passkeys.
-22. [ ] Start bank-linking integration only after the C-4 gate clears.
+15. [x] Added one optional category and up to eight free-form tags to transactions, with filtering, CSV export and transfer-leg propagation. Labels never change calculations.
+16. [x] Added the in-app notification centre for bills due within seven days, negative or low account balances and cards above 80% utilisation, with read state in the budget.
+17. [x] Added a first-run choice between a blank budget and the demo workspace; both remain device/account-local until the owner saves or syncs.
+18. [x] Added encrypted backup format v2 (PBKDF2-SHA-256 + AES-256-GCM), checksum verification and seven newest local restore points.
+19. [x] Added provider balances and statement references to month-end locks, provider drift to Data Health, and an All years statement view.
+20. [x] Added failed-sync, pending-change, missing-backup and backup-age diagnostics to Data Health.
+21. [~] Added self-serve cloud account deletion and TOTP authenticator MFA. The deletion SQL migration must be applied; passkeys remain pending Supabase WebAuthn configuration.
+22. [ ] Bank linking remains gated on C-4; no provider credentials or integration code have been added.
 
 ---
 
@@ -1203,6 +1203,7 @@ Open items:
 - 2026-11-09: Web deployment paused without uploading. `ftpupload.net:21` timed out from this host before authentication (curl 28, 0/11 files deployed), so the failure was network reachability, not a rejected password. The corrected password was supplied only as `FTP_PASSWORD`; a workspace scan found no copy of it. Retry from a network that can reach the FTP host or through the InfinityFree file manager.
 - 2026-11-09: Recorded the owner's remaining release decisions: deploy the hosted bundle and refresh the existing `v2026.11.9` assets; commit and push; the exposed provider passwords are already rotated; purge pre-rotation snapshots and old backups; defer two-device validation and signing; direct Windows distribution first; defer iOS; integrate bank linking only after C-4; one category plus free-form tags; in-app alerts first; guided setup with blank/demo choice; encrypted backups with seven restore points; per-record audit and trash; provider balances and statement references in locks; All-years statements; failed-sync and backup-age health checks; self-serve deletion plus MFA/passkeys; open the DPIA/ICO pack. Deployment is paused because `ftpupload.net:21` is unreachable; the earlier GitHub asset refresh is complete; the audit rebuild remains local until upload is authorized.
 - 2026-11-09: Added per-record audit history and transaction trash. `core/audit.ts` diffs transactions, accounts, people, cards, bills and bill changes at the save boundary, caps history at 500 entries, groups both transfer legs for atomic restore, and keeps generated bill rows out. Transactions has a per-row **History** panel with revert and a **Recently deleted** panel with restore; locked months still refuse changes. `tests/audit.test.ts` covers create, edit, delete, restore, row reuse and atomic transfer restore. `npm test` **248/248**, `tsc` clean. Release build `4991d0a107bf`, hosted bundle `index-Cz-or00I.js`, installer SHA-256 prefix `72c26858f7c0`; not uploaded.
+- 2026-11-09: Delivered transaction **categories and free-form tags** with filters and CSV export; the **in-app notification centre** for bills, low balances and card utilisation; the **first-run blank/demo choice**; **encrypted backup v2** with PBKDF2-SHA-256 + AES-256-GCM, checksum verification and seven local restore points; **provider balances and statement references** in month-end locks plus an **All years** statement; and **failed-sync, pending-change and backup-age** Data Health checks. Added **TOTP authenticator MFA** and a **self-serve cloud account deletion** function/migration. `npm test` **265/265**, `tsc` clean. Release build `85c5c46da578`, hosted bundle `index-BeGV_upU.js`, installer SHA-256 prefix `f9ee0c3e8c2d`; `release:check` passes. The deletion SQL migration still needs applying; passkeys depend on Supabase WebAuthn configuration and bank linking remains gated on C-4. Nothing was uploaded; the live site and GitHub installer assets remain on their earlier builds.
 
 ---
 

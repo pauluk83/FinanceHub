@@ -25,6 +25,8 @@ export type TransferLeg = {
   comments: string;
   status: string;
   budgetTreatment: 'Transfer';
+  category?: string;
+  tags?: string[];
 };
 
 export type TransferCandidate = {

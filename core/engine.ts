@@ -26,6 +26,9 @@ export interface Tx {
   comments: string;
   status: string;
   budgetTreatment: '' | 'Transfer' | 'Refund' | string;
+  /** Optional single category and free-form tags; never used in calculations. */
+  category?: string;
+  tags?: string[];
   /** False for Dan rows that were never paid from Starling. */
   starlingFunded?: boolean;
   /** False for archived rows that must stay in the log but not move this balance. */
@@ -71,6 +74,8 @@ export interface MonthLock {
   cards: { name: string; balancePence: number }[];
   people: { shortName: string; balancePence: number }[];
   bills?: { name: string; amountPence: number }[];
+  /** Provider ledger closes and statement references captured at the same close. */
+  providers?: import('./providerSnapshot.ts').ProviderBalanceSnapshot[];
 }
 export interface ScheduleRow { month: string; year2026: { date: string; amountPence: number }; year2027: { date: string; amountPence: number }; year2028: { date: string; amountPence: number } }
 
@@ -113,6 +118,8 @@ export interface Dataset {
     navLayout?: { hidden?: string[]; groups?: Record<string, string> };
     /** Year-opening balances captured by a carry-over rollover. */
     yearOpenings?: Record<string, YearOpeningBalances>;
+    /** Notification IDs the owner has already read. */
+    notificationReads?: Record<string, string>;
   };
   accounts: Account[];
   people: Person[];

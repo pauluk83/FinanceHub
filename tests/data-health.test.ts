@@ -57,12 +57,21 @@ function bill(overrides: Partial<Bill> = {}): Bill {
   };
 }
 
-function report(ds: Dataset, options: { syncConflicts?: number } = {}) {
-  return buildDataHealth(ds, buildEngine(ds), { sheets: [], syncConflicts: options.syncConflicts ?? 0 });
+function report(ds: Dataset, options: { syncConflicts?: number; sync?: { phase?: string; pending?: number }; backup?: { lastExportedAt?: string | null; lastRestorePointAt?: string | null; now?: string } } = {}) {
+  return buildDataHealth(ds, buildEngine(ds), {
+    sheets: [],
+    syncConflicts: options.syncConflicts ?? 0,
+    sync: options.sync,
+    backup: options.backup ?? { lastExportedAt: '2026-11-08T10:00:00.000Z', now: '2026-11-09T10:00:00.000Z' },
+  });
 }
 
 function finding(ds: Dataset, id: string): HealthCheck | undefined {
   return report(ds).checks.find((check) => check.id === id);
+}
+
+function findingWith(ds: Dataset, id: string, options: Parameters<typeof report>[1]): HealthCheck | undefined {
+  return report(ds, options).checks.find((check) => check.id === id);
 }
 
 test('a healthy budget passes every check', () => {
@@ -155,6 +164,23 @@ test('an active account with no movement is a note, not a failure', () => {
   assert.equal(result.status, 'ok');
   assert.equal(result.counts.info, 1);
   assert.equal(finding(ds, 'dormant-accounts')?.severity, 'info');
+});
+
+test('an old encrypted backup is reported', () => {
+  const check = findingWith(base(), 'backup-age', {
+    backup: { lastRestorePointAt: '2026-09-01T10:00:00.000Z', now: '2026-11-09T10:00:00.000Z' },
+  });
+  assert.equal(check?.severity, 'warning');
+  assert.match(check?.summary ?? '', /69 days/);
+});
+
+test('a pending sync state is reported without touching the budget', () => {
+  const ds = base();
+  const before = JSON.stringify(ds);
+  const check = findingWith(ds, 'sync-state', { sync: { phase: 'offline', pending: 2 } });
+  assert.equal(check?.severity, 'warning');
+  assert.match(check?.items.join(' ') ?? '', /2 changes waiting/);
+  assert.equal(JSON.stringify(ds), before);
 });
 
 test('unresolved sync conflicts are reported and the dataset is untouched', () => {
