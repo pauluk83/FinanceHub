@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.9",
-  "buildId": "85c5c46da578",
+  "buildId": "89bb71db76a1",
   "builtAt": "2026-11-09",
   "releases": [
     {
