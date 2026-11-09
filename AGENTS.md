@@ -52,8 +52,9 @@ Rules that follow from this:
   current commit's installer becomes the download the login page links to.
 - `npm run release:check` (or `npm test`) fails when the package version, `CHANGELOG.md`,
   the generated changelog or the hosted bundle disagree. A missing GitHub release is
-  reported until the tag is pushed; a published release's installer checksum must match
-  the local build.
+  reported until the tag is pushed; a published release must carry the versioned
+  installer, stable copy and a `SHA256SUMS.txt` that matches the published installer
+  digest. CI builds on another machine, so its bytes are not compared with a local build.
 
 ## Hosting constraints
 

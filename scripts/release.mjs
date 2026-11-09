@@ -206,8 +206,10 @@ async function localChecks() {
   // the web bundle is a normal part of a release commit.
   const repo = repoSlug(pkg.repository);
   if (!installerSha) {
-    // nothing to compare
-  } else if (!repo) {
+    // Nothing local to report; the GitHub release is still checked below so a
+    // checkout without a built installer can validate a published release.
+  }
+  if (!repo) {
     fail('package.json has no GitHub repository to check the installer release against');
   } else {
     try {
@@ -220,13 +222,24 @@ async function localChecks() {
         fail(`GitHub release check answered ${response.status}`);
       } else {
         const release = await response.json();
-        const asset = (release.assets ?? []).find((entry) => entry.name === 'FinanceHub-Setup.exe')
-          ?? (release.assets ?? []).find((entry) => entry.name === `FinanceHub-Setup-${pkg.version}.exe`);
-        if (!asset) fail(`GitHub release v${pkg.version} has no installer asset`);
-        else if (asset.digest?.startsWith('sha256:') && asset.digest.slice(7) !== installerSha) {
-          fail('GitHub installer checksum does not match the local build');
+        const assets = release.assets ?? [];
+        const versioned = assets.find((entry) => entry.name === `FinanceHub-Setup-${pkg.version}.exe`);
+        const stable = assets.find((entry) => entry.name === 'FinanceHub-Setup.exe');
+        const checksums = assets.find((entry) => entry.name === 'SHA256SUMS.txt');
+        if (!versioned || !stable || !checksums) {
+          fail(`GitHub release v${pkg.version} is missing the versioned installer, stable copy or checksums`);
+        } else if (versioned.digest?.startsWith('sha256:') && checksums.browser_download_url) {
+          // CI builds on a different machine, so compare the release's own checksum
+          // file with its installer digest rather than with this local build.
+          const text = await (await fetch(checksums.browser_download_url)).text();
+          const published = text.match(/\b([0-9a-f]{64})\b/i)?.[1]?.toLowerCase();
+          if (!published || published !== versioned.digest.slice(7)) {
+            fail('the GitHub checksum file does not match the published installer');
+          } else {
+            pass(`GitHub release v${pkg.version} installer matches SHA256SUMS.txt (${published.slice(0, 12)})`);
+          }
         } else {
-          pass(`GitHub release v${pkg.version} carries ${asset.name}`);
+          pass(`GitHub release v${pkg.version} carries ${versioned.name}`);
         }
       }
     } catch (error) {
