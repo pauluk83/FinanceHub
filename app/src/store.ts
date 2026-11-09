@@ -1,4 +1,6 @@
-import seed from '../../data/workbook.json';
+// Resolved by Vite and tsconfig: the private workbook when present, otherwise the
+// committed blank seed, so a clean checkout still typechecks and builds.
+import seed from '@workbook';
 import type { Dataset } from '../../core/engine';
 import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';

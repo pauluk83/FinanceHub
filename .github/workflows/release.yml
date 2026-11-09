@@ -32,7 +32,7 @@ jobs:
       - name: Prepare release assets
         shell: pwsh
         run: |
-          $version = node -p "require('./package.json').version"
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $installer = "release/FinanceHub-Setup-$version.exe"
           if (-not (Test-Path $installer)) { throw "Installer not built: $installer" }
           Copy-Item $installer "release/FinanceHub-Setup.exe"

@@ -5,6 +5,10 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@workbook": ["../data/web-seed.json"]
+    },
     "allowImportingTsExtensions": true,
     "strict": false,
     "skipLibCheck": true,

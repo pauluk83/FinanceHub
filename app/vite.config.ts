@@ -8,9 +8,10 @@ const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.me
 const appRoot = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const webSeed = fileURLToPath(new URL('../data/web-seed.json', import.meta.url));
+const privateWorkbook = fileURLToPath(new URL('../data/workbook.json', import.meta.url));
 // The real workbook is private and gitignored. A clean checkout (CI, a contributor,
 // or the public repository) must still build, so it uses the blank seed instead.
-const hasPrivateWorkbook = existsSync(fileURLToPath(new URL('../data/workbook.json', import.meta.url)));
+const hasPrivateWorkbook = existsSync(privateWorkbook);
 
 function connectSources(env: Record<string, string>): string {
   const sources = new Set(["'self'", 'https://api.github.com']);
@@ -61,6 +62,12 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, projectRoot, '');
   const hosted = mode === 'hosted' || env.VITE_HOSTED_WEB === '1';
   const publicSeed = hosted || !hasPrivateWorkbook;
+  const dataAliases = [
+    { find: '@workbook', replacement: publicSeed ? webSeed : privateWorkbook },
+    ...(publicSeed
+      ? [{ find: './dataFixes', replacement: fileURLToPath(new URL('./src/dataFixes.web.ts', import.meta.url)) }]
+      : []),
+  ];
 
   if (hosted && (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY)) {
     console.warn('Hosted build: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not both set; the login screen will show the setup notice.');
@@ -75,20 +82,9 @@ export default defineConfig(({ command, mode }) => {
       // One version for the web build and the Electron shell, taken from package.json.
       __APP_VERSION__: JSON.stringify(appVersion),
     },
-    resolve: publicSeed
-      ? {
-          alias: [
-            {
-              find: '../../data/workbook.json',
-              replacement: webSeed,
-            },
-            {
-              find: './dataFixes',
-              replacement: fileURLToPath(new URL('./src/dataFixes.web.ts', import.meta.url)),
-            },
-          ],
-        }
-      : undefined,
+    resolve: {
+      alias: dataAliases,
+    },
     plugins: [react(), productionCsp(command, env)],
     build: {
       outDir: fileURLToPath(new URL(hosted ? '../dist-web' : '../dist', import.meta.url)),
