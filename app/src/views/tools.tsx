@@ -17,6 +17,7 @@ import { applyWaterPaymentChange, waterPaymentTargets } from '../../../core/wate
 import { createVault, legacySecrets, rotateVault, sealVault, stripLegacySecrets, unlockVault, VAULT_MAX_HINT, VAULT_MIN_PASSPHRASE, type VaultField, type VaultSecrets } from '../vault';
 import { AppLockSection } from './appLock';
 import { planYearRollover, rolloverYear } from '../../../core/yearRollover';
+import { GITHUB_REPO_URL } from '../installer';
 
 function YearRolloverSection({ ds, year, update, setYear, notify }: Pick<ViewProps, 'ds' | 'update' | 'setYear' | 'notify'> & { year: number }) {
   const next = ds.settings.targetYear + 1;
@@ -1229,6 +1230,7 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
             <a className="btn" href="#legal/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
             <a className="btn" href="#legal/terms" target="_blank" rel="noreferrer">Terms of Service</a>
             <a className="btn" href="#legal/eula" target="_blank" rel="noreferrer">EULA</a>
+            <a className="btn" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">GitHub repository</a>
           </div>
           <div className="muted small">
             Privacy requests and data erasure: email the address registered to your FinanceHub account with the subject

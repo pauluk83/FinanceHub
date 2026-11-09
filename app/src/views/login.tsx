@@ -9,6 +9,7 @@ import {
 import { HOSTED_WEB } from '../runtime';
 import { APP_VERSION } from '../version';
 import { APP_CHANGELOG } from '../appChangelog.generated';
+import { GITHUB_REPO_URL } from '../installer';
 
 type Mode = 'signIn' | 'signUp' | 'reset';
 
@@ -104,6 +105,7 @@ export function AuthFrame({
               <a href="#legal/privacy">Privacy</a>
               <a href="#legal/terms">Terms</a>
               <a href="#legal/eula">EULA</a>
+              <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">GitHub</a>
             </nav>
           </div>
           <div className="auth-build" style={{ marginTop: 10, textAlign: 'center', color: 'var(--faint)', fontSize: 11 }}>

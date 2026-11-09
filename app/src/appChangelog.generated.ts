@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.9",
-  "buildId": "ebb7e9175e80",
+  "buildId": "bc889db67bfe",
   "builtAt": "2026-11-09",
   "releases": [
     {
@@ -17,7 +17,8 @@ export const APP_CHANGELOG: AppChangelog = {
           "items": [
             "Local-only PIN app lock with idle auto-lock",
             "Application changelog keeps every earlier release as append-only history; budget changelog records budget changes only and ignores interface preferences",
-            "Installers are now published as GitHub Releases; the app links to the latest release and CI builds it on a version tag. Added a public README and removed installer parts from the web host"
+            "Installers are now published as GitHub Releases; the app links to the latest release and CI builds it on a version tag. Added a public README and removed installer parts from the web host",
+            "Added a GitHub repository link to the login page, app sidebar, About panel and application changelog"
           ]
         }
       ]

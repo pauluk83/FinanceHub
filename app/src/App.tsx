@@ -21,6 +21,7 @@ import { NAV_GROUP_TIPS, buildNav } from './nav';
 import { providerDisplayName } from './providerSetup';
 import { Badge } from './components';
 import { APP_VERSION } from './version';
+import { GITHUB_REPO_URL } from './installer';
 import { Dashboard, Income, MonthEnd, Monthly } from './views/overview';
 import { Accounts, Bills, Cards, People, Transactions } from './views/money';
 import { Debts } from './views/debts';
@@ -648,6 +649,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
             <span className={`save-dot ${syncBadge.tone}`} />{syncBadge.label}
           </span>
           <span>v{APP_VERSION}</span>
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer" title="FinanceHub source on GitHub" style={{ color: 'inherit' }}>GitHub ↗</a>
         </div>
       </aside>
 

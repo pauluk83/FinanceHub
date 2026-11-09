@@ -3,6 +3,7 @@
  * `Release` GitHub Actions workflow when a `v<version>` tag is pushed.
  */
 export const GITHUB_REPO = 'pauluk83/FinanceHub';
+export const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO}`;
 export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
 export const GITHUB_LATEST_RELEASE_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 /** Stable asset name so the newest installer always has the same URL. */

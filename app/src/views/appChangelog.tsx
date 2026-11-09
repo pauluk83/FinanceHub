@@ -5,6 +5,7 @@ import { HOSTED_WEB } from '../runtime';
 import { APP_VERSION } from '../version';
 import {
   GITHUB_LATEST_RELEASE_API,
+  GITHUB_REPO_URL,
   GITHUB_RELEASES_URL,
   INSTALLER_ASSET_NAME,
   INSTALLER_CHECKSUMS_URL,
@@ -166,6 +167,7 @@ export function AppChangelogPage({ onClose }: { onClose: () => void }) {
         <ReleaseList />
         <footer className="legal-foot">
           <span>Budget changes stay in the separate Budget changelog inside the app.</span>
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">Source on GitHub ↗</a>
         </footer>
       </main>
     </div>

@@ -5,6 +5,7 @@ import { repoSlug, releaseNotes } from '../scripts/github-release.mjs';
 import {
   GITHUB_LATEST_RELEASE_API,
   GITHUB_REPO,
+  GITHUB_REPO_URL,
   INSTALLER_CHECKSUMS_URL,
   INSTALLER_DOWNLOAD_URL,
   installerFileName,
@@ -17,6 +18,7 @@ const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),
 
 test('the app links to this repository’s GitHub Releases', () => {
   assert.equal(GITHUB_REPO, 'pauluk83/FinanceHub');
+  assert.equal(GITHUB_REPO_URL, 'https://github.com/pauluk83/FinanceHub');
   assert.equal(GITHUB_LATEST_RELEASE_API, 'https://api.github.com/repos/pauluk83/FinanceHub/releases/latest');
   assert.equal(INSTALLER_DOWNLOAD_URL, 'https://github.com/pauluk83/FinanceHub/releases/latest/download/FinanceHub-Setup.exe');
   assert.equal(INSTALLER_CHECKSUMS_URL, 'https://github.com/pauluk83/FinanceHub/releases/latest/download/SHA256SUMS.txt');
