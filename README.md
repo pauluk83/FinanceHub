@@ -104,12 +104,11 @@ the hosted bundle, deploys the website and checks live parity. Later releases on
 day append to the same section. Use `--no-deploy` when FTP credentials are unavailable.
 
 Pushing a `v*` tag runs [`.github/workflows/release.yml`](./.github/workflows/release.yml),
-which builds the installer on `windows-latest` and attaches three assets to the GitHub
+which builds the installer on `windows-latest` and attaches two assets to the GitHub
 Release:
 
-- `FinanceHub-Setup-<version>.exe` — this version
-- `FinanceHub-Setup.exe` — the same file under a stable name, used by the app's download link
-- `SHA256SUMS.txt` — SHA-256 checksum of the versioned installer
+- `FinanceHub-Setup-<version>.exe` — the dated installer for this release, also used by the app's download link
+- `SHA256SUMS.txt` — SHA-256 checksum of the installer
 
 The hosted website no longer carries installer parts. `npm run release:check` verifies the
 version, changelog, generated changelog and hosted bundle; when a GitHub release exists it

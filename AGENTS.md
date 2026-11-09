@@ -52,17 +52,19 @@ Rules that follow from this:
   current commit's installer becomes the download the login page links to.
 - `npm run release:check` (or `npm test`) fails when the package version, `CHANGELOG.md`,
   the generated changelog or the hosted bundle disagree. A missing GitHub release is
-  reported until the tag is pushed; a published release must carry the versioned
-  installer, stable copy and a `SHA256SUMS.txt` that matches the published installer
-  digest. CI builds on another machine, so its bytes are not compared with a local build.
+  reported until the tag is pushed; a published release must carry the dated installer
+  and a `SHA256SUMS.txt` that matches the published installer digest. There is no stable
+  alias asset. CI builds on another machine, so its bytes are not compared with a local
+  build.
 
 ## Hosting constraints
 
 - The Windows installer is **not** hosted on InfinityFree. It is a GitHub Release asset on
-  `pauluk83/FinanceHub`: `FinanceHub-Setup-<version>.exe`, the stable
-  `FinanceHub-Setup.exe` and `SHA256SUMS.txt`. Pushing a `v<version>` tag runs
-  `.github/workflows/release.yml`, which builds and uploads them. The app links to
-  `/releases/latest/download/FinanceHub-Setup.exe`; never point it at a hosting path.
+  `pauluk83/FinanceHub`: one dated `FinanceHub-Setup-<version>.exe` and
+  `SHA256SUMS.txt`. Pushing a `v<version>` tag runs `.github/workflows/release.yml`,
+  which builds and uploads them. The app links directly to
+  `/releases/download/v<version>/FinanceHub-Setup-<version>.exe`; do not add a stable
+  alias asset or point the link at a hosting path.
 - InfinityFree still deletes any non-HTML file at or above **10 MB** and caps JS/HTML at
   1 MB. `deploy:web` refuses oversized files, so keep the installer out of `dist-web/`.
 - The FTP password is supplied only as `FTP_PASSWORD` for one command. Never write it to

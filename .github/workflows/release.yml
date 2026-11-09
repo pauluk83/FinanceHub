@@ -35,7 +35,6 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $installer = "release/FinanceHub-Setup-$version.exe"
           if (-not (Test-Path $installer)) { throw "Installer not built: $installer" }
-          Copy-Item $installer "release/FinanceHub-Setup.exe"
           $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
           "$hash  FinanceHub-Setup-$version.exe" | Out-File -Encoding ascii release/SHA256SUMS.txt
           Write-Output "sha256 $hash"

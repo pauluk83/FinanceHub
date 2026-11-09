@@ -213,21 +213,27 @@ async function localChecks() {
     fail('package.json has no GitHub repository to check the installer release against');
   } else {
     try {
-      const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/v${pkg.version}`, {
-        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'financehub-release-check' },
-      });
+      const headers = {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'financehub-release-check',
+        ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
+      };
+      const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/v${pkg.version}`, { headers });
       if (response.status === 404) {
         console.log(`SKIP  GitHub release v${pkg.version} — push the tag to publish the installer`);
+      } else if (response.status === 403 || response.status === 401) {
+        // The public API allows only 60 unauthenticated requests an hour. This is an
+        // optional check; the website and download link never call the API.
+        console.log('SKIP  GitHub release check — API rate limited; set GITHUB_TOKEN to verify it');
       } else if (!response.ok) {
         fail(`GitHub release check answered ${response.status}`);
       } else {
         const release = await response.json();
         const assets = release.assets ?? [];
         const versioned = assets.find((entry) => entry.name === `FinanceHub-Setup-${pkg.version}.exe`);
-        const stable = assets.find((entry) => entry.name === 'FinanceHub-Setup.exe');
         const checksums = assets.find((entry) => entry.name === 'SHA256SUMS.txt');
-        if (!versioned || !stable || !checksums) {
-          fail(`GitHub release v${pkg.version} is missing the versioned installer, stable copy or checksums`);
+        if (!versioned || !checksums) {
+          fail(`GitHub release v${pkg.version} is missing the dated installer or the checksum file`);
         } else if (versioned.digest?.startsWith('sha256:') && checksums.browser_download_url) {
           // CI builds on a different machine, so compare the release's own checksum
           // file with its installer digest rather than with this local build.

@@ -3,11 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { repoSlug, releaseNotes } from '../scripts/github-release.mjs';
 import {
-  GITHUB_LATEST_RELEASE_API,
   GITHUB_REPO,
   GITHUB_REPO_URL,
-  INSTALLER_CHECKSUMS_URL,
-  INSTALLER_DOWNLOAD_URL,
+  installerChecksumsUrl,
+  installerDownloadUrl,
   installerFileName,
 } from '../app/src/installer.ts';
 
@@ -19,10 +18,9 @@ const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),
 test('the app links to this repository’s GitHub Releases', () => {
   assert.equal(GITHUB_REPO, 'pauluk83/FinanceHub');
   assert.equal(GITHUB_REPO_URL, 'https://github.com/pauluk83/FinanceHub');
-  assert.equal(GITHUB_LATEST_RELEASE_API, 'https://api.github.com/repos/pauluk83/FinanceHub/releases/latest');
-  assert.equal(INSTALLER_DOWNLOAD_URL, 'https://github.com/pauluk83/FinanceHub/releases/latest/download/FinanceHub-Setup.exe');
-  assert.equal(INSTALLER_CHECKSUMS_URL, 'https://github.com/pauluk83/FinanceHub/releases/latest/download/SHA256SUMS.txt');
   assert.equal(installerFileName('2026.11.9'), 'FinanceHub-Setup-2026.11.9.exe');
+  assert.equal(installerDownloadUrl('2026.11.9'), 'https://github.com/pauluk83/FinanceHub/releases/download/v2026.11.9/FinanceHub-Setup-2026.11.9.exe');
+  assert.equal(installerChecksumsUrl('2026.11.9'), 'https://github.com/pauluk83/FinanceHub/releases/download/v2026.11.9/SHA256SUMS.txt');
 });
 
 test('the repository slug comes from package.json', () => {
@@ -37,6 +35,7 @@ test('release notes are taken from the changelog section for the version', () =>
   const notes = releaseNotes(pkg.version);
   assert.match(notes, new RegExp(`^# FinanceHub ${pkg.version.replaceAll('.', '\\.')}`));
   assert.match(notes, /## Windows installer/);
-  assert.match(notes, /FinanceHub-Setup\.exe/);
+  assert.match(notes, /FinanceHub-Setup-2026\.11\.9\.exe/);
   assert.match(notes, /SHA256SUMS\.txt/);
+  assert.doesNotMatch(notes, /stable download name/);
 });

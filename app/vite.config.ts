@@ -14,7 +14,7 @@ const privateWorkbook = fileURLToPath(new URL('../data/workbook.json', import.me
 const hasPrivateWorkbook = existsSync(privateWorkbook);
 
 function connectSources(env: Record<string, string>): string {
-  const sources = new Set(["'self'", 'https://api.github.com']);
+  const sources = new Set(["'self'"]);
   try {
     const url = new URL(env.VITE_SUPABASE_URL ?? '');
     if (url.protocol === 'https:') {

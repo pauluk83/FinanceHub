@@ -42,9 +42,8 @@ export function releaseNotes(version, changelogPath = join(ROOT, 'CHANGELOG.md')
     '',
     '## Windows installer',
     '',
-    `- \`FinanceHub-Setup-${version}.exe\` — this release`,
-    '- `FinanceHub-Setup.exe` — the same installer under a stable download name',
-    '- `SHA256SUMS.txt` — SHA-256 checksum for the versioned installer',
+    `- \`FinanceHub-Setup-${version}.exe\` — the installer for this release`,
+    '- `SHA256SUMS.txt` — SHA-256 checksum for the installer',
     '',
     'The installer is unsigned, so Windows may show an unknown-publisher warning.',
   ].join('\n');
@@ -101,6 +100,10 @@ export async function publishInstaller({ version, files, token, repo = repoSlug(
   }
 
   const assets = await call(`/repos/${repo}/releases/${release.id}/assets?per_page=100`, { token });
+  // Retired: earlier releases also carried a stable-name copy. Remove it so each
+  // release has only its dated installer (and the checksum file).
+  const stable = assets.find((asset) => asset.name === 'FinanceHub-Setup.exe');
+  if (stable) await call(`/repos/${repo}/releases/assets/${stable.id}`, { token, method: 'DELETE' });
   const uploaded = [];
   for (const file of files) {
     const name = basename(file);
@@ -142,13 +145,11 @@ async function main() {
   }
 
   const installer = join(ROOT, 'release', `FinanceHub-Setup-${version}.exe`);
-  const stable = join(ROOT, 'release', 'FinanceHub-Setup.exe');
   const checksums = join(ROOT, 'release', 'SHA256SUMS.txt');
   if (!existsSync(installer)) throw new Error(`${installer} is missing — run npm run dist:win first.`);
-  if (!existsSync(stable)) throw new Error(`${stable} is missing — copy the versioned installer to the stable name first.`);
   if (!existsSync(checksums)) throw new Error(`${checksums} is missing — generate the checksum file first.`);
 
-  const result = await publishInstaller({ version, files: [installer, stable, checksums], token });
+  const result = await publishInstaller({ version, files: [installer, checksums], token });
   console.log(`github release ${result.tag}: ${result.uploaded.map((asset) => `${asset.name} (${(asset.bytes / 1024 / 1024).toFixed(1)} MB)`).join(', ')}`);
 }
 
