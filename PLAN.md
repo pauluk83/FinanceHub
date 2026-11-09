@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-09
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA and self-serve cloud deletion delivered. The owner confirms exposed provider passwords are rotated and the earlier GitHub v2026.11.9 installer assets are refreshed; the current rebuild is local only. Not release-ready — hosted web upload blocked by the FTP host being unreachable, pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated and the earlier GitHub v2026.11.9 installer assets are refreshed; the current rebuild is local only. Not release-ready — hosted web upload blocked by the FTP host being unreachable, pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -53,8 +53,8 @@ Effort (roadmap sections only): **S** small · **M** medium · **L** large · **
 | People statement sign-ins | `app/src/portal.ts`, `app/src/views/peoplePortal.tsx` | Settings creates a per-person username/password (PBKDF2-SHA-256, 600,000 iterations, 16-byte salt); `#people` opens a read-only statement scoped to that person; snapshots refresh on save; device-local only and explicitly not a security boundary; 6 tests |
 | Provider setup (onboarding step 5) | `app/src/providerSetup.ts`, `app/src/views/providerSetup.tsx` | Adds or re-enables any of the eight provider ledgers, hides one while keeping its data, renames it, stores a custom PNG/JPEG/WebP logo (≤200 KB data URL) and edits metadata-driven account/detail fields; provider ledger rows support persistent up/down ordering with carry-forward recalculation; `tests/provider-setup.test.ts`, `tests/provider-ledger.test.ts` |
 | Sidebar menu layout | `app/src/nav.ts`, `app/src/views/menuLayout.tsx` | Settings → Menu layout hides items and moves them between Overview, Ledger and Providers; Tools is static and cannot be hidden or moved; overrides live in `settings.navLayout`; `tests/nav.test.ts` |
-| Legal, privacy and IP | `app/src/legal/`, `COMPLIANCE.md` | Privacy Policy, Terms of Service and EULA published in-app and linked from sign-in and Settings; owner, © 2026 and FinanceHub™ notices; applicability matrix records UK GDPR as applicable and PCI DSS, Open Banking/PSD2, FCA, MSB/KYC-AML as out of scope for a read-only budgeting app; MFA/self-serve deletion on the roadmap; 4 tests |
-| Live cloud workspace | Supabase `settings.state_json` | Google sign-in working; remote revision 16 carries the encrypted vault with no legacy credential fields; password rotation remains |
+| Legal, privacy and IP | `app/src/legal/`, `COMPLIANCE.md` | Privacy Policy, Terms of Service and EULA published in-app and linked from sign-in and Settings; owner, © 2026 and FinanceHub™ notices; applicability matrix records UK GDPR as applicable and PCI DSS, Open Banking/PSD2, FCA, MSB/KYC-AML as out of scope for a read-only budgeting app; TOTP MFA and self-serve deletion implemented (deletion SQL migration pending); passkeys/email verification pending; 4 tests |
+| Live cloud workspace | Supabase `settings.state_json` | Google sign-in working; remote revision 16 carries the encrypted vault with no legacy credential fields; password rotation confirmed; pre-rotation snapshot purge remains |
 | Hosted static web build (financehub.freedev.app) | `app/vite.config.ts`, `data/web-seed.json`, `dist-web/` | Uploaded over FTP to InfinityFree `financehub.freedev.app/htdocs` with a root base; build root/JS/CSS (current `assets/index-*.js`, `index-ByuwyWpD.css`); app-wide feedback, the Dashboard unread notice, editable provider-ledger **Balance** and **Total paid** columns and the O2/Virgin **Bill** column are live; the footer version comes from `app/src/version.ts`, baked from `package.json` by Vite, so the web build and the Windows app report the same number; the login page and Tools carry an **Application changelog** regenerated from `CHANGELOG.md` on every build, and the Windows installer is published as a GitHub Releases asset instead of on the web host; login, local and demo flows load at `https://financehub.freedev.app/`; Supabase Site URL/redirect allow-list update pending for Google sign-in and email confirmation; vault rev 16 clean; private until the pre-rotation snapshot purge is complete (P0-8) |
 
 Commands:
@@ -206,7 +206,7 @@ No secret values were read or printed during this review. Severity reflects the 
   - Provider logins now live only in the passphrase-derived AES-256-GCM vault (`AppState.vault`). The provider screen reads only the unlocked vault, and JSON backups strip legacy fields.
   - Existing cloud `settings.state_json`, retained `sync_conflicts` snapshots, old builds, old backups and the live cloud document can still contain the old plaintext fields until the vault is created and a clean revision is pushed. The migration cannot scrub every historical snapshot automatically.
   - `credential_vault` remains an unused normalised table; the current E2EE envelope is carried in the synced document.
-  - **Required action:** create the vault on the desktop with the real legacy values, confirm a clean cloud revision, treat every old artifact as exposed and rotate every provider password. `data/workbook.json`, `dist/` and the source workbook are still not covered by `.gitignore`.
+  - **Required action:** create the vault on the desktop with the real legacy values, confirm a clean cloud revision, treat every old artifact as exposed and rotate every provider password. `data/workbook.json`, `dist/` and `dist-web/` are now ignored; retained pre-rotation snapshots and old backups still need purging.
 
 ### High
 
@@ -215,10 +215,10 @@ No secret values were read or printed during this review. Severity reflects the 
   - RLS protects rows from other app users, but not from service-role access, project compromise, logical backups or database operators.
   - The vault uses PBKDF2-SHA-256 (600,000 iterations) + AES-256-GCM; the passphrase never reaches Supabase. Legacy plaintext fields remain until migration.
   - Remaining remediation: scrub old snapshots/backups, rotate exposed credentials, and consider encrypting the wider financial document.
-- **S-03 — A device-only workspace has no app lock.**
-  - Local mode used without an account has no login, PIN or Windows Hello lock; a signed-in local workspace is authenticated but stays unlocked while the Windows session is active.
-  - DPAPI protects stored values from other Windows accounts, not from anyone using the active Windows session.
-  - Remediation: add a local app lock or require an account for sensitive views.
+- **S-03 — Device-only app lock delivered; Windows Hello remains.**
+  - Device-only workspaces now have a PIN plus idle auto-lock, with persisted backoff and no PIN stored in the synced document. Locking also drops the unlocked vault session.
+  - DPAPI protects stored values from other Windows accounts, not from anyone using the active Windows session; the PIN is a screen barrier, not disk encryption.
+  - Remaining remediation: Windows Hello and SQLCipher.
 - **S-04 — Web storage is plaintext.**
   - Without the Electron bridge, the web build stores the budget and Supabase session in browser localStorage.
   - Remediation: treat the web build as development-only, or add secure browser storage and a hardened deployment.
@@ -231,32 +231,30 @@ No secret values were read or printed during this review. Severity reflects the 
 
 ### Medium
 
-- **S-07 — CSP allows wildcard Supabase origins.**
-  - `connect-src` allows `https://*.supabase.co` and `wss://*.supabase.co`, so a script executing in the renderer could exfiltrate to any Supabase project.
-  - Remediation: allow only the exact configured Supabase origin; remove the wildcards.
-- **S-08 — CSV formula injection.**
-  - `toCsv()` quotes commas, quotes and newlines but does not neutralise cells starting with `=`, `+`, `-` or `@`.
-  - Transaction descriptions and account names are exported to CSV and could become formulas when opened in Excel.
-  - Remediation: prefix dangerous cells with an apostrophe or force text encoding.
-- **S-09 — External URLs are not scheme-validated at the data boundary.**
-  - Provider portal, bill and charge-letter URLs are rendered from the dataset/backup; backup validation checks structure but not URL schemes.
-  - React 19 blocks `javascript:` and Electron only opens HTTPS externally, but the web build needs HTTPS-only validation at import/restore/render time.
+- **S-07 — CSP uses the configured origin, with a wildcard fallback.**
+  - A valid `VITE_SUPABASE_URL` restricts `connect-src` to that exact HTTPS/WSS origin; an invalid or missing URL still falls back to `https://*.supabase.co` and `wss://*.supabase.co`.
+  - Remaining remediation: remove the wildcard fallback and add an exact-origin regression test.
+- **S-08 — CSV formula injection — fixed.**
+  - `csvCell()` prefixes formula-leading values with an apostrophe before CSV quoting, while numeric values stay numeric.
+  - Covered by `tests/import-safety.test.ts`.
+- **S-09 — External URL scheme validation — fixed.**
+  - Provider portal, bill and charge-letter URLs are accepted only as plain HTTP or HTTPS without embedded credentials, both in provider fields and on backup restore.
+  - Covered by `tests/provider-setup.test.ts` and `tests/import-safety.test.ts`; React 19 still blocks script URLs defensively.
 - **S-10 — Release artifact integrity is weak.**
   - The installer is unsigned, uses the default Electron icon and has no auto-update/rollback channel.
   - Remediation: code signing, branded installer and signed update feed before distribution.
-- **S-11 — OAuth desktop callback lacks explicit state/nonce validation.**
-  - The callback forwards `code`/`error` and relies on PKCE for protection.
-  - Remediation: validate state/nonce explicitly and add a callback test for forged/replayed callbacks.
-- **S-12 — Backup/import content validation is structural only.**
-  - Backup restore caps file size at 25 MB but does not enforce array/string limits; CSV import has no file-size cap.
-  - A malicious or malformed file can freeze the renderer or set unsafe link values.
-  - Remediation: add content limits, HTTPS URL validation and import fuzz tests.
+- **S-11 — OAuth desktop callback still lacks an explicit callback test.**
+  - The client uses Supabase PKCE and forwards `code`/`error` from the loopback callback.
+  - Remaining remediation: add an automated forged/replayed callback test and document whether Supabase’s PKCE verification is the accepted state check.
+- **S-12 — Backup/import content validation improved, but not exhaustive.**
+  - Backup and CSV size/row caps, HTTPS URL validation and formula neutralisation are implemented and tested. Deep array/string limits and broader fuzz coverage remain.
+  - Remaining remediation: bound nested payload sizes and extend import fuzzing.
 
 ### Low / compliance
 
 - **S-13 — Development dependency advisories.** `xlsx` is a high-severity direct dev dependency with no fix; `electron-builder`/`minimatch` are moderate build-tool advisories. `npm audit --omit=dev` is clean; do not parse untrusted workbooks in development/build.
-- **S-14 — Privacy lifecycle gaps.** No account deletion, data-retention or privacy-policy flow exists for cloud workspaces; provider credentials and full financial snapshots may be retained indefinitely.
-- **S-15 — Authentication hardening.** No MFA/passkeys are implemented; email verification and provider settings depend on the Supabase project configuration.
+- **S-14 — Privacy lifecycle partly delivered.** Privacy Policy, Terms and self-serve account deletion are implemented; the deletion SQL migration, retention schedule and DSAR/breach runbooks remain.
+- **S-15 — Authentication hardening partly delivered.** TOTP MFA is implemented; passkeys, email-verification review and live MFA/deletion testing remain dependent on Supabase configuration.
 
 ### Existing controls
 
@@ -283,12 +281,12 @@ No secret values were read or printed during this review. Severity reflects the 
   - [x] Last-known-good document recovery; the unreadable copy is preserved.
   - [x] Editing and saving are blocked when no readable document or fallback exists.
 
-- [~] **P0-3 — Restorable backups**
+- [x] **P0-3 — Restorable backups**
   - [x] Full JSON backup validation and restore added to Settings.
   - [x] A safety copy downloads before a restore.
   - [x] Parser covered by tests, including documents without `monthLocks`.
   - [x] Browser restore reached the safety-copy step; 21 holidays and 1,115 transactions were preserved.
-  - [ ] Encrypted backup export, including provider credentials already stored in the budget.
+  - [x] Encrypted backup export (format v2) with checksum and seven local restore points. Provider credentials are deliberately excluded because they live in the separate vault, not the budget document; a budget backup restores without exporting logins.
   - [x] Restore-to-parity test against the workbook figures — `tests/backup.test.ts` restores the canonical workbook backup and matches the Dashboard, Starling balance, bills total and all 12 monthly summaries.
 
 - [~] **P0-4 — Electron security boundary**
@@ -353,17 +351,18 @@ No secret values were read or printed during this review. Severity reflects the 
 - [x] Credential vault UI and encrypted key wrapping — PBKDF2-SHA-256 + AES-256-GCM, legacy migration, backup exclusion and cross-device ciphertext sync delivered 2026-11-07.
 - [x] Credential-vault passphrase rotation and recovery UX. Delivered 2026-11-08: an unlocked vault can be re-keyed under a new passphrase with a fresh salt and a new PBKDF2 derivation (`rotateVault`), keeping the session usable and saving the on-screen logins in the same step; an optional length-bounded hint is stored unencrypted and shown on the locked screen, which now explains plainly that there is no reset, that the hint is the only reminder, and that deleting the vault preserves the budget and costs only the saved logins. Covered by `tests/vault.test.ts`.
 - [x] Local-only application lock (PIN and idle auto-lock). Delivered 2026-11-09: device-only workspaces can set a 4–8 digit PIN stored as a PBKDF2-SHA-256 hash (600,000 iterations, random 16-byte salt) in device storage only, never in the synced document. The workspace starts locked, a top-bar **Lock** button locks immediately, and activity-based idle auto-lock (1/5/10/15/30 minutes, default 5) locks a hidden or unattended window. Wrong PINs back off from 5 seconds after three failures to a 30-second cap, persisted so a reload cannot reset them. Locking also discards the unlocked credential-vault session. The UI states plainly that this is a screen barrier, not encryption, and that a forgotten PIN cannot be recovered — removing the lock needs no data reset. Covered by `tests/app-lock.test.ts`. Windows Hello remains a native follow-up.
-- [ ] Backup scheduling and restore points.
-- [ ] Automated UI smoke tests for navigation, add/edit/delete, CSV staging, backup restore, month-end lock/unlock, statement totals, settings propagation and recovery.
-- [ ] Automated security regression tests: no credential fields in the build, exact Supabase CSP origin, CSV formula neutralisation, HTTPS-only URL validation and OAuth state rejection (A-01, A-12, A-13).
-- [ ] Security hardening: restrict CSP `connect-src` to the configured Supabase origin, neutralise CSV formula cells, validate URL schemes and add OAuth state/nonce validation (A-12, A-13).
+- [x] Manual encrypted restore points: seven newest retained, with checksum verification.
+- [ ] Scheduled/automatic backup creation; only manual exports and restore points exist.
+- [~] Automated UI smoke tests. Four render-level tests now cover transaction categories/tags and filters, the notification centre, the backup panel/restore-point metadata and account security (`tests/ui-smoke.test.mjs`). Remaining: click-through coverage for navigation, add/edit/delete, CSV staging, actual restore, month-end lock/unlock, statement totals, settings propagation and recovery.
+- [~] Automated security regression tests. Built-artifact credential scanning, CSV formula neutralisation and HTTPS-only URL validation are covered. Remaining: exact Supabase CSP-origin and forged/replayed OAuth callback tests (A-01, A-12, A-13).
+- [~] Security hardening. CSV formula cells are neutralised, URL schemes are validated and a valid Supabase configuration produces an exact-origin CSP. Remaining: remove the wildcard CSP fallback and document/test OAuth state handling (A-12, A-13).
 - [ ] Provider schema validation and migration-based hydration so malformed data cannot blank the app and the seed cannot overwrite edits (A-07, A-08).
 - [ ] Capacity guard: dataset-size warning, IndexedDB for the web build and a measured edit-latency budget (A-09).
 - [ ] Separate the personal workbook seed from the distributable build (A-10).
 - [ ] SQLCipher or equivalent full-database encryption; the current Electron store encrypts values, not the database file.
 - [ ] Keep hosted `/FinanceHub/` deployment blocked until P0-8 and browser storage are secured.
-- [ ] Add a build/release secret scan and sensitive-file ignore checks.
-- [ ] MFA/passkeys and email-verification review for cloud accounts.
+- [~] Build/release secret scan and sensitive-file ignore checks. `tests/build-secrets.test.ts` scans built bundles for legacy credential values; a regression test for the sensitive-file ignore rules remains.
+- [~] MFA/passkeys and email-verification review. TOTP MFA and self-serve deletion are implemented; the deletion migration, passkeys and email-verification review remain.
 - [ ] CI for typecheck, tests, production build and packaging.
 - [ ] iOS client (separate Mac/Xcode track).
 
@@ -376,7 +375,7 @@ No secret values were read or printed during this review. Severity reflects the 
 - [ ] Crash reporting with opt-in and no financial payloads.
 - [ ] Excel/PDF exports.
 - [ ] Holiday search and filtering.
-- [ ] Privacy policy, terms, account deletion and data-retention flow.
+- [~] Privacy policy, terms and account deletion delivered; the retention/DSAR flow and deletion SQL migration remain.
 - [ ] Release notes and support diagnostics bundle.
 
 ---
@@ -387,12 +386,12 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 
 ### Findings to address
 
-- [ ] **Statements only expose the target year.** A top-bar year selector was delivered on 2026-11-08, so Statements and the ledger views can be inspected by year without changing the target year. An “All years” statement view is still missing.
-- [ ] **Month-end snapshots omit provider balances.** A lock records income, expenses, net, owed, accounts, cards, people and bills, but not Rent/Water/Ovo/Council Tax/provider statement balances. Add provider balances and statement references to the month-end snapshot.
-- [ ] **No per-record audit history or undo.** The Changelog records summaries, not which record changed, its previous value or how to reverse it. Add per-record history, a revert action and a soft-delete/trash state.
+- [x] **Statements expose the target year and All years.** The top-bar year selector and the Statements “All years” option are delivered.
+- [x] **Month-end snapshots include provider balances.** Locks now record provider closes and statement references alongside the existing totals.
+- [x] **Per-record audit history, revert and trash.** Transactions, accounts, people, cards, bills and bill changes are diffed at the update boundary; Transactions exposes history, revert and recently deleted restore.
 - [ ] **Imported transactions have no import-run provenance.** A row knows its source row number but not which CSV, import batch or file created it. Add an `import_run` ID, source filename, imported-at timestamp and a one-click import undo.
-- [ ] **Backups have no integrity check.** Restore validates structure but not a checksum or signature. Add a backup format version, SHA-256 checksum and “verify backup” action before restore.
-- [~] **Data Health screen — foundation delivered 2026-11-09.** Tools → Data health is a read-only report over account names, exact duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved sync conflicts. It recomputes from the loaded dataset and never deletes, merges or rewrites anything. Still missing: failed-sync state and old-backup age need metadata the dataset does not currently store, and direct statement-vs-snapshot comparison remains covered only through the locked-month balance check.
+- [x] **Backups have a version and checksum.** Encrypted format v2 records the format version and SHA-256 checksum and refuses a tampered payload; plain JSON restore remains available.
+- [~] **Data Health screen — expanded.** Tools → Data health now includes failed-sync/pending-change and backup-age checks alongside account names, duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved conflicts. Direct statement-vs-snapshot comparison still relies on the locked-month balance check.
 - [ ] **No “Explain this number” drill-down.** Every KPI should show its source rows, formula, month, account and overrides so users can understand why a figure differs from the workbook or an earlier month.
 - [ ] **No session/device management.** Cloud accounts cannot see active devices, last sync, revoke a device or sign out all sessions. Add this alongside MFA/passkeys.
 - [ ] **No accountant/tax-year export.** Add a pack containing transaction CSV, statement PDFs, income/expense summaries, locked-month snapshots, provider balances and a reconciliation note.
@@ -402,17 +401,17 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [ ] **Transaction rules engine:** classify transfers, refunds, card payments and recurring merchants automatically.
 - [ ] **Split and merge transactions:** split one payment across categories/accounts and merge duplicates.
 - [ ] **Reconciliation assistant:** match imported CSV rows to existing ledger entries and flag differences, not just duplicates.
-- [ ] **Backup versioning and restore points:** retain several dated backups, show changes between them and restore individual sections.
+- [~] **Backup versioning and restore points:** encrypted format v2 and seven dated restore points are delivered. Still open: a diff between two points and restoring individual sections.
 - [ ] **Property-based ledger tests:** assert invariants such as total owed equals the sum of people, statement closing equals cumulative balance, and account totals equal dashboard totals.
 - [ ] **Import fuzz tests:** malformed CSV, huge files, odd dates, duplicate rows and formula-injection strings.
-- [ ] **Security regression tests:** no credentials in the build, exact CSP origin, URL-scheme rejection, CSV neutralisation and OAuth state rejection.
+- [~] **Security regression tests:** credential scanning, URL-scheme rejection and CSV neutralisation are covered. Exact CSP-origin and OAuth state/callback tests remain.
 - [ ] **Accessibility and scaling tests:** keyboard-only use, screen-reader labels and 125–200% Windows scaling.
 
 ### Features for later
 
 - [ ] **Receipt OCR and attachments** linked to transactions and warranties.
 - [ ] **PDF bank-statement import** with a review grid and duplicate detection.
-- [ ] **Notification centre and monthly digest**, including “what changed since last month”.
+- [~] **Notification centre and monthly digest.** The in-app centre for bills, low balances and card utilisation is delivered; the monthly “what changed” digest remains.
 - [ ] **Bill price-change and renewal alerts.**
 - [ ] **Safe-to-spend forecast** combining upcoming bills, income and known commitments.
 - [ ] **Savings-goal auto-save rules.**
@@ -1204,6 +1203,7 @@ Open items:
 - 2026-11-09: Recorded the owner's remaining release decisions: deploy the hosted bundle and refresh the existing `v2026.11.9` assets; commit and push; the exposed provider passwords are already rotated; purge pre-rotation snapshots and old backups; defer two-device validation and signing; direct Windows distribution first; defer iOS; integrate bank linking only after C-4; one category plus free-form tags; in-app alerts first; guided setup with blank/demo choice; encrypted backups with seven restore points; per-record audit and trash; provider balances and statement references in locks; All-years statements; failed-sync and backup-age health checks; self-serve deletion plus MFA/passkeys; open the DPIA/ICO pack. Deployment is paused because `ftpupload.net:21` is unreachable; the earlier GitHub asset refresh is complete; the audit rebuild remains local until upload is authorized.
 - 2026-11-09: Added per-record audit history and transaction trash. `core/audit.ts` diffs transactions, accounts, people, cards, bills and bill changes at the save boundary, caps history at 500 entries, groups both transfer legs for atomic restore, and keeps generated bill rows out. Transactions has a per-row **History** panel with revert and a **Recently deleted** panel with restore; locked months still refuse changes. `tests/audit.test.ts` covers create, edit, delete, restore, row reuse and atomic transfer restore. `npm test` **248/248**, `tsc` clean. Release build `4991d0a107bf`, hosted bundle `index-Cz-or00I.js`, installer SHA-256 prefix `72c26858f7c0`; not uploaded.
 - 2026-11-09: Delivered transaction **categories and free-form tags** with filters and CSV export; the **in-app notification centre** for bills, low balances and card utilisation; the **first-run blank/demo choice**; **encrypted backup v2** with PBKDF2-SHA-256 + AES-256-GCM, checksum verification and seven local restore points; **provider balances and statement references** in month-end locks plus an **All years** statement; and **failed-sync, pending-change and backup-age** Data Health checks. Added **TOTP authenticator MFA** and a **self-serve cloud account deletion** function/migration. `npm test` **265/265**, `tsc` clean. Release build `85c5c46da578`, hosted bundle `index-BeGV_upU.js`, installer SHA-256 prefix `f9ee0c3e8c2d`; `release:check` passes. The deletion SQL migration still needs applying; passkeys depend on Supabase WebAuthn configuration and bank linking remains gated on C-4. Nothing was uploaded; the live site and GitHub installer assets remain on their earlier builds.
+- 2026-11-09: Added render-level UI smoke coverage for transaction categories/tags, the notification centre, encrypted backup/restore-point metadata and account security (`tests/ui-smoke.test.mjs`). The real views render through Vite’s existing TSX pipeline; `npm test` **269/269**, `tsc` clean. Reconciled this plan with the code: P0-3 is closed, encrypted backups deliberately exclude the separate credential vault, manual restore points are distinguished from scheduling, the smoke suite is recorded as render-level with click-through flows still open, and completed CSV/URL/secret-scanning work is no longer listed as untouched.
 
 ---
 
@@ -1212,8 +1212,8 @@ Open items:
 - Local-only mode must remain device-only.
 - No service-role key belongs in the renderer or this repository.
 - The desktop secure store uses DPAPI-encrypted values in SQLite; it is not SQLCipher.
-- The current cloud sync stores the complete budget document. Conflict resolution is still absent.
-- Provider statements for 2027 and 2028 are imported for all eight provider sheets, but no view surfaces them yet; the app still targets the configured year.
+- The current cloud sync stores the complete budget document. A conflict-resolution screen is delivered; two-device/RLS validation remains.
+- Provider statements for 2027 and 2028 are imported for all eight provider sheets; the year selector and provider views expose them, and Statements has an All years option.
 - The source workbook `Income and Expenses 2026.xlsx` is retired and deleted. `data/workbook.json` is canonical, including the 2027/2028 provider blocks and the four product sheets. `npm run extract` exits with a clear message until a workbook is restored.
 - Electron navigation guards and CSP have not been exercised inside a packaged installer yet.
 - The local-to-cloud consent screen is live-tested with Google sign-in. Keeping local retains the account session for manual Sync, Exit and Log out; local mode still does not auto-sync.
@@ -1234,16 +1234,16 @@ Added 2026-11-06. Compares the current build against YNAB, Monarch Money, Pocket
 
 ### 19.1 The structural difference
 
-FinanceHub is a **fidelity tool**: it reproduces one household's workbook to the penny, with provider ledgers, month-end locks and an audit trail. Competitors are **automation tools**: connect a bank, auto-categorise, project forward. Several competitor features are only possible because they hold a bank feed and a category model — both of which this app still lacks. That distinction decides which gaps to close and which to leave.
+FinanceHub is a **fidelity tool**: it reproduces one household's workbook to the penny, with provider ledgers, month-end locks and an audit trail. Competitors are **automation tools**: connect a bank, auto-categorise, project forward. Several competitor features are only possible because they hold a bank feed and a mature category model. FinanceHub now has basic categories and tags; the bank feed and category rules/splits are still missing. That distinction decides which gaps to close and which to leave.
 
 ### 19.2 Table stakes that are missing
 
 | Gap | Who has it | Where it stands here |
 | --- | --- | --- |
 | Live bank feeds / Open Banking | All of them; PocketSmith advertises 12,000+ institutions, Monarch uses several aggregators, Snoop and Emma are built on UK Open Banking | Planned in §10 but gated behind the FCA work in C-4 |
-| Categories, tags and labels | Universal — PocketSmith categorises, labels and annotates; Monarch auto-categorises on connect | No category model exists in `core/engine.ts`; the only grouping is the `(card)` comment convention. A rules engine and splits are planned in §9, but they need a category field first |
+| Categories, tags and labels | Universal — PocketSmith categorises, labels and annotates; Monarch auto-categorises on connect | One optional category plus up to eight free-form tags, with filters and CSV export. Rules, splits and category budgets are still missing |
 | Recurring and subscription detection | Monarch lists bills and subscriptions with reminders and cancellation prompts; Snoop's core pitch is finding subscriptions | A subscription tracker is planned in §9 C, but detection from transaction history is not planned |
-| Alerts and reminders | Monarch payment reminders; Emma and Snoop daily balance and overdraft alerts | Only "bill and balance alerts" in §9 C and a notification-centre item in §8; no push or email delivery exists |
+| Alerts and reminders | Monarch payment reminders; Emma and Snoop daily balance and overdraft alerts | In-app alerts for bills due within seven days, negative/low balances and cards over 80% used; no push or email delivery |
 | Mobile app | Every competitor is mobile-first | iOS is Phase 4, blocked on macOS; a PWA is in §9 E; no Android |
 | Receipts and attachments | YNAB attaches photos and memos per transaction; Monarch similar | Planned in §9 B, with OCR in §8 |
 | Powerful search | PocketSmith sells its search; Monarch markets searching any transaction | Transactions searches comments, account and amount with month and type filters. No cross-entity search, saved filters or search inside statements |
@@ -1252,7 +1252,7 @@ FinanceHub is a **fidelity tool**: it reproduces one household's workbook to the
 | Long-range forecasting | PocketSmith projects daily balances up to 60 years with what-if scenarios; Monarch Plus does retirement forecasting | Only the 12-month cash-flow forecast in §9 C, on top of the existing open-month projection |
 | Multi-currency | PocketSmith, including native and converted balances | Not planned anywhere |
 | Excel/PDF reports and cash-flow statements | PocketSmith cash-flow statement; YNAB net-worth reports | In P2 and §9 E |
-| Conflict-free multi-device sync | Assumed working by every competitor | One-account sync live-verified; two-device/RLS/offline tests absent (P0-6); conflict UI is P1 |
+| Conflict-free multi-device sync | Assumed working by every competitor | One-account sync and the conflict-resolution UI are delivered; two-device/RLS/offline tests remain (P0-6) |
 
 ### 19.3 Do not copy — explicit non-goals
 
@@ -1267,11 +1267,11 @@ No competitor gap hurts adoption as much as this: **every competitor onboards wi
 
 The missing capability is not on the competitor table at all:
 
-- [ ] A demo/template dataset a buyer can explore before entering anything.
-- [ ] A first-run model builder: start from a CSV plus a short set of questions (accounts, people, cards, bills, income), not from the workbook schema.
-- [ ] A clear "start from scratch" path, so onboarding does not require the original spreadsheet.
+- [x] A demo/template dataset a buyer can explore before entering anything.
+- [~] A first-run model builder: guided setup already offers blank/demo and adds accounts, people, bills and providers, but a CSV-plus-questions model builder is still absent.
+- [x] A clear "start from scratch" path, so onboarding does not require the original spreadsheet.
 
-*Status note (2026-11-08): the hosted sign-in screen now ships an **Explore a sample budget** demo and guided setup adds accounts, people, bills and providers, so the first bullet is partly delivered. The first-run model builder is still absent. See §22.5.*
+*Status note (2026-11-09): the hosted sign-in screen and first run both offer **Explore a sample budget**, and first run offers a genuinely blank budget. The CSV-plus-questions model builder remains the adoption gap. See §22.5.*
 
 ### 19.5 What this app has that competitors do not
 
@@ -1285,13 +1285,13 @@ Protect these rather than trading them away for feature parity:
 
 ### 19.6 If only five gaps are closed
 
-1. **Categories and tags on transactions** — cheapest change with the widest effect; unlocks reports, search, rules and splits later.
+1. **Categories and tags on transactions** — delivered; the remaining leverage is reports, search, rules and splits.
 2. **Recurring detection plus alerts** — turns a passive ledger into something that talks to the user.
 3. **First-run model builder and demo dataset** (§19.4) — the adoption blocker. The demo ships on the hosted sign-in screen; the model builder is now a roadmap row in §9 C and ranked 3 in §22.4.
 4. **Bank feed** — the real differentiator once C-4 clears; until then CSV remains the feed.
 5. **Mobile or PWA read-only companion** — so a balance can be checked without a laptop.
 
-Items 1–2 are in §9 but underweighted; item 3 is not in the plan at all; item 4 is §10; item 5 is partly §9 E and Phase 4.
+Item 1 is delivered; item 2 is partly delivered through in-app alerts; item 3 is partly delivered through blank/demo onboarding; item 4 is §10; item 5 is partly §9 E and Phase 4.
 
 ### 19.7 Sources
 
@@ -1431,20 +1431,21 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
 
 ### 21.2 P0 detail
 
-- [ ] **A-01 — Remove provider credentials from every data path.**
-  - [ ] Delete `accessPassword`, `chargeLetterPassword` and `accessBill` values (and `settings.plaintextCredentials` metadata) from `data/workbook.json`; keep the keys out of the seed type.
-  - [ ] Read provider secrets through a `providerSecrets` interface: Electron `safeStorage`/`credential_vault` via `preload.cjs`, web in memory only with a clear “not stored on this device” notice.
-  - [ ] Providers reads the secret from that interface; the dataset, backup export and sync payload contain no secret fields.
-  - [ ] Rotate every credential that has appeared in a build, backup or cloud workspace (owner action).
-  - [ ] Add `tests/secrets.test.ts`: seed has no non-empty secret values; when `dist/` exists, no credential field name or seed value appears in the bundle.
-  - [ ] Correct the Settings copy at `app/src/views/tools.tsx:498` so it cannot be read as a promise about provider passwords.
-  - Acceptance: `grep -R "accessPassword\|chargeLetterPassword\|accessBill" dist` returns nothing; restore of an old backup strips secrets and says so; the desktop vault reveal still works.
+- [~] **A-01 — Remove provider credentials from every data path.**
+  - [x] Deleted the legacy credential values and `settings.plaintextCredentials` from the canonical seed and importer; the seed type and tests reject them.
+  - [x] Provider secrets live in the passphrase-derived AES-256-GCM vault. The dataset, JSON backups and conflict snapshots carry no plaintext secret fields; backups deliberately exclude the vault.
+  - [x] The provider screen and Settings read only the unlocked vault, and the Settings copy distinguishes a bank password from stored provider logins.
+  - [x] Rotated every credential that appeared in a build, backup or cloud workspace (owner confirmed 2026-11-09).
+  - [x] `tests/vault.test.ts` rejects plaintext seed fields and `tests/build-secrets.test.ts` scans built bundles for legacy values.
+  - [ ] Purge the retained pre-rotation `sync_conflicts` snapshots and old backups.
+  - Acceptance: no non-empty legacy credential value in a built bundle; an old backup strips the fields; the vault reveal works. The old-snapshot purge is the remaining step.
 
-- [ ] **A-02 — Keep secrets out of cloud state and the conflict archive.**
-  - [ ] Apply the A-01 boundary to `settings.state_json` and to `sync_conflicts.local_json` / `remote_json`; store a diff summary or field paths, not whole documents.
-  - [ ] Add a payload test that walks the push object and fails on credential keys.
-  - [ ] Decision required: end-to-end encryption for any cloud data that must include secrets, or no secrets in the cloud at all. Recommended: no secrets in the cloud.
-  - Acceptance: an injected cloud document and a conflict row contain no credential field; conflict row JSON is under 8 KB for the current dataset.
+- [~] **A-02 — Keep secrets out of cloud state and the conflict archive.**
+  - [x] The live cloud revision carries only the encrypted vault envelope and no legacy credential fields; conflicts now store revisions, timestamps and changed paths rather than whole documents.
+  - [x] Decision: no plaintext secrets in cloud state. The vault ciphertext may sync as an opaque envelope; the passphrase never leaves the device.
+  - [ ] Add a payload test that walks the push object and fails on any new credential key.
+  - [ ] Purge the retained pre-rotation conflict snapshots and cloud backups.
+  - Acceptance: an injected cloud document and a conflict row contain no plaintext credential field; conflict row JSON stays under 8 KB for the current dataset. The purge is the remaining remediation.
 
 - [x] **A-03 — Bounded conflict storage and a resolution screen.** Implemented 2026-11-08.
   - [x] Conflicts are stored as `StoredConflict<AppState>` metadata with snapshots for only the newest two pairs that fit `CONFLICT_PAIR_BYTES` (1.5 MB); the queue holds 25 entries. `normalizeConflicts` reads both the old `{local: {state}}` shape and the new shape, so an existing device upgrades without losing its queue.
@@ -1485,7 +1486,13 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
 
 - [ ] **A-11 — One implementation per provider calculation.** Move the rent/water payment-target and ledger recalculation in `app/src/views/tools.tsx` and `app/src/views/providers.tsx` into `core/rent.ts`, `core/water.ts` and `core/telco.ts`, and have the views call them. Acceptance: golden tests show the preview rows equal the engine rows for rent, water, O2 and Virgin changes.
 
-- [ ] **A-12 — Release and auth hardening.** Code signing, branded icon, signed update feed/rollback; OAuth `state`/nonce validation with a forged-callback test; exact Supabase origin in `connect-src` (`app/vite.config.ts`); keep hosted web deployment blocked until browser storage is protected. Acceptance: signed installer; forged/replayed callback rejected; CSP has no wildcard Supabase origin.
+- [~] **A-12 — Release and auth hardening.**
+  - [x] A valid Supabase configuration now restricts CSP `connect-src` to the exact HTTPS/WSS origin; CSV/URL hardening is covered by A-13.
+  - [ ] Remove the wildcard CSP fallback and add an exact-origin test.
+  - [ ] Add OAuth `state`/nonce validation or document Supabase PKCE as the accepted check, with a forged/replayed callback test.
+  - [ ] Code signing, branded icon and signed update feed/rollback.
+  - [~] Hosted web stays private until P0-8 and browser-storage hardening are complete.
+  - Acceptance: signed installer; forged/replayed callback rejected; CSP has no wildcard Supabase origin.
 
 - [x] **A-13 — Content limits and CSV safety.** Implemented 2026-11-07.
   - CSV imports are rejected above **10 MB** or **20,000 physical data rows** before `parseCsv` runs (`core/importLimits.ts`, used by `app/src/views/tools.tsx`); backup restores use the shared **25 MB** cap.
@@ -1530,6 +1537,8 @@ Decisions needed:
 
 Added 2026-11-08. A quantitative read of this plan and a market check of the apps named in §19, using their own pages and published price trackers from August–November 2026. Method: counted from this document's own status markers and feature rows; nothing here changes a budget figure. Competitor prices and tiers move — re-check before quoting them to anyone, and refresh this section quarterly.
 
+**Historical snapshot.** The counts below describe 2026-11-08 and are superseded by the checklists in §5, §6 and §15. In particular, P0-3 is now closed, manual restore points/UI smoke tests have landed, and categories/alerts/first-run are no longer unreleased.
+
 ### 22.1 How much of the plan is done
 
 | Scope | Done | In progress | Open | Done |
@@ -1542,7 +1551,7 @@ Added 2026-11-08. A quantitative read of this plan and a market check of the app
 
 The audit items closed are A-04 (unknown-account classification), A-05 (in-batch import dedupe), A-13 (content limits and CSV safety), A-14 (holiday trips), A-15 (pseudo-accounts visible) and A-16 (read-only duplicate report) — the money-integrity and content-safety fixes.
 
-**Gate level (the number that decides release):** four of nine P0 gates are closed — P0-1 local-to-cloud consent, P0-2 persistence and recovery, P0-7 statement correctness and P0-9 money-integrity guardrails. Four are in progress (P0-3 backups, P0-4 Electron boundary, P0-5 Windows release engineering, P0-6 live cloud validation). One is open: P0-8 credential rotation and snapshot purge.
+**Gate level at this snapshot:** four of nine P0 gates were closed — P0-1 local-to-cloud consent, P0-2 persistence and recovery, P0-7 statement correctness and P0-9 money-integrity guardrails. P0-3 was still in progress. Current status: **five closed** (P0-3 backups added), P0-4/P0-5/P0-6 in progress, P0-8 open on the snapshot purge.
 
 | Phase (§12) | Status | Remaining |
 | --- | --- | --- |
@@ -1553,7 +1562,7 @@ The audit items closed are A-04 (unknown-account classification), A-05 (in-batch
 | 5 Sync and auth | Partial | Two-account RLS, two-device/offline, conflict UI, realtime |
 | 6 Import/export/guides/backups | Partial | Excel/PDF export, scheduled backups and restore points |
 
-**Feature roadmap (§9):** none of its feature rows is released. What ships today is workbook parity and the surrounding ledgers, not the planning layer.
+**Feature roadmap (§9) at this snapshot:** none of its rows was released. Since then, transaction categories/tags, in-app alerts, first-run blank/demo, encrypted backups and provider snapshots have shipped; the planning layer is no longer entirely absent.
 
 Reading: the replacement product is built and live; the release is about a third of the way through its gates. The 29% overall figure is dragged down by §7 and §9 items that only become meaningful after the P0 gates close.
 
@@ -1562,9 +1571,9 @@ Reading: the replacement product is built and live; the release is about a third
 | Capability | FinanceHub | Emma | Snoop | YNAB | Monarch / PocketSmith |
 | --- | --- | --- | --- | --- | --- |
 | Open Banking feed | No — CSV only (Starling) | Yes, 50+ UK banks | Yes | Yes, Plaid/MX | Yes; PocketSmith claims 12,000+ institutions |
-| Categories, tags, budgets | No category model | Custom categories free on Pro; budgets with rollover and daily allowance | Basic categories, 3 custom free | Envelopes, targets, loan planner | Categories, rules, splits |
+| Categories, tags, budgets | Categories and tags; no budgets/rules | Custom categories free on Pro; budgets with rollover and daily allowance | Basic categories, 3 custom free | Envelopes, targets, loan planner | Categories, rules, splits |
 | Subscription detection and cancellation | No — bills are entered by hand | Track and cancel | Core pitch ("Snoops") | No | Monarch tracks and reminds |
-| Alerts and reminders | None | Weekly bill reminders, overdraft alerts | Bill and deal alerts | Limited | Yes |
+| Alerts and reminders | In-app bill/balance/card alerts; no push/email | Weekly bill reminders, overdraft alerts | Bill and deal alerts | Limited | Yes |
 | Native mobile app | No — web/desktop | iOS and Android | iOS and Android | iOS, Android, web | iOS, Android, web |
 | Net worth, assets, investments | Accounts and cards only | Spaces, savings, investing, crypto; rent reported to Experian | Credit score only | Tracking accounts, net-worth report | Full asset, mortgage and investment tracking |
 | Shared household budget | Read-only people portal, one owner | No | No | Up to 6 people | Partner invite (Monarch) |
@@ -1595,11 +1604,11 @@ Reading: the replacement product is built and live; the release is about a third
 | 5 | PWA or mobile companion | A balance cannot be checked from a laptop in a shop | L | Read-only mobile entry, alerts on the go |
 | 6 | Bank feed | The differentiator once C-4 clears; CSV stays the fallback | XL | Removes manual import, enables detection |
 
-Items 1 and 2 need no regulated provider and no FCA gate, which is why they come first.
+Since this ranking: item 1 (categories/tags) is delivered, item 2 is partly delivered (in-app alerts, but no recurring detection), and item 3 is partly delivered (blank/demo onboarding, but no CSV-plus-questions builder). The highest remaining unbuilt gaps are category budgets/reports, net worth, a PWA/mobile companion and the bank feed.
 
 ### 22.5 Drift against earlier sections
 
-- §19.4 bullet 1 (demo dataset) is **partly delivered**: the hosted sign-in screen offers **Explore a sample budget**, and guided setup adds accounts, people, bills and providers. Bullet 2 (first-run model builder) is still absent and is now a roadmap row in §9 C. Bullet 3 (start from scratch) is partial: onboarding asks the questions but still seeds a household-shaped workspace.
+- §19.4 bullet 1 (demo dataset) is **delivered**: the hosted sign-in screen and first run offer **Explore a sample budget**. Bullet 2 (first-run model builder) is still absent and is now a roadmap row in §9 C. Bullet 3 (start from scratch) is **delivered** through the blank-budget first-run choice, though a new user still cannot build a populated model from a CSV without the workbook-shaped seed.
 - §1's audit snapshot and §19's own comparison were written against the November 2026 competitor pages; prices in §22.2 are the later check. Where they disagree, §22.2 wins until the next refresh.
 - §9 remains the authoritative roadmap; §22.4 ranks it rather than replacing it.
 
