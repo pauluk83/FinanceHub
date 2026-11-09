@@ -1,0 +1,50 @@
+{
+  "name": "financehub",
+  "version": "2026.11.9",
+  "description": "FinanceHub — personal finance app with workbook parity",
+  "main": "electron/main.cjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pauluk83/FinanceHub.git"
+  },
+  "homepage": "https://financehub.freedev.app/",
+  "bugs": {
+    "url": "https://github.com/pauluk83/FinanceHub/issues"
+  },
+  "scripts": {
+    "extract": "node import/extract.mjs",
+    "test": "node --test tests/parity.test.ts tests/rent-change.test.ts tests/water-change.test.ts tests/sync.test.ts tests/sync-client.test.ts tests/postgres-rls.test.ts tests/sync-schema.test.ts tests/backup.test.ts tests/import-dedupe.test.ts tests/import-safety.test.ts tests/holidays.test.ts tests/accounts.test.ts tests/workbook-years.test.ts tests/telco-change.test.ts tests/transfer.test.ts tests/internal-transfers.test.ts tests/vault.test.ts tests/portal.test.ts tests/provider-setup.test.ts tests/provider-ledger.test.ts tests/schema-migrations.test.ts tests/provider-balances.test.ts tests/statements.test.ts tests/engine-invariants.test.ts tests/nav.test.ts tests/guide.test.ts tests/legal.test.ts tests/version.test.ts tests/app-changelog.test.ts tests/sections.test.ts tests/bill-log.test.ts tests/build-secrets.test.ts tests/conflict-storage.test.ts tests/year-rollover.test.ts tests/app-lock.test.ts tests/budget-changelog.test.ts tests/github-release.test.ts",
+    "dev:web": "vite --config app/vite.config.ts",
+    "build:web": "vite build --config app/vite.config.ts",
+    "build:web:hosted": "vite build --config app/vite.config.ts --mode hosted",
+    "prebuild:web": "node scripts/app-changelog.mjs",
+    "prebuild:web:hosted": "node scripts/app-changelog.mjs",
+    "deploy:web": "npm run build:web:hosted && node scripts/deploy-hosted.mjs",
+    "github:release": "node scripts/github-release.mjs",
+    "release": "node scripts/release.mjs",
+    "release:bump": "node scripts/release.mjs bump",
+    "release:check": "node scripts/release.mjs check",
+    "preview:web:hosted": "vite preview --config app/vite.config.ts --mode hosted --port 4173",
+    "dist:win": "npm run build:web && electron-builder --win nsis --x64",
+    "start": "npm run build:web && electron electron/main.cjs",
+    "desktop": "electron electron/main.cjs"
+  },
+  "keywords": [],
+  "author": "Zane Stanton",
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "private": true,
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.2.1",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "xlsx": "^0.18.5"
+  }
+}

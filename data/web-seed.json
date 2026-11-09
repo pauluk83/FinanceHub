@@ -1,0 +1,29 @@
+{
+  "settings": {
+    "targetYear": 2026,
+    "startMonth": 1,
+    "currency": "£",
+    "monthsInYear": 12,
+    "asOfDate": "2026-11-07",
+    "lockCutoff": "2026-11-01",
+    "anchorDate": "2026-11-07"
+  },
+  "accounts": [],
+  "people": [],
+  "cards": [],
+  "bills": [],
+  "billChanges": [],
+  "incomeSchedules": {
+    "pip": [],
+    "uc": []
+  },
+  "transactions": [],
+  "providers": {},
+  "holidays": {},
+  "guides": {
+    "monthEnd": [],
+    "newYear": []
+  },
+  "changelog": [],
+  "audit": []
+}

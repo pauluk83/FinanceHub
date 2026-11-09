@@ -1,0 +1,22 @@
+node_modules/
+release/
+dist/
+dist-web/
+# The personal workbook seed carries real names and amounts; keep it out of history.
+data/workbook.json
+data/*.db
+data/*.db-*
+# Import/audit output and personal screenshots are not source.
+analysis/
+reports/
+tmp/
+*.lnk
+FinanceHubBrowser.cmd
+/*.png
+/*.jpg
+/*.jpeg
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
