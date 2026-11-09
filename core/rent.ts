@@ -19,11 +19,22 @@ export type RentProvider = {
   paymentChanges?: RentPaymentChange[];
   detailsEdited?: boolean;
   entries?: RentEntry[];
+  /** Later years can live in their own block, like the other provider ledgers. */
+  years?: Record<string, { rows?: RentEntry[]; [key: string]: unknown }>;
   [key: string]: unknown;
 };
 
 /** Rent is charged weekly at one quarter of the monthly rent in this workbook. */
 export const weeklyRentPence = (monthlyPence: number): number => Math.round(monthlyPence / 4);
+
+/** Every rent row, including later-year blocks, in one list. */
+export function allRentEntries(rent: RentProvider): RentEntry[] {
+  const entries = [...(rent.entries ?? [])];
+  for (const block of Object.values(rent.years ?? {})) {
+    if (Array.isArray(block?.rows)) entries.push(...block.rows);
+  }
+  return entries;
+}
 
 /**
  * Rows that a rent change is allowed to rewrite: future Rent Charge entries
@@ -65,8 +76,7 @@ function rentBaseline(entries: RentEntry[]): number {
     : 0;
 }
 
-function recalculateRentBalances(rent: RentProvider, baseline: number): void {
-  const entries = rent.entries ?? [];
+function recalculateRentBalances(entries: RentEntry[], baseline: number): void {
   entries.sort((a, b) => a.date.localeCompare(b.date));
   let running = baseline;
   for (const entry of entries) {
@@ -89,7 +99,7 @@ export function applyMonthlyRentChange(
   if (!Number.isInteger(monthlyPence) || monthlyPence <= 0) throw new Error('Monthly rent must be greater than zero');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) throw new Error('Choose a valid rent start date');
 
-  const entries = rent.entries ?? [];
+  const entries = allRentEntries(rent);
   const baseline = rentBaseline(entries);
   const weekly = weeklyRentPence(monthlyPence);
 
@@ -99,7 +109,7 @@ export function applyMonthlyRentChange(
 
   const targets = rentChangeTargets(entries, asOfDate, effectiveFrom);
   for (const entry of targets) entry.amountPence = -weekly;
-  recalculateRentBalances(rent, baseline);
+  recalculateRentBalances(entries, baseline);
 
   return targets.length;
 }
@@ -118,7 +128,7 @@ export function applyMonthlyPaymentChange(
   if (!Number.isInteger(paymentPence) || paymentPence <= 0) throw new Error('Monthly payment must be greater than zero');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) throw new Error('Choose a valid payment start date');
 
-  const entries = rent.entries ?? [];
+  const entries = allRentEntries(rent);
   const baseline = rentBaseline(entries);
 
   if (typeof rent.paymentBasePence !== 'number') {
@@ -136,7 +146,7 @@ export function applyMonthlyPaymentChange(
 
   const targets = rentPaymentTargets(entries, asOfDate, effectiveFrom);
   for (const entry of targets) entry.amountPence = paymentPence;
-  recalculateRentBalances(rent, baseline);
+  recalculateRentBalances(entries, baseline);
 
   return targets.length;
 }

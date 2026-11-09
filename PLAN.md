@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
-Last updated: 2026-11-08 (night)  
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; end-to-end encrypted credential vault, device-local people statement sign-ins and app-wide feedback delivered; not release-ready — P0-8 credential rotation and old-snapshot cleanup remain**
+Last updated: 2026-11-09
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; end-to-end encrypted credential vault, device-local people statement sign-ins, app-wide feedback and the read-only Data Health / Integrity Centre delivered; the owner confirms exposed provider passwords are rotated; not release-ready — pre-rotation snapshot/backup purge, packaged-security checks and Windows signing remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -55,7 +55,7 @@ Effort (roadmap sections only): **S** small · **M** medium · **L** large · **
 | Sidebar menu layout | `app/src/nav.ts`, `app/src/views/menuLayout.tsx` | Settings → Menu layout hides items and moves them between Overview, Ledger and Providers; Tools is static and cannot be hidden or moved; overrides live in `settings.navLayout`; `tests/nav.test.ts` |
 | Legal, privacy and IP | `app/src/legal/`, `COMPLIANCE.md` | Privacy Policy, Terms of Service and EULA published in-app and linked from sign-in and Settings; owner, © 2026 and FinanceHub™ notices; applicability matrix records UK GDPR as applicable and PCI DSS, Open Banking/PSD2, FCA, MSB/KYC-AML as out of scope for a read-only budgeting app; MFA/self-serve deletion on the roadmap; 4 tests |
 | Live cloud workspace | Supabase `settings.state_json` | Google sign-in working; remote revision 16 carries the encrypted vault with no legacy credential fields; password rotation remains |
-| Hosted static web build (financehub.freedev.app) | `app/vite.config.ts`, `data/web-seed.json`, `dist-web/` | Uploaded over FTP to InfinityFree `financehub.freedev.app/htdocs` with a root base; build root/JS/CSS (current `assets/index-*.js`, `index-ByuwyWpD.css`); app-wide feedback, the Dashboard unread notice, editable provider-ledger **Balance** and **Total paid** columns and the O2/Virgin **Bill** column are live; the footer version comes from `app/src/version.ts`, baked from `package.json` by Vite, so the web build and the Windows app report the same number; the login page and Tools carry an **Application changelog** regenerated from `CHANGELOG.md` on every build, and the Windows installer is published as a GitHub Releases asset instead of on the web host; login, local and demo flows load at `https://financehub.freedev.app/`; Supabase Site URL/redirect allow-list update pending for Google sign-in and email confirmation; vault rev 16 clean; private until rotation (P0-8) |
+| Hosted static web build (financehub.freedev.app) | `app/vite.config.ts`, `data/web-seed.json`, `dist-web/` | Uploaded over FTP to InfinityFree `financehub.freedev.app/htdocs` with a root base; build root/JS/CSS (current `assets/index-*.js`, `index-ByuwyWpD.css`); app-wide feedback, the Dashboard unread notice, editable provider-ledger **Balance** and **Total paid** columns and the O2/Virgin **Bill** column are live; the footer version comes from `app/src/version.ts`, baked from `package.json` by Vite, so the web build and the Windows app report the same number; the login page and Tools carry an **Application changelog** regenerated from `CHANGELOG.md` on every build, and the Windows installer is published as a GitHub Releases asset instead of on the web host; login, local and demo flows load at `https://financehub.freedev.app/`; Supabase Site URL/redirect allow-list update pending for Google sign-in and email confirmation; vault rev 16 clean; private until the pre-rotation snapshot purge is complete (P0-8) |
 
 Commands:
 
@@ -322,10 +322,10 @@ No secret values were read or printed during this review. Severity reflects the 
   - [x] Starling now closes on its anchor-aware balance: the primary-account statement adds scheduled bills, people cash, Petrol/Other and Backup Space on the same dates as `starlingBreakdown`, so every month closes at the Dashboard balance instead of the raw ledger. The Statement page says so under the table.
   - [x] Golden statement coverage added for the primary account in `tests/statements.test.ts`: closes at `starlingBalance` for all 12 months, month boundaries chain, and every line carries its running balance.
 
-- [ ] **P0-8 — Credential exposure remediation** (source remediation implemented; operational cleanup remains)
+- [ ] **P0-8 — Credential exposure remediation** (owner-confirmed rotation; old-snapshot purge remains)
   - [x] Remove `accessUsername`, `accessPassword`, `chargeLetterPassword` and `accessBill` from the canonical seed and importer; rebuild the desktop renderer from the clean seed. The hosted build already uses a blank seed.
-  - [x] Hosted app is deployed privately at `https://financehub.freedev.app/` (root base); the old `https://recoverycommander.free.nf/FinanceHub/` deployment has been removed from the server. Live revision 16 carries the vault and no legacy credential fields. Keep it private until exposed passwords are rotated and old snapshots are purged or accepted as exposed.
-  - [ ] Rotate every credential that has appeared in a build, backup or cloud workspace.
+  - [x] Hosted app is deployed privately at `https://financehub.freedev.app/` (root base); the old `https://recoverycommander.free.nf/FinanceHub/` deployment has been removed from the server. Live revision 16 carries the vault and no legacy credential fields. Keep it private until the pre-rotation snapshots and old backups are purged.
+  - [x] Rotate every credential that has appeared in a build, backup or cloud workspace. The owner confirmed on 2026-11-09 that all exposed provider passwords are rotated; the values were not shared with the repository.
   - [x] Move provider credentials to a passphrase-derived AES-256-GCM vault; new writes carry ciphertext only and the provider screen never reads legacy fields.
   - [x] Remove old plaintext fields from the live `settings.state_json` by creating the vault, then verify the pushed revision — revision 16 is clean with an empty sync outbox and no conflicts.
   - [ ] Purge or accept as exposed the retained `sync_conflicts` snapshots and old builds.
@@ -335,7 +335,7 @@ No secret values were read or printed during this review. Severity reflects the 
   - [x] Add a source-seed regression test that rejects credential field keys; still add a built-artifact check (A-01).
   - [x] Build-time guard added: `tests/build-secrets.test.ts` scans `dist/` and `dist-web/` for a legacy credential field carrying a value, while allowing the vault's migration code to mention the field names. Registered in `npm test` and rerun after every release build.
 
-**Immediate distribution gate:** do not distribute the current installer, backups or cloud workspace until the live migration and rotation are complete.
+**Immediate distribution gate:** do not distribute the current installer, backups or cloud workspace until the retained pre-rotation snapshots and old backups are purged and the purge is verified.
 
 - [x] **P0-9 — Money-integrity guardrails** — closed 2026-11-08.
   - [x] Classify every transaction account and fail closed on unknown values instead of silently excluding the row (A-04) — 2026-11-07.
@@ -392,7 +392,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [ ] **No per-record audit history or undo.** The Changelog records summaries, not which record changed, its previous value or how to reverse it. Add per-record history, a revert action and a soft-delete/trash state.
 - [ ] **Imported transactions have no import-run provenance.** A row knows its source row number but not which CSV, import batch or file created it. Add an `import_run` ID, source filename, imported-at timestamp and a one-click import undo.
 - [ ] **Backups have no integrity check.** Restore validates structure but not a checksum or signature. Add a backup format version, SHA-256 checksum and “verify backup” action before restore.
-- [ ] **No Data Health screen.** Add one place that flags stale balances, unmatched imports, duplicates, dormant accounts, missing provider links, locked-month gaps, statement mismatches, failed sync state and old backups.
+- [~] **Data Health screen — foundation delivered 2026-11-09.** Tools → Data health is a read-only report over account names, exact duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved sync conflicts. It recomputes from the loaded dataset and never deletes, merges or rewrites anything. Still missing: failed-sync state and old-backup age need metadata the dataset does not currently store, and direct statement-vs-snapshot comparison remains covered only through the locked-month balance check.
 - [ ] **No “Explain this number” drill-down.** Every KPI should show its source rows, formula, month, account and overrides so users can understand why a figure differs from the workbook or an earlier month.
 - [ ] **No session/device management.** Cloud accounts cannot see active devices, last sync, revoke a device or sign out all sessions. Add this alongside MFA/passkeys.
 - [ ] **No accountant/tax-year export.** Add a pack containing transaction CSV, statement PDFs, income/expense summaries, locked-month snapshots, provider balances and a reconciliation note.
@@ -421,7 +421,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 
 ### Deliberate order
 
-1. Data Health / Integrity Centre.
+1. [~] Data Health / Integrity Centre — screen delivered; add backup-age and failed-sync diagnostics when that metadata exists.
 2. Per-record audit and undo.
 3. Statement year selector and provider snapshots in month-end locks.
 4. Backup checksum, format version and restore verification.
@@ -1040,7 +1040,7 @@ External dependencies that code changes cannot satisfy: legal review, certificat
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** close P0-8 (remove and rotate credentials), then the remaining P0-6 multi-account/offline/conflict and packaged-security checks. P0-7 closed 2026-11-08.
+**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge (rotation is owner-confirmed), then deploy the hosted bundle and refresh the existing `v2026.11.9` release assets. P0-6 two-account/two-device validation and Windows signing are deliberately deferred.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1049,12 +1049,21 @@ Sequence chosen: low-risk, independently verifiable release work first.
 5. [x] Add explicit local-to-cloud import consent.
 6. [x] Add a top-level render error boundary.
 7. [x] Add last-known-good recovery and blocked-state handling.
-8. [~] Package the Windows build. Unsigned NSIS installer verified; signing, branded icon and auto-update remain.
-9. [ ] Fix Starling statement reconciliation and add full statement coverage (P0-7).
-10. [~] Complete live cloud, packaged-security and automated UI smoke-test verification. Google sign-in, the local-data consent prompt and one-account cloud sync are verified; two-account/RLS, two-device/offline/conflict, packaged OAuth/CSP and UI smoke tests remain.
-11. [ ] After P0-8 and P0-7, start the trust backlog with the Data Health / Integrity Centre.
-12. [ ] Run the compliance workstream (C-1 to C-7) alongside release engineering. It cannot be closed by code and it gates public distribution, any store submission and every regulatory or security claim.
+8. [~] Package the Windows build. Unsigned NSIS installer verified and branded icon still to add; signing and signed auto-update are deferred until a certificate is available.
+9. [x] Fixed Starling statement reconciliation and added full statement coverage (P0-7) — closed 2026-11-08.
+10. [~] Complete live cloud, packaged-security and automated UI smoke-test verification. Google sign-in, the local-data consent prompt and one-account cloud sync are verified; packaged OAuth/CSP and UI smoke tests remain. Two-account/RLS and two-device/offline/conflict validation are deferred by the owner.
+11. [~] Started the trust backlog with the **Data Health / Integrity Centre**. The read-only screen and its tests are delivered; backup-age and failed-sync checks still need metadata. P0-8 rotation is confirmed; the old-snapshot purge remains.
+12. [~] Started the compliance workstream with the **DPIA and ICO pack**. It cannot be closed by code and it gates public distribution, any store submission and every regulatory or security claim.
 13. [ ] Add a safe **Remove local-only copy / Forget this device** action that never resets or uploads cloud data. The leftover local copy has 1,121 rows (one duplicate) versus 1,120 in the cloud.
+14. [ ] Add per-record audit history, a revert action and a soft-delete/trash state.
+15. [ ] Add one category plus free-form tags to transactions.
+16. [ ] Add the in-app notification centre for bill and balance alerts.
+17. [ ] Add guided first-run setup with a blank-budget or demo choice.
+18. [ ] Add encrypted, versioned backups with seven restore points.
+19. [ ] Add provider balances and statement references to locked-month snapshots and an All years statement view.
+20. [ ] Add failed-sync and backup-age diagnostics to Data Health.
+21. [ ] Add self-serve cloud account deletion plus MFA/passkeys.
+22. [ ] Start bank-linking integration only after the C-4 gate clears.
 
 ---
 
@@ -1062,22 +1071,38 @@ Sequence chosen: low-risk, independently verifiable release work first.
 
 Decisions already taken:
 
+- Release: deploy the hosted web bundle and refresh the existing `v2026.11.9` installer assets; commit and push the current working tree.
 - Locked months stay immutable imported snapshots; historical bills are not recomputed.
 - Workbook quirks are preserved and flagged where they still affect totals; the £30 `Credit Cards` row is reclassified as Starling and Dan is a linked account rather than a normal budget account.
-- The hosted `/FinanceHub/` build is structurally ready but not approved for public use until P0-8 and browser-storage hardening are complete.
+- The hosted `/FinanceHub/` build is structurally ready but not approved for public use until the pre-rotation snapshot purge and browser-storage hardening are complete.
 - Provider credentials must not live in the synced document; the vault is the target home.
+- P0-8: the owner confirmed on 2026-11-09 that every exposed third-party provider password has been rotated. Purge pre-rotation conflict snapshots and old backups rather than retaining them.
+- P0-6 two-account RLS and two-device/offline/conflict validation is deferred.
+- Windows signing is deferred. Signed auto-update with rollback is selected, but it cannot ship before signing.
+- Distribution is direct Windows download first. Microsoft Store is not opened. iOS is deferred; Windows and web remain the supported targets.
+- Secure bank linking stays CSV-only until C-4 clears; integration starts only after the gate.
+- Transactions use one category plus free-form tags.
+- Alerts use the in-app notification centre first.
+- New users get guided setup with a choice of a blank budget or the demo.
+- Backups are encrypted and versioned, with seven restore points.
+- Audit is per-record history plus trash/undo.
+- Locked-month snapshots include provider balances and statement references.
+- Statements gain an All years view.
+- Data Health gains failed-sync and backup-age checks.
+- Cloud accounts gain self-serve deletion plus MFA/passkeys.
+- Open the DPIA and ICO pack now; other external compliance workstreams wait for their gates.
 - Engineering completion is not compliance; §14 gates distribution and store submission.
 
 Open items:
 
-1. **iOS requires macOS/Xcode** and an Apple Developer account; this Windows host cannot build or validate Phase 4. Provide a Mac/CI runner.
-2. **Windows shell choice**: Electron is in place; Tauri would need Rust, and WinUI 3 would change the UI stack but not the engine. No change planned.
-3. **Supabase project** (URL + anon key) for live auth and sync testing. Never paste service-role keys.
-4. **2027/2028 provider tables** must be parsed before claiming multi-year parity.
-5. **Historical bill recomputation**: confirm locked months stay immutable rather than re-deriving old bills from today's tables.
-6. **Barclays/Monzo/Revolut/Nationwide**: keep workbook behaviour (excluded from budget totals) or normalise them? Dan is now a linked account and the £30 `Credit Cards` row is reclassified as Starling.
-7. **Bank-linking provider**: which regulated provider, whether linking is cloud-only, consent duration and re-consent messaging, raw-payload retention, storage bucket sharing with receipts, and whether household members share one connection. Bank linking stays CSV-only if linking is local-only.
-8. **Distribution channel**: direct download only, or Microsoft Store as well. Apple depends on an iOS build existing.
+1. **Bank-linking provider and C-4** — the regulated provider, cloud-only linking, consent duration/re-consent, raw-payload retention, receipt-bucket sharing and household connection sharing are still undecided. Integration starts only after C-4.
+2. **Supabase project** (URL + anon key) for live auth and sync testing. Never paste service-role keys.
+3. **Barclays/Monzo/Revolut/Nationwide** — keep workbook behaviour (excluded from budget totals) or normalise them? Dan is now a linked account and the £30 `Credit Cards` row is reclassified as Starling.
+4. **Windows signing certificate** — deferred; signing and signed auto-update remain blocked until a certificate is available.
+5. **Second account/device** — deferred; two-account RLS and two-device/offline/conflict validation cannot close until provided.
+6. **Release credentials** — `FTP_PASSWORD` and an authenticated GitHub client are still needed to deploy the web bundle and refresh the existing `v2026.11.9` assets.
+7. **Pre-rotation purge access** — the owner selected purge; the production cloud/local backup locations must be made available, or the owner must run the purge.
+8. **iOS** — deferred; reopen only with macOS/Xcode and an Apple Developer account.
 
 ---
 
@@ -1173,6 +1198,8 @@ Open items:
 - 2026-11-08: Provider guided setup now records billing. Each provider card has the **normal bill**, the **normal monthly payment** (falling back to the bill), the **payment date** (1–28) and **contract details**, stored as `provider.billing`. A **Recurring** switch builds that provider’s year plan: the setup shows all twelve dated payments with the annual total, and a monthly bill linked by `Bill.providerKey` is created or adopted by name (so an existing Rent bill is reused, not duplicated) and kept in step with the amount, day and provider name; switching recurring off pauses that linked bill without deleting the details. `providerBilling`, `providerBillingAmount`, `buildProviderYearPlan` and `providerYearPlanTotal` live in `app/src/providerSetup.ts`; `tests/provider-setup.test.ts` covers the defaults, the 28-day cap, the fallback amount and the twelve dated rows plus annual total. `npm test` **177/177**, `tsc` clean.
 - 2026-11-08: The release version is now the **release date** (`YYYY.M.D`) instead of a manually managed semver counter. `npm run release` sets `package.json` and the plain-Node fallback in `app/src/version.ts` from the date, renames an existing same-day section rather than creating a duplicate, and starts a new section on a new day; later releases that day keep the version and append notes. `release:check` rejects a package version that is not a date, and `release:bump` remains available for a deliberate milestone. The generated **build id** is deliberately still a content hash, so two builds of the same day can be told apart and live parity keeps comparing identical code; the changelog shows the dated version, that build id and the build date. `tests/app-changelog.test.ts` pins the date format, the new-day section, the same-day reuse and the rename of today’s older section; `tests/version.test.ts` pins the date-shaped version. The first dated release is `2026.11.8`.
 - 2026-11-08: Enabling **Recurring** in provider setup now fills the provider’s own page, not just a budget bill. `buildProviderPlanEntries` writes a row for each remaining month of the year in that provider’s shape — Water/Ovo bill period plus bill and payment, O2/Virgin charge plus payment, Park Xmas/Pure Cremation payment with status, Council Tax a dated direct-debit entry — marked `plan: true`; `mergeProviderPlanRows` adds missing months and refreshes only its own rows, so real statements are never overwritten, and switching recurring off removes them. The linked bill now carries the provider’s link sheet (`sheetNameForProviderKey`) so the engine reads the same ledger and the provider page’s “due bill” auto-fill works, and the provider’s monthly payment/payment day are written for its account details. Provider pages also show the saved contract details and payment date. `tests/provider-setup.test.ts` covers the row shapes, remaining-month window, user-row protection and plan removal. `npm test` **184/184**, `tsc` clean.
+- 2026-11-09: Added the read-only **Data Health / Integrity Centre** under Tools. The report checks unresolved account names, exact duplicate groups, provider year-chain openings and closings, linked bills without a provider ledger, bill changes with no bill, locked-month snapshot drift, active accounts with no target-year movement and unresolved sync conflicts. Every finding links to the review screen; the report never deletes, merges or rewrites. Added `core/dataHealth.ts`, `app/src/views/health.tsx`, a guide chapter and `tests/data-health.test.ts`; the check runs over the real workbook and correctly surfaces its 18 known duplicate groups without flagging any other check. `npm test` **240/240**, `npx tsc -p app/tsconfig.json --noEmit` clean. Release artefacts built with `--no-deploy` because `FTP_PASSWORD` is not set: build `e59117263c4b`, hosted bundle `index-DiRBVPJA.js`, installer SHA-256 `cbb9d2f3182c`; `npm run release:check` passes. Live upload and the GitHub `v2026.11.9` installer asset still point at the earlier same-day build (`bd69b322`).
+- 2026-11-09: Recorded the owner's remaining release decisions: deploy the hosted bundle and refresh the existing `v2026.11.9` assets; commit and push; the exposed provider passwords are already rotated; purge pre-rotation snapshots and old backups; defer two-device validation and signing; direct Windows distribution first; defer iOS; integrate bank linking only after C-4; one category plus free-form tags; in-app alerts first; guided setup with blank/demo choice; encrypted backups with seven restore points; per-record audit and trash; provider balances and statement references in locks; All-years statements; failed-sync and backup-age health checks; self-serve deletion plus MFA/passkeys; open the DPIA/ICO pack. Deployment is blocked on `FTP_PASSWORD`; GitHub asset refresh needs an authenticated client.
 
 ---
 

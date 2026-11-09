@@ -21,18 +21,32 @@ import { GITHUB_REPO_URL } from '../installer';
 
 function YearRolloverSection({ ds, year, update, setYear, notify }: Pick<ViewProps, 'ds' | 'update' | 'setYear' | 'notify'> & { year: number }) {
   const next = ds.settings.targetYear + 1;
-  const result = planYearRollover(ds, next);
+  const [carryOver, setCarryOver] = useState(false);
+  const result = planYearRollover(ds, next, { carryBalances: carryOver });
+  const carryPreview = useMemo(
+    () => planYearRollover(ds, next, { carryBalances: true }).plan?.carry,
+    [ds, next],
+  );
   const roll = () => {
     if (!result.ok || !result.plan) {
       notify(result.reason ?? 'That rollover is not available.');
       return;
     }
     const details = result.plan;
+    const carryPlan = details.carry;
     const agreed = confirm([
       `Roll the budget from ${details.from} to ${details.to}?`,
       '',
       `As-of date → ${dateUk(details.asOfDate)}`,
       `Lock cutoff → ${dateUk(details.lockCutoff)}`,
+      ...(carryPlan ? [
+        '',
+        `Carry balances into ${details.to} from ${dateUk(carryPlan.through)}:`,
+        `• ${carryPlan.accountNames.length} accounts (${gbp(carryPlan.accountTotalPence)} total)`,
+        `• ${carryPlan.cardCount} cards and ${carryPlan.personCount} people`,
+        `• ${carryPlan.providerNames.length} provider ledgers`,
+        `• ${carryPlan.billNames.length} bills continue with their current amounts`,
+      ].filter(Boolean) : []),
       '',
       'Preserved:',
       ...details.preserved.map((entry) => `• ${entry}`),
@@ -40,9 +54,11 @@ function YearRolloverSection({ ds, year, update, setYear, notify }: Pick<ViewPro
       `The balance anchor remains ${ds.settings.anchorDate ? dateUk(ds.settings.anchorDate) : 'unset'}. Recalibrate it separately only after reconciling the bank balance.`,
     ].join('\n'));
     if (!agreed) return;
-    update((dataset) => { rolloverYear(dataset, details.to, todayIso()); });
+    update((dataset) => { rolloverYear(dataset, details.to, todayIso(), { carryBalances: carryOver }); });
     setYear(details.to);
-    notify(`Target year is now ${details.to} — history and provider year blocks were kept`);
+    notify(carryOver
+      ? `Target year is now ${details.to} — balances were carried into the new year`
+      : `Target year is now ${details.to} — history and provider year blocks were kept`);
   };
   return (
     <Section title="Year rollover" sub="Move the configured year forward without rewriting history">
@@ -53,8 +69,27 @@ function YearRolloverSection({ ds, year, update, setYear, notify }: Pick<ViewPro
           <div className="metric"><span>Next year</span><strong>{next}</strong></div>
         </div>
         <div className="notice info">
-          Rolling over sets the As-of date and lock cutoff to the start of {next}, so new rows and bills land in the new year. Month locks, transactions, bills, provider year blocks and the balance anchor date stay exactly as they are — use the top-bar year selector to read any year without rolling over.
+          Rolling over sets the As-of date and lock cutoff to the start of {next}, so new rows and bills land in the new year. By default month locks, transactions, bills, provider year blocks and the balance anchor date stay exactly as they are. Use the top-bar year selector to read any year without rolling over.
         </div>
+        {carryPreview && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 14, border: '1px solid var(--line)', borderRadius: 10, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={carryOver}
+              onChange={(event) => setCarryOver(event.target.checked)}
+              style={{ marginTop: 3 }}
+            />
+            <span>
+              <strong>Carry over balances into {next}</strong>
+              <span className="muted small" style={{ display: 'block', marginTop: 3 }}>
+                Start {next} from the {dateUk(carryPreview.through)} close: {carryPreview.accountNames.length} accounts
+                ({gbp(carryPreview.accountTotalPence)} total), {carryPreview.cardCount} cards, {carryPreview.personCount} people
+                and {carryPreview.providerNames.length} provider ledgers. Bills continue with their current amounts and due dates.
+                Earlier transactions and month locks stay in the budget.
+              </span>
+            </span>
+          </label>
+        )}
         {ds.settings.targetYear !== year && (
           <div className="notice warn">
             You are viewing {year} while the target year is {ds.settings.targetYear}. Rollover changes the target year used by the engine and new entries; it does not change which year you are viewing.
@@ -1157,7 +1192,7 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       )}
 
       <Section title="Bill changes" sub="Bill definitions and link sheets live in Bills. Add one-off or dated overrides here.">
-        <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Type', 'Note', '']} numHead={[3]}>
+        <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Due day', 'Type', 'Note', '']} numHead={[3]}>
           {ds.billChanges.map((c, i) => (
             <tr key={i}>
               <td>{c.bill}</td>
@@ -1165,7 +1200,8 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
               <td className="muted">{dateUk(c.appliesTo)}</td>
               <td className="num">{c.amountOverridePence === null ? '—' : gbp(c.amountOverridePence)}</td>
               <td className="muted">{c.dueDateOverride ? dateUk(c.dueDateOverride) : '—'}</td>
-              <td className="muted small">{c.changeType || '—'}</td>
+              <td className="muted">{typeof c.dueDayOverride === 'number' ? `Day ${c.dueDayOverride}` : '—'}</td>
+              <td className="muted small">{c.skip ? `Removed${c.changeType ? ` — ${c.changeType}` : ''}` : c.changeType || '—'}</td>
               <td className="muted small">{c.note || '—'}</td>
               <td><button className="btn ghost sm" onClick={() => update((d) => { d.billChanges.splice(i, 1); })}>Remove</button></td>
             </tr>
@@ -1395,13 +1431,13 @@ const APP_NEW_YEAR_GUIDE = [
   'Finish December first. Reconcile every account, card and person, then close December from Dashboard → Month end. The close snapshot is the source for your opening balances.',
   'Export a full backup from Settings → Data & backups before making changes. Keep it with the finished-year records.',
   'PATH A — ROLL THE CURRENT BUDGET FORWARD',
-  '1 — Set Target year to the new year in Settings → Core settings.',
-  '2 — Leave Balance anchor date and every opening balance unchanged. FinanceHub calculates balances from the original anchor across the whole ledger; replacing them with December closes would count the same history twice.',
+  '1 — Open Settings → Year rollover and move the target year forward, or set the target year in Settings → Core settings.',
+  '2 — For a continuous ledger, leave Balance anchor date and every opening balance unchanged. FinanceHub calculates balances from the original anchor across the whole ledger. To start the new year from the 31 December close instead, tick Carry over balances in Settings → Year rollover: it records a year-opening checkpoint without deleting earlier rows, so the same history is not counted twice.',
   '3 — Set As-of date to the date you have actually reconciled to. Move it forward only when the matching records exist.',
   '4 — Leave past month locks alone. They are stored by year and month and are not recalculated when the target year changes.',
-  '5 — Review Bills. Update due days, methods, active flags and base amounts. For a price change starting 1 January, add a dated Bill change in Settings → Bill changes instead of overwriting last year’s base amount. The latest matching change wins; the same From and To month is a one-off.',
+  '5 — Change the top-bar year to a future year and review Bills. Amount, due-day and remove edits there create a plan for that year only; the base definitions and earlier years stay untouched. Use a dated Bill change in Settings → Bill changes for a one-off month or a range that is not a whole year. The latest matching change wins.',
   '6 — Review the link sheets under Bills. A provider-linked sheet keeps its provider lookup when renamed; a custom sheet is a label and uses the bill’s base amount. Add, rename or remove sheets in Bills.',
-  '7 — Provider ledgers hold one Jan–Dec statement, not a separate statement per year. Do not overwrite last year’s rows to make them fit the new year. For a provider-linked bill whose amount changes, use a dated Bill change from 1 January; the override wins over the provider amount.',
+  '7 — Provider ledgers keep each year in its own block. Choose a future year in the top bar to add, amend or remove that year’s rows and balance anchors without touching the live year. Editing any year carries its new closing balance into the next block and recalculates the rest of the chain; use Recalculate later years on a provider to rebuild every saved block from the live close on demand. Carry over balances rotates a future block into the live ledger and keeps the old year read-only. A provider-linked bill reads the block for the selected year.',
   '8 — Add new-year transactions through Import or Transactions. Imports never post until you confirm them, and locked months reject new rows.',
   'PATH B — START A CLEAN NEW-YEAR BUDGET',
   '1 — Open Settings → Onboarding & reset → Open Guided setup.',
@@ -1418,7 +1454,7 @@ const APP_NEW_YEAR_GUIDE = [
   'FINISH AND VERIFY',
   '1 — Check Dashboard for the new year: month, income, expenses, net, account balances, cards, people and scheduled bills should all make sense.',
   '2 — Open Monthly for January and a later month. Confirm every expected bill and income line; a missing bill change or link sheet shows up here.',
-  '3 — Open Bills and confirm every bill has the right amount, due day, method, link sheet and active state.',
+  '3 — Open Bills in the new target year and confirm every bill has the right amount, due day, method, link sheet and active state. For a future year, switch the top-bar year and use its bill plan before rolling over.',
   '4 — Export another full backup from Settings → Data & backups for the new year.',
   '5 — Use Changelog → Add custom change to record “New-Year setup — [year]” and whether you rolled forward or started clean.',
   'IF SOMETHING LOOKS WRONG',

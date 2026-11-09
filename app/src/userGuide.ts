@@ -232,6 +232,7 @@ export const USER_GUIDE: GuideEntry[] = [
     notes: [
       'The provider card in Guided setup edits the address, tenancy dates, reference, logo and links.',
       'Custom provider names and logos appear in the sidebar, the topbar and the provider page banner.',
+      'Later rent years are kept in their own year block, so the 2026 view contains only 2026 entries; use the year selector to read 2027 and roll the target year to edit it. A rent change updates the balance chain, so the next year starts from the edited close. Recalculate later years rebuilds every saved block from the live close on demand.',
     ],
   },
   {
@@ -383,6 +384,21 @@ export const USER_GUIDE: GuideEntry[] = [
     notes: [
       'Imports never post into locked months and never silently overwrite existing rows.',
       'File size and row limits are shown before an import starts.',
+    ],
+  },
+  {
+    id: 'health',
+    group: 'Tools',
+    title: 'Data health',
+    summary: 'A read-only integrity centre that flags account names, duplicates, provider year-chain breaks, linked bills, locked-month drift, dormant accounts and sync conflicts.',
+    steps: [
+      'Open Tools → Data health after an import, a restore, a year rollover or a month close.',
+      'Read critical and warning findings first, then open the screen named by the finding to review the underlying rows.',
+      'Use the Checks run table to confirm which rules passed. Reopen the page after an edit to recalculate every finding.',
+    ],
+    notes: [
+      'Data health never deletes, merges or rewrites anything. It only reads the loaded budget and points you to the review screen.',
+      'A lock that no longer matches live balances means history changed after the month was closed. Unlock it only when the close itself is wrong.',
     ],
   },
   {

@@ -11,7 +11,7 @@ export const NAV_GROUP_TIPS: Record<NavGroup, string> = {
   Overview: 'Where the budget stands: totals, one month in detail and the month-end close.',
   Ledger: 'The money itself: transactions, income, accounts, cards, people, bills and holidays.',
   Providers: 'Provider ledgers: statements, charges, payments and running balances.',
-  Tools: 'Fixed tools: setup, statements, import, settings, the application and budget changelogs, and this guide.',
+  Tools: 'Fixed tools: setup, statements, import, data health, settings, the application and budget changelogs, and this guide.',
 };
 
 const PROVIDER_TIPS: Record<string, string> = {
@@ -66,6 +66,7 @@ const FIXED: NavItemDef[] = [
   { id: 'setup', label: 'Guided setup', icon: '✦', group: 'Tools', tip: 'Onboarding: budget location, accounts, people, bills, providers and your first transactions.' },
   { id: 'statements', label: 'Statements', icon: '▤', group: 'Tools', tip: 'A filtered statement for one account with opening, movement and running balances.' },
   { id: 'import', label: 'Import', icon: '⇪', group: 'Tools', tip: 'Import a bank CSV, review every row, then append — nothing posts automatically.' },
+  { id: 'health', label: 'Data health', icon: '✚', group: 'Tools', tip: 'Read-only integrity checks for account names, duplicates, provider year chains, bill links, locked months, dormant accounts and sync conflicts.' },
   { id: 'settings', label: 'Settings', icon: '⚙', group: 'Tools', tip: 'Accounts, people, cards, bills, provider vault, sync, backups and the sidebar menu layout.' },
   { id: 'appChangelog', label: 'Application changelog', icon: '⤴', group: 'Tools', tip: 'Release history for each build: version, build id, dates and the Windows installer download.' },
   { id: 'changelog', label: 'Budget changelog', icon: '🕘', group: 'Tools', tip: 'Your own history: bills, balances, people and month-end figures, kept with the budget and backups.' },

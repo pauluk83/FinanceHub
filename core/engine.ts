@@ -13,6 +13,7 @@
 import { findInternalTransferRows } from './internalTransfers.ts';
 import { accountClassifier } from './accounts.ts';
 import { providerRowsKey, rowsForYear } from './providerYears.ts';
+import { allRentEntries } from './rent.ts';
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
@@ -53,6 +54,10 @@ export interface Bill {
 export interface BillChange {
   bill: string; appliesFrom: string; appliesTo: string;
   amountOverridePence: number | null; dueDateOverride: string; changeType: string; note: string;
+  /** A recurring day for a dated range, used by a forward-year bill plan. */
+  dueDayOverride?: number | null;
+  /** True when the bill is removed from the scheduled run for this range. */
+  skip?: boolean;
 }
 export interface BillSheet { name: string; providerKey?: string }
 export interface MonthLock {
@@ -106,6 +111,8 @@ export interface Dataset {
     asOfDate: string; lockCutoff: string; anchorDate: string; primaryAccount?: string; billSheets?: BillSheet[];
     /** Sidebar visibility and section overrides; Tools is always static. */
     navLayout?: { hidden?: string[]; groups?: Record<string, string> };
+    /** Year-opening balances captured by a carry-over rollover. */
+    yearOpenings?: Record<string, YearOpeningBalances>;
   };
   accounts: Account[];
   people: Person[];
@@ -124,6 +131,21 @@ export interface Dataset {
   meta?: any;
   reference?: any;
   monthLocks?: Record<string, MonthLock>;
+}
+
+/**
+ * The balances a year starts from after a carry-over rollover. History stays
+ * in the ledger; balances after the checkpoint are calculated from these
+ * figures plus movements in the checkpoint year and later.
+ */
+export interface YearOpeningBalances {
+  accounts: Record<string, number>;
+  people: Record<string, number>;
+  cards: Record<string, number>;
+  /** Provider closes captured for the rollover audit; provider rows carry themselves. */
+  providers?: Record<string, { openingPence: number; closingPence: number; rows?: number; source?: string }>;
+  /** Bills keep their amounts and due dates; the snapshot is for the audit log. */
+  bills?: Record<string, { amountPence: number; dueDay: number; active: boolean; latestBalancePence: number }>;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -249,7 +271,11 @@ export function buildEngine(ds: Dataset) {
       // The live sheet records which months those are, so the rule carries into
       // later-year blocks that do not repeat the zero themselves.
       const liveRow = (p.statement as any[] | undefined)?.find((r) => r.month === label);
+      // A payment edited in a future block is an explicit forward-plan choice.
+      if (row?.paymentEdited === true) return Number(row.paymentPence) || 0;
       if (row && (Number(row.paymentPence) || 0) === 0) return 0;
+      // The live sheet records zero-payment months; later blocks may repeat the
+      // normal payment there, so keep the deliberate zero unless it was edited.
       if (liveRow && (Number(liveRow.paymentPence) || 0) === 0) return 0;
       const changes = (p.paymentChanges ?? []) as { effectiveFrom: string; amountPence: number }[];
       let chosen: { effectiveFrom: string; amountPence: number } | null = null;
@@ -290,23 +316,40 @@ export function buildEngine(ds: Dataset) {
   /** Due day for a month, honouring a one-off date override. */
   function billDueDate(bill: Bill, year: number, month: number): string {
     const mStart = monthStart(year, month);
+    let chosenDate: BillChange | null = null;
+    let chosenDay: BillChange | null = null;
+    for (const ch of ds.billChanges) {
+      if (ch.bill !== bill.name) continue;
+      if (!ch.appliesFrom || mStart < ch.appliesFrom) continue;
+      if (ch.appliesTo && mStart > ch.appliesTo) continue;
+      if (ch.dueDateOverride) chosenDate = ch;
+      if (typeof ch.dueDayOverride === 'number' && Number.isFinite(ch.dueDayOverride)) chosenDay = ch;
+    }
+    if (chosenDate?.dueDateOverride) return chosenDate.dueDateOverride;
+    if (chosenDay) {
+      const override = Math.min(Math.max(Math.round(chosenDay.dueDayOverride as number), 1), Number(monthEnd(year, month).slice(8, 10)));
+      return `${year}-${pad(month)}-${pad(override)}`;
+    }
+    const day = Math.min(Math.max(bill.dueDay || 1, 1), Number(monthEnd(year, month).slice(8, 10)));
+    return `${year}-${pad(month)}-${pad(day)}`;
+  }
+
+  /** A later matching plan wins; only a skip change removes a bill for the range. */
+  function billSkipped(bill: Bill, mStart: string): boolean {
     let chosen: BillChange | null = null;
     for (const ch of ds.billChanges) {
       if (ch.bill !== bill.name) continue;
-      if (!ch.dueDateOverride) continue;
       if (!ch.appliesFrom || mStart < ch.appliesFrom) continue;
       if (ch.appliesTo && mStart > ch.appliesTo) continue;
-      chosen = ch;
+      if (ch.skip !== undefined) chosen = ch;
     }
-    if (chosen?.dueDateOverride) return chosen.dueDateOverride;
-    const day = Math.min(Math.max(bill.dueDay || 1, 1), Number(monthEnd(year, month).slice(8, 10)));
-    return `${year}-${pad(month)}-${pad(day)}`;
+    return chosen?.skip === true;
   }
 
   function scheduledBills(year: number, month: number) {
     const mStart = monthStart(year, month);
     return ds.bills
-      .filter((b) => billVisible(b, mStart) && (b.dueDay > 0 || !!b.linkedSheet))
+      .filter((b) => billVisible(b, mStart) && !billSkipped(b, mStart) && (b.dueDay > 0 || !!b.linkedSheet))
       .map((b) => {
         const dueDate = billDueDate(b, year, month);
         return {
@@ -477,41 +520,66 @@ export function buildEngine(ds: Dataset) {
    * Owed = opening + lent - repaid, cumulative through a date (Dashboard E24).
    * Note: E24 does NOT exclude haircut rows, unlike the monthly income block.
    */
+  /** Latest carry-over checkpoint at or before a date. */
+  function openingContext(through: string) {
+    let chosen: { year: number; start: string; data: YearOpeningBalances } | null = null;
+    for (const [key, data] of Object.entries(ds.settings.yearOpenings ?? {})) {
+      const year = Number(key);
+      if (!Number.isInteger(year) || year > yearOf(through)) continue;
+      if (!chosen || year > chosen.year) chosen = { year, start: `${year}-01-01`, data };
+    }
+    return chosen;
+  }
+
   function owedAt(through: string): number {
+    const checkpoint = openingContext(through);
     const opening = ds.people
       .filter((p) => p.trackOwed !== false)
-      .reduce((s, p) => s + p.openingPence, 0);
+      .reduce((s, p) => s + (checkpoint && typeof checkpoint.data.people[p.shortName] === 'number'
+        ? checkpoint.data.people[p.shortName]
+        : p.openingPence), 0);
+    const from = checkpoint?.start ?? '';
     const lent = ds.transactions
-      .filter((t) => trackedPersonNames.has(t.account) && t.type === 'Expense' && t.date <= through)
+      .filter((t) => trackedPersonNames.has(t.account) && t.type === 'Expense' && t.date <= through && (!from || t.date >= from))
       .reduce((s, t) => s + t.amountPence, 0);
     const repaid = ds.transactions
-      .filter((t) => trackedPersonNames.has(t.account) && t.type === 'Income' && t.date <= through)
+      .filter((t) => trackedPersonNames.has(t.account) && t.type === 'Income' && t.date <= through && (!from || t.date >= from))
       .reduce((s, t) => s + t.amountPence, 0);
     return opening + lent - repaid;
   }
 
   function owedByPerson(through: string) {
+    const checkpoint = openingContext(through);
     return ds.people.map((p) => {
+      const from = checkpoint?.start ?? '';
       const lent = ds.transactions
-        .filter((t) => t.account === p.shortName && t.type === 'Expense' && t.date <= through)
+        .filter((t) => t.account === p.shortName && t.type === 'Expense' && t.date <= through && (!from || t.date >= from))
         .reduce((s, t) => s + t.amountPence, 0);
       const repaid = ds.transactions
-        .filter((t) => t.account === p.shortName && t.type === 'Income' && t.date <= through)
+        .filter((t) => t.account === p.shortName && t.type === 'Income' && t.date <= through && (!from || t.date >= from))
         .reduce((s, t) => s + t.amountPence, 0);
-      return { ...p, balancePence: p.trackOwed === false ? 0 : p.openingPence + lent - repaid };
+      const opening = checkpoint && typeof checkpoint.data.people[p.shortName] === 'number'
+        ? checkpoint.data.people[p.shortName]
+        : p.openingPence;
+      return { ...p, balancePence: p.trackOwed === false ? 0 : opening + lent - repaid };
     });
   }
 
   /** Card balance = opening + charges - refunds/payments (Monthly_Overview N33:N36). */
   function cardBalances(through: string) {
+    const checkpoint = openingContext(through);
     return ds.cards.map((c) => {
+      const from = checkpoint?.start ?? '';
       const charges = ds.transactions
-        .filter((t) => t.account === c.name && t.type === 'Expense' && t.date <= through)
+        .filter((t) => t.account === c.name && t.type === 'Expense' && t.date <= through && (!from || t.date >= from))
         .reduce((s, t) => s + t.amountPence, 0);
       const credits = ds.transactions
-        .filter((t) => t.account === c.name && t.type === 'Income' && t.date <= through)
+        .filter((t) => t.account === c.name && t.type === 'Income' && t.date <= through && (!from || t.date >= from))
         .reduce((s, t) => s + t.amountPence, 0);
-      const balance = c.openingPence + charges - credits;
+      const opening = checkpoint && typeof checkpoint.data.cards[c.name] === 'number'
+        ? checkpoint.data.cards[c.name]
+        : c.openingPence;
+      const balance = opening + charges - credits;
       return { ...c, balancePence: balance, availablePence: c.limitPence - balance, utilisation: c.limitPence === 0 ? 0 : balance / c.limitPence };
     });
   }
@@ -613,9 +681,13 @@ export function buildEngine(ds: Dataset) {
    * closing balance matches the Dashboard instead of the raw bank ledger (P0-7).
    */
   function primaryStatement(year: number | null, month: number | null) {
-    const baseOpeningPence = ds.accounts.find((a) => a.name === primaryAccount)?.openingPence ?? 0;
-    const movements = starlingMovements();
     const periodStart = year === null ? null : `${year}-${pad(month ?? 1)}-01`;
+    const checkpoint = periodStart ? openingContext(periodStart) : null;
+    const baseOpeningPence = checkpoint && typeof checkpoint.data.accounts[primaryAccount] === 'number'
+      ? checkpoint.data.accounts[primaryAccount]
+      : ds.accounts.find((a) => a.name === primaryAccount)?.openingPence ?? 0;
+    const from = checkpoint?.start ?? '';
+    const movements = starlingMovements().filter((m) => !from || m.date >= from);
     const openingPence = periodStart
       ? baseOpeningPence + movements.filter((m) => m.date < periodStart).reduce((sum, m) => sum + m.deltaPence, 0)
       : baseOpeningPence;
@@ -653,9 +725,15 @@ export function buildEngine(ds: Dataset) {
    */
   function starlingBreakdown(through: string) {
     const anchor = ds.settings.anchorDate;
-    const opening = ds.accounts.find((a) => a.name === primaryAccount)?.openingPence ?? 0;
+    const checkpoint = openingContext(through);
+    const checkpointBase = checkpoint && typeof checkpoint.data.accounts[primaryAccount] === 'number'
+      ? checkpoint.data.accounts[primaryAccount]
+      : null;
+    const from = checkpointBase !== null ? checkpoint.start : '';
+    const opening = checkpointBase ?? ds.accounts.find((a) => a.name === primaryAccount)?.openingPence ?? 0;
 
-    const sum = (pred: (t: Tx) => boolean) => ds.transactions.filter((t) => t.date <= through && pred(t)).reduce((s, t) => s + t.amountPence, 0);
+    const inWindow = (t: Tx) => t.date <= through && (!from || t.date >= from);
+    const sum = (pred: (t: Tx) => boolean) => ds.transactions.filter((t) => inWindow(t) && pred(t)).reduce((s, t) => s + t.amountPence, 0);
 
     const posted = opening
       + sum((t) => t.account === primaryAccount && t.type === 'Income' && t.starlingPosted !== false && t.autoBill !== true)
@@ -664,16 +742,16 @@ export function buildEngine(ds: Dataset) {
       - sum((t) => t.account === 'Other' && t.type === 'Expense');
 
     const peopleCash = ds.transactions
-      .filter((t) => personNames.has(t.account) && !starlingFundedNames.has(t.account) && t.date > anchor && t.date <= through && noHaircut(t) && !isCardTagged(t))
+      .filter((t) => personNames.has(t.account) && !starlingFundedNames.has(t.account) && (from ? t.date >= from : t.date > anchor) && t.date <= through && noHaircut(t) && !isCardTagged(t))
       .reduce((s, t) => s + (t.type === 'Income' ? t.amountPence : -t.amountPence), 0);
 
     // Dan-style people are tracked for visibility but are not receivables. Their
     // full ledger reduces Starling even before the anchor, as requested.
     const starlingFundedCash = ds.transactions
-      .filter((t) => starlingFundedNames.has(t.account) && t.starlingFunded !== false && t.date <= through && noHaircut(t) && !isCardTagged(t))
+      .filter((t) => starlingFundedNames.has(t.account) && t.starlingFunded !== false && inWindow(t) && noHaircut(t) && !isCardTagged(t))
       .reduce((s, t) => s + (t.type === 'Income' ? t.amountPence : -t.amountPence), 0);
 
-    const inAnchorWindow = (t: Tx) => t.date > anchor && t.date <= through;
+    const inAnchorWindow = (t: Tx) => (from ? t.date >= from : t.date > anchor) && t.date <= through;
     const backupSpace = ds.transactions
       .filter((t) => t.account === 'Backup Space' && t.type === 'Expense' && inAnchorWindow(t))
       .reduce((s, t) => s + t.amountPence, 0)
@@ -681,8 +759,9 @@ export function buildEngine(ds: Dataset) {
         .filter((t) => t.account === 'Backup Space' && t.type === 'Income' && inAnchorWindow(t))
         .reduce((s, t) => s + t.amountPence, 0);
 
-    const scheduledIncome = scheduledIncomePostAnchor(anchor, through);
-    const billsOut = scheduledBillsPostAnchorRange(anchor, through);
+    const scheduleFrom = checkpoint ? `${checkpoint.year - 1}-12-31` : anchor;
+    const scheduledIncome = scheduledIncomePostAnchor(scheduleFrom, through);
+    const billsOut = scheduledBillsPostAnchorRange(scheduleFrom, through);
     const adjustmentPence = peopleCash + starlingFundedCash + backupSpace + scheduledIncome - billsOut;
     return { posted, peopleCash, starlingFundedCash, backupSpace, scheduledIncome, billsOut, adjustmentPence, balancePence: posted + adjustmentPence };
   }
@@ -692,11 +771,14 @@ export function buildEngine(ds: Dataset) {
   }
 
   function accountBalances(through: string) {
+    const checkpoint = openingContext(through);
+    const from = checkpoint?.start ?? '';
     return ds.accounts.map((a) => {
       if (a.name === primaryAccount) return { ...a, balancePence: starlingBalance(through) };
-      const income = ds.transactions.filter((t) => t.account === a.name && t.type === 'Income' && t.autoBill !== true && t.date <= through).reduce((s, t) => s + t.amountPence, 0);
-      const expense = ds.transactions.filter((t) => t.account === a.name && t.type === 'Expense' && t.autoBill !== true && t.date <= through).reduce((s, t) => s + t.amountPence, 0);
-      return { ...a, balancePence: a.openingPence + income - expense };
+      const carried = checkpoint && typeof checkpoint.data.accounts[a.name] === 'number' ? checkpoint.data.accounts[a.name] : null;
+      const income = ds.transactions.filter((t) => t.account === a.name && t.type === 'Income' && t.autoBill !== true && t.date <= through && (!from || t.date >= from)).reduce((s, t) => s + t.amountPence, 0);
+      const expense = ds.transactions.filter((t) => t.account === a.name && t.type === 'Expense' && t.autoBill !== true && t.date <= through && (!from || t.date >= from)).reduce((s, t) => s + t.amountPence, 0);
+      return { ...a, balancePence: (carried ?? a.openingPence) + income - expense };
     });
   }
 
@@ -746,20 +828,26 @@ export function buildEngine(ds: Dataset) {
       .filter((t) => (month === null || monthIndexOf(t.date) === month))
       .sort((a, b) => a.date.localeCompare(b.date));
     const isBank = accountNames.has(account);
-    const baseOpeningPence = isBank
-      ? ds.accounts.find((a) => a.name === account)?.openingPence ?? 0
-      : personNames.has(account)
-        ? ds.people.find((p) => p.shortName === account)?.openingPence ?? 0
-        : cardNames.has(account)
-          ? ds.cards.find((c) => c.name === account)?.openingPence ?? 0
-          : 0;
+    const periodStart = year === null ? null : `${year}-${pad(month ?? 1)}-01`;
+    const checkpoint = periodStart ? openingContext(periodStart) : null;
+    const carried = checkpoint
+      ? (isBank ? checkpoint.data.accounts[account] : personNames.has(account) ? checkpoint.data.people[account] : cardNames.has(account) ? checkpoint.data.cards[account] : undefined)
+      : undefined;
+    const baseOpeningPence = typeof carried === 'number'
+      ? carried
+      : isBank
+        ? ds.accounts.find((a) => a.name === account)?.openingPence ?? 0
+        : personNames.has(account)
+          ? ds.people.find((p) => p.shortName === account)?.openingPence ?? 0
+          : cardNames.has(account)
+            ? ds.cards.find((c) => c.name === account)?.openingPence ?? 0
+            : 0;
     const deltaFor = (t: Tx) => isBank
       ? (t.type === 'Income' ? t.amountPence : -t.amountPence)
       : (t.type === 'Expense' ? t.amountPence : -t.amountPence);
-    const periodStart = year === null ? null : `${year}-${pad(month ?? 1)}-01`;
     const openingPence = periodStart
       ? baseOpeningPence + ds.transactions
-        .filter((t) => t.account === account && t.date < periodStart)
+        .filter((t) => t.account === account && t.date < periodStart && (!checkpoint || t.date >= checkpoint.start))
         .reduce((sum, t) => sum + deltaFor(t), 0)
       : baseOpeningPence;
     let running = openingPence;
@@ -782,7 +870,7 @@ export function buildEngine(ds: Dataset) {
    * computed by SUMIFS-style aggregation as of a date (not row order).
    */
   function rentLedger(through: string) {
-    const entries = ((ds.providers.rent?.entries as any[]) ?? []).filter((e) => e.date <= through);
+    const entries = allRentEntries(ds.providers.rent ?? {}).filter((e) => e.date <= through);
     const charges = entries.filter((e) => e.amountPence < 0).reduce((s, e) => s + e.amountPence, 0);
     const payments = entries.filter((e) => e.amountPence > 0).reduce((s, e) => s + e.amountPence, 0);
     // SUMIFS over the AMOUNT column already includes the brought-forward row.

@@ -5,6 +5,7 @@ import {
   APP_FEATURE_NOTE_SIGNATURES,
   changedBudgetSections,
   withoutAppFeatureNotes,
+  withoutLegacyAppUpdateNotes,
 } from '../app/src/budgetChangelog.ts';
 import type { Dataset } from '../core/engine.ts';
 
@@ -41,6 +42,20 @@ test('reference-only differences are not budget changes', () => {
   const after = structuredClone(before);
   after.reference = { ...(after.reference ?? {}), note: 'workbook annotation' };
   assert.deepEqual(changedBudgetSections(before, after), []);
+});
+
+test('the legacy App update / Auto updates entry is removed without touching budget entries', () => {
+  const kept = withoutLegacyAppUpdateNotes([
+    { sheetCell: 'App update', description: 'Auto updates' },
+    { sheetCell: 'Auto updates', description: 'App update' },
+    { sheetCell: 'App update', description: 'Updated Bills; balances recalculated.', auto: true },
+    { sheetCell: 'Auto updates', description: 'Holiday paid' },
+    { sheetCell: 'App update', description: 'Changed', details: ['Auto updates'] },
+  ]);
+  assert.deepEqual(kept.map((entry) => `${entry.sheetCell}: ${entry.description}`), [
+    'App update: Updated Bills; balances recalculated.',
+    'Auto updates: Holiday paid',
+  ]);
 });
 
 test('app-feature notes are removed but budget entries and custom notes stay', () => {

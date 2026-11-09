@@ -1,6 +1,8 @@
 import type { Dataset } from '../../core/engine';
 import type { AppState } from './store';
-import { withoutAppFeatureNotes } from './budgetChangelog';
+import { withoutAppFeatureNotes, withoutLegacyAppUpdateNotes } from './budgetChangelog';
+import { carryForwardProviderYears } from '../../core/providerCarry';
+import type { LedgerSpec } from '../../core/providerLedger';
 
 const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
   {
@@ -50,6 +52,84 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
           changeType: 'Credit - no payment',
           note: 'Account in credit: no November payment; £500 resumes 27/12/2026',
         });
+      }
+    },
+  },
+  {
+    // Rent used to keep every year in one top-level ledger, so 2027 rows showed
+    // in the 2026 view. Keep the target year live and move later years into
+    // their own blocks, preserving the running balances at the year boundary.
+    id: 'rent-split-year-entries',
+    apply: (dataset) => {
+      const rent = dataset.providers.rent as {
+        entries?: any[];
+        year?: number;
+        years?: Record<string, any>;
+      } | undefined;
+      if (!rent || !Array.isArray(rent.entries) || rent.entries.length === 0) return;
+
+      const all = [...rent.entries].sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')));
+      const groups = new Map<number, any[]>();
+      for (const row of all) {
+        const year = Number(String(row.date ?? '').slice(0, 4));
+        if (!Number.isInteger(year)) continue;
+        if (!groups.has(year)) groups.set(year, []);
+        groups.get(year)!.push(row);
+      }
+      if (groups.size === 0) return;
+
+      const targetYear = Number(dataset.settings.targetYear);
+      const liveYear = groups.has(targetYear) ? targetYear : Math.min(...groups.keys());
+      const years = rent.years && typeof rent.years === 'object' ? { ...rent.years } : {};
+
+      for (const [year, rows] of groups) {
+        if (year === liveYear) continue;
+        const existing = years[String(year)];
+        if (Array.isArray(existing?.rows) && existing.rows.length > 0) continue;
+        const first = rows[0];
+        const before = all.filter((row) => String(row.date ?? '') < String(first.date ?? '')).at(-1);
+        years[String(year)] = {
+          year,
+          openingPence: Number(before?.balancePence) || 0,
+          closingPence: Number(rows.at(-1)?.balancePence) || 0,
+          rows: rows.map((row) => row.matched === undefined
+            ? { ...row, matched: String(row.date ?? '') <= dataset.settings.asOfDate ? '✓ Yes' : '' }
+            : row),
+        };
+      }
+
+      rent.entries = groups.get(liveYear) ?? [];
+      rent.year = liveYear;
+      rent.years = years;
+    },
+  },
+  {
+    // A payment edit recalculates its own year, but saved later blocks used to
+    // keep their imported opening balance. Re-chain every provider once so the
+    // edited close starts the next block and the rest of the chain follows.
+    id: 'provider-year-balance-chain',
+    apply: (dataset) => {
+      const specs: Record<string, LedgerSpec> = {
+        water: { rowsKey: 'statement', formula: 'cashflow', monthly: true },
+        ovo: { rowsKey: 'statement', formula: 'cashflow', monthly: true },
+        parkXmas: { rowsKey: 'statement', formula: 'savings', monthly: true },
+        pureCremation: { rowsKey: 'statement', formula: 'savings', monthly: true },
+        o2: { rowsKey: 'statement', formula: 'telco', monthly: true },
+        virgin: { rowsKey: 'statement', formula: 'telco', monthly: true },
+        councilTax: { rowsKey: 'entries', formula: 'amount', monthly: false },
+        rent: { rowsKey: 'entries', formula: 'amount', monthly: false },
+      };
+      for (const [key, provider] of Object.entries(dataset.providers ?? {})) {
+        const spec = specs[key];
+        if (!spec) continue;
+        const current = provider as any;
+        const liveYear = Number(current.year ?? dataset.settings.targetYear);
+        if (!Number.isInteger(liveYear)) continue;
+        const liveRows = current[spec.rowsKey];
+        if (!Array.isArray(liveRows) || liveRows.length === 0) continue;
+        const hasLaterBlock = Object.keys(current.years ?? {}).some((year) => Number(year) > liveYear);
+        if (!hasLaterBlock) continue;
+        carryForwardProviderYears(current, spec, liveYear, liveRows, current.ledgerOpeningPence);
       }
     },
   },
@@ -302,6 +382,16 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     apply: (dataset) => {
       if (Array.isArray(dataset.changelog)) {
         dataset.changelog = withoutAppFeatureNotes(dataset.changelog as { signature?: string }[]);
+      }
+    },
+  },
+  {
+    // A legacy "App update" / "Auto updates" row belonged to the application,
+    // not the budget. Remove only that pair, not genuine automatic budget rows.
+    id: 'budget-changelog-app-update-auto-updates-2026-11-09',
+    apply: (dataset) => {
+      if (Array.isArray(dataset.changelog)) {
+        dataset.changelog = withoutLegacyAppUpdateNotes(dataset.changelog as { sheetCell?: string; description?: string; details?: unknown }[]);
       }
     },
   },

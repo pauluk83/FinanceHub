@@ -13,6 +13,13 @@ and the build time.
 - Installers are now published as GitHub Releases; the app links to the latest release and CI builds it on a version tag. Added a public README and removed installer parts from the web host
 - Added a GitHub repository link to the login page, app sidebar, About panel and application changelog
 - Removed the duplicate stable installer asset; the site now links directly to the dated installer and no longer calls the rate-limited GitHub API
+- Year rollover can carry account, card, person, provider and bill balances into the next year
+- Rent keeps 2027 entries in a separate year block, so the 2026 ledger contains only 2026 rows
+- Edit future-year provider sheets and bills for forward planning, with year-only amount, due-day and removal changes
+- Payment edits now carry the updated provider balance into later years
+- Add a Recalculate later years action so saved provider blocks can be rebuilt from the live closing balance
+- Add a read-only Data Health integrity centre for account names, duplicates, provider year chains, bill links, locked-month drift, dormant accounts and sync conflicts
+- Remove the legacy App update / Auto updates entry from the budget changelog
 
 ## [2026.11.8] — 8 November 2026
 

@@ -31,6 +31,7 @@ import { ChangelogView, GuidesView, ImportView, SettingsView } from './views/too
 import { AppChangelogPage, AppChangelogView } from './views/appChangelog';
 import { Holidays } from './views/holidays';
 import { OnboardingView } from './views/onboarding';
+import { DataHealthView } from './views/health';
 import { PeoplePortalPage } from './views/peoplePortal';
 import { FeedbackDialog } from './views/feedback';
 import { PORTAL_FEEDBACK_EVENT, readFeedbackForOwner, refreshPortalStatements, type PortalFeedback } from './portal';
@@ -71,6 +72,7 @@ const SUBTITLES: Record<string, string> = {
   virgin: 'Virgin Media contract history',
   statements: 'Filtered account statement with running balance',
   import: 'Bank CSV → review → append (never auto-post)',
+  health: 'Read-only integrity checks across accounts, imports, providers, bills, locks and sync',
   settings: 'The single source of truth for every screen',
   changelog: 'Your budget history — bills, balances, people and month-end figures',
   appChangelog: 'What changed in each build, with the build id and installer download',
@@ -551,6 +553,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       case 'rent': return <Rent {...props} />;
       case 'statements': return <Statements {...props} />;
       case 'import': return <ImportView {...props} />;
+      case 'health': return <DataHealthView {...props} />;
       case 'settings': return <SettingsView {...props} />;
       case 'appChangelog': return <AppChangelogView {...props} />;
       case 'changelog': return <ChangelogView {...props} />;

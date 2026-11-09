@@ -615,6 +615,40 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   const sheets = billSheetsFor(ds);
   const [sheetDraft, setSheetDraft] = useState('');
   const [billDraft, setBillDraft] = useState({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: '', account: '' });
+  const planning = year > ds.settings.targetYear;
+  const planStart = `${year}-01-01`;
+  const planEnd = `${year}-12-31`;
+  const planChangeFor = (changes: typeof ds.billChanges, name: string) => {
+    for (let index = changes.length - 1; index >= 0; index -= 1) {
+      const change = changes[index];
+      if (change.bill === name && change.appliesFrom === planStart && change.appliesTo === planEnd) return change;
+    }
+    return undefined;
+  };
+  const yearChange = (name: string) => planChangeFor(ds.billChanges, name);
+  const setPlan = (name: string, patch: { amountOverridePence?: number | null; dueDayOverride?: number | null; skip?: boolean }) => update((d) => {
+    let change = planChangeFor(d.billChanges, name);
+    if (!change) {
+      change = {
+        bill: name,
+        appliesFrom: planStart,
+        appliesTo: planEnd,
+        amountOverridePence: null,
+        dueDateOverride: '',
+        dueDayOverride: null,
+        changeType: `Year plan ${year}`,
+        note: `Planned for ${year}`,
+        skip: false,
+      };
+      d.billChanges.push(change);
+    }
+    Object.assign(change, patch);
+    if (change.amountOverridePence == null && !change.dueDateOverride && typeof change.dueDayOverride !== 'number' && !change.skip) {
+      d.billChanges = d.billChanges.filter((entry) => entry !== change);
+    }
+  });
+  const planAmount = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.amountOverridePence ?? engine.billAmount(bill, year, 1);
+  const planDueDay = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.dueDayOverride ?? bill.dueDay;
 
   const addSheet = () => {
     const name = sheetDraft.trim();
@@ -665,13 +699,13 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
       latestPaymentPence: 0,
       sortOrder: d.bills.length + 1,
       active: true,
-      effectiveFrom: '',
+      effectiveFrom: planning ? planStart : '',
       paymentMethod: billDraft.method,
       baseAmountPence: parseMoney(billDraft.amount),
       baseDueDay: Number(billDraft.due) || 1,
     }));
     setBillDraft({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: billDraft.sheet, account: billDraft.account });
-    notify(`${name} added to the bill run`);
+    notify(planning ? `${name} added from ${year}` : `${name} added to the bill run`);
   };
 
   const renameBill = (oldName: string, newName: string) => {
@@ -694,7 +728,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
 
   return (
     <>
-      <Section title={`Scheduled for ${MONTH_LONG[month - 1]}`} sub="Marked paid automatically when As-Of reaches the due date; inactive bills stay in history">
+      <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid automatically when As-Of reaches the due date; inactive bills stay in history">
         <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
           {scheduled.map((b) => (
             <tr key={b.name}>
@@ -734,13 +768,43 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
         </div>
       </Section>
 
-      <Section title="Bill definitions" sub="Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available.">
-        <Table head={['Bill', 'Base £', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', 'Active', '']} numHead={[1, 2]}>
+      <Section
+        title={planning ? `${year} bill plan` : 'Bill definitions'}
+        sub={planning
+          ? `Amount, due day and removal apply to ${year} only. Method, account and linked sheet stay shared.`
+          : "Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available."}
+      >
+        <Table head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
           {ds.bills.map((b, i) => (
             <tr key={b.name || i}>
               <td><EditableName value={b.name} onCommit={(next) => renameBill(b.name, next)} ariaLabel={`Bill name ${b.name}`} /></td>
-              <td className="num"><input className="table-input" inputMode="decimal" value={(b.baseAmountPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.bills[i].baseAmountPence = parseMoney(e.target.value); d.bills[i].amountPence = parseMoney(e.target.value); })} /></td>
-              <td className="num"><input className="table-input" style={{ maxWidth: 64 }} type="number" min={1} max={31} value={b.dueDay} onChange={(e) => update((d) => { d.bills[i].dueDay = Number(e.target.value); d.bills[i].baseDueDay = Number(e.target.value); })} /></td>
+              <td className="num">
+                <input
+                  className="table-input"
+                  inputMode="decimal"
+                  aria-label={`${planning ? `${year} ` : ''}amount ${b.name}`}
+                  value={((planning ? planAmount(b) : b.baseAmountPence) / 100).toFixed(2)}
+                  disabled={planning && yearChange(b.name)?.skip === true}
+                  onChange={(e) => planning
+                    ? setPlan(b.name, { amountOverridePence: e.target.value.trim() ? parseMoney(e.target.value) : null })
+                    : update((d) => { d.bills[i].baseAmountPence = parseMoney(e.target.value); d.bills[i].amountPence = parseMoney(e.target.value); })}
+                />
+              </td>
+              <td className="num">
+                <input
+                  className="table-input"
+                  style={{ maxWidth: 64 }}
+                  type="number"
+                  min={1}
+                  max={31}
+                  aria-label={`${planning ? `${year} ` : ''}due day ${b.name}`}
+                  value={planning ? planDueDay(b) : b.dueDay}
+                  disabled={planning && yearChange(b.name)?.skip === true}
+                  onChange={(e) => planning
+                    ? setPlan(b.name, { dueDayOverride: Number(e.target.value) || null })
+                    : update((d) => { d.bills[i].dueDay = Number(e.target.value); d.bills[i].baseDueDay = Number(e.target.value); })}
+                />
+              </td>
               <td>
                 <select className="select" value={b.paymentMethod || 'Manual'} onChange={(e) => update((d) => { d.bills[i].paymentMethod = e.target.value; })}>
                   {BILL_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -757,12 +821,33 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                   {sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}
                 </select>
               </td>
-              <td><input className="table-input date" type="date" value={b.effectiveFrom || ''} onChange={(e) => update((d) => { d.bills[i].effectiveFrom = e.target.value; })} /></td>
-              <td><input type="checkbox" checked={b.active} onChange={(e) => update((d) => { d.bills[i].active = e.target.checked; })} /></td>
-              <td><button className="btn ghost sm" onClick={() => removeBill(b.name)}>Remove</button></td>
+              <td>{planning
+                ? <span className="muted">{b.effectiveFrom ? dateUk(b.effectiveFrom) : '—'}</span>
+                : <input className="table-input date" type="date" value={b.effectiveFrom || ''} onChange={(e) => update((d) => { d.bills[i].effectiveFrom = e.target.value; })} />}</td>
+              <td>{planning
+                ? <input
+                    type="checkbox"
+                    aria-label={`Include ${b.name} in ${year}`}
+                    checked={yearChange(b.name)?.skip !== true}
+                    onChange={(e) => setPlan(b.name, { skip: !e.target.checked })}
+                  />
+                : <input type="checkbox" checked={b.active} onChange={(e) => update((d) => { d.bills[i].active = e.target.checked; })} />}</td>
+              <td><button className="btn ghost sm" onClick={() => {
+                if (!planning) return removeBill(b.name);
+                if (!confirm(`Remove ${b.name} from ${year}? Earlier years stay untouched.`)) return;
+                setPlan(b.name, { skip: true });
+                notify(`${b.name} removed from ${year}`);
+              }}>{planning ? `Remove from ${year}` : 'Remove'}</button></td>
             </tr>
           ))}
         </Table>
+        {planning && (
+          <div style={{ padding: '0 16px 16px' }}>
+            <div className="notice info">
+              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}.
+            </div>
+          </div>
+        )}
         <div className="inline-form">
           <Field label="New bill"><input className="input" placeholder="Bill name" value={billDraft.name} onChange={(e) => setBillDraft({ ...billDraft, name: e.target.value })} /></Field>
           <Field label="Amount £"><input className="input" inputMode="decimal" value={billDraft.amount} onChange={(e) => setBillDraft({ ...billDraft, amount: e.target.value })} /></Field>
@@ -781,21 +866,22 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
             <option value="">None</option>
             {sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}
           </select></Field>
-          <button className="btn primary" onClick={addBill}>Add bill</button>
+          <button className="btn primary" onClick={addBill}>{planning ? `Add bill from ${year}` : 'Add bill'}</button>
         </div>
       </Section>
 
-      <Section title="Bill changes" sub="Latest matching override wins; same From/To month is a one-off. Add or edit changes in Settings.">
-        <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Type', 'Note']} numHead={[3]}>
-          {ds.billChanges.map((c, i) => (
-            <tr key={i}>
+      <Section title={planning ? `Bill changes for ${year}` : 'Bill changes'} sub="Latest matching override wins; same From/To month is a one-off. Add or edit changes in Settings.">
+        <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Type', 'Note', '']} numHead={[3]}>
+          {ds.billChanges.filter((c) => !planning || ((!c.appliesFrom || c.appliesFrom <= planEnd) && (!c.appliesTo || c.appliesTo >= planStart))).map((c, i) => (
+            <tr key={`${c.bill}-${c.appliesFrom}-${c.appliesTo}-${i}`}>
               <td>{c.bill}</td>
               <td className="muted">{dateUk(c.appliesFrom)}</td>
               <td className="muted">{c.appliesTo ? dateUk(c.appliesTo) : '—'}</td>
               <td className="num">{c.amountOverridePence === null ? '—' : gbp(c.amountOverridePence)}</td>
-              <td className="muted">{c.dueDateOverride ? dateUk(c.dueDateOverride) : '—'}</td>
-              <td className="muted small">{c.changeType || '—'}</td>
+              <td className="muted">{c.dueDateOverride ? dateUk(c.dueDateOverride) : typeof c.dueDayOverride === 'number' ? `Day ${c.dueDayOverride}` : '—'}</td>
+              <td className="muted small">{c.skip ? `Removed for ${year}` : c.changeType || '—'}</td>
               <td className="muted small">{c.note || '—'}</td>
+              <td><button className="btn ghost sm" onClick={() => update((d) => { d.billChanges = d.billChanges.filter((entry) => entry !== c); })}>Remove</button></td>
             </tr>
           ))}
         </Table>

@@ -82,3 +82,21 @@ test('a payment change keeps earlier Rent bill months on the old amount', () => 
   assert.equal(engine.billAmount(rentBill, 2027, 3), 50000);
   assert.equal(engine.billAmount(rentBill, 2027, 4), 52500);
 });
+
+test('a rent change updates a later year stored in its own block', () => {
+  const dataset = JSON.parse(
+    fs.readFileSync(path.resolve(import.meta.dirname, '..', 'data', 'workbook.json'), 'utf8'),
+  ) as Dataset;
+  const rent = dataset.providers.rent;
+  const before = rent.entries.map((row: any) => [row.date, row.amountPence]);
+  const beforeClose = buildEngine(dataset).rentLedger('2027-12-31').balancePence;
+
+  const changed = applyMonthlyRentChange(rent, dataset.settings.asOfDate, 50000, '2027-04-01');
+  assert.ok(changed > 0, 'future 2027 charges are found in the block');
+  assert.deepEqual(rent.entries.map((row: any) => [row.date, row.amountPence]), before, '2026 amounts are unchanged');
+
+  const april = rent.years['2027'].rows.find((row: any) => row.date === '2027-04-05');
+  assert.equal(april?.amountPence, -12500);
+  const engine = buildEngine(dataset);
+  assert.equal(engine.rentLedger('2027-12-31').balancePence, beforeClose + changed * (-12500 - -11618));
+});

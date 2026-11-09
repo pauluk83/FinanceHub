@@ -57,3 +57,28 @@ const APP_FEATURE_SIGNATURES = new Set<string>(APP_FEATURE_NOTE_SIGNATURES);
 export function withoutAppFeatureNotes<T extends { signature?: string }>(entries: T[]): T[] {
   return entries.filter((entry) => !entry.signature || !APP_FEATURE_SIGNATURES.has(entry.signature));
 }
+
+const APP_UPDATE_TITLE = /^app update$/i;
+const AUTO_UPDATES = /auto[\s-]?updates?/i;
+
+/**
+ * One legacy entry used the title "App update" and the text "Auto updates".
+ * Remove only that pair (in either order), not every automatic budget entry
+ * whose title once fell back to "App update".
+ */
+export function withoutLegacyAppUpdateNotes<T extends {
+  sheetCell?: string;
+  description?: string;
+  details?: unknown;
+}>(entries: T[]): T[] {
+  return entries.filter((entry) => {
+    const title = String(entry.sheetCell ?? '').trim();
+    const details = Array.isArray(entry.details) ? entry.details.join(' ') : '';
+    const body = `${entry.description ?? ''} ${details}`.trim();
+    const titleIsAppUpdate = APP_UPDATE_TITLE.test(title);
+    const bodyIsAutoUpdates = AUTO_UPDATES.test(body);
+    const titleIsAutoUpdates = AUTO_UPDATES.test(title);
+    const bodyIsAppUpdate = APP_UPDATE_TITLE.test(body);
+    return !((titleIsAppUpdate && bodyIsAutoUpdates) || (titleIsAutoUpdates && bodyIsAppUpdate));
+  });
+}

@@ -68,6 +68,19 @@ test('council tax keeps all 13 dated 2027 and 2028 entries', () => {
   }
 });
 
+test('rent keeps 2027 in its own year block', () => {
+  const rent = ds.providers.rent;
+  assert.equal(rent.year, 2026);
+  assert.equal(rent.entries.length, 65);
+  assert.ok(rent.entries.every((row: any) => String(row.date).startsWith('2026-')), 'the live ledger is 2026 only');
+  const block = rent.years['2027'];
+  assert.ok(block, 'the 2027 block is present');
+  assert.equal(block.rows.length, 64);
+  assert.ok(block.rows.every((row: any) => String(row.date).startsWith('2027-')), 'the block is 2027 only');
+  assert.equal(block.openingPence, 67003);
+  assert.equal(block.closingPence, 74485);
+});
+
 test('O2 and Virgin keep their 2027/2028 price tiers', () => {
   const o2 = years('o2')['2027'].rows;
   assert.equal(o2[0].amountPence, 1000);

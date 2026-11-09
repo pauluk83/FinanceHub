@@ -6,7 +6,8 @@ import { dateUk, download, gbp, MONTH_LONG, parseMoney, toCsv } from '../format'
 import { appendRow, balanceAsOf, baselineFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { providerBilling } from '../providerSetup';
-import { rowsForYear } from '../../../core/providerYears';
+import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
+import { carryForwardProviderYears } from '../../../core/providerCarry';
 import type { VaultSecrets } from '../vault';
 
 const asset = (file: string) => `${import.meta.env.BASE_URL}${file}`;
@@ -225,15 +226,22 @@ function CellInput({ value, onCommit, kind, label }: { value: string; onCommit: 
   );
 }
 
-function LedgerEditor({ ds, provider, title, cfg, update, notify, autoPayments }: Pick<ViewProps, 'ds' | 'update' | 'notify'> & { provider: string; title: string; cfg: LedgerConfig; autoPayments?: Record<string, AutoPayment> }) {
+function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPayments }: Pick<ViewProps, 'ds' | 'update' | 'notify'> & { provider: string; title: string; cfg: LedgerConfig; year: number; autoPayments?: Record<string, AutoPayment> }) {
   const p = ds.providers[provider];
-  const rows = (p?.[cfg.rowsKey] ?? []) as any[];
-  const displayRows = effectiveRowsFor(cfg, rows, autoPayments, p?.ledgerOpeningPence);
+  const edit = rowsForEdit(p, cfg.rowsKey, year);
+  const rows = edit?.rows ?? [];
+  const openingPence = edit?.openingPence ?? p?.ledgerOpeningPence;
+  const displayRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
   const editable = cfg.columns.filter((c) => c.edit);
   const manualOrder = hasManualOrder(rows);
-  const baselineForProvider = (prov: any, list: any[]) => {
-    const baseline = baselineFor(cfg, list, prov.ledgerOpeningPence);
-    if (typeof prov.ledgerOpeningPence !== 'number') prov.ledgerOpeningPence = baseline;
+  const liveYear = Number(p?.year ?? ds.settings.targetYear);
+  const laterYears = Object.keys(p?.years ?? {})
+    .map(Number)
+    .filter((value) => Number.isInteger(value) && value > liveYear)
+    .sort((a, b) => a - b);
+  const baselineForProvider = (prov: any, list: any[], stored: number | undefined, isBlock: boolean) => {
+    const baseline = baselineFor(cfg, list, stored);
+    if (!isBlock && typeof prov.ledgerOpeningPence !== 'number') prov.ledgerOpeningPence = baseline;
     return baseline;
   };
   const [draft, setDraft] = useState<Record<string, string>>(() => ({ ...cfg.defaults }));
@@ -258,12 +266,29 @@ function LedgerEditor({ ds, provider, title, cfg, update, notify, autoPayments }
     nearestScrollKey.current = key;
   }, [provider, ds.settings.asOfDate, displayRows]);
 
-  const patch = (index: number, key: string, raw: string) => {
+  const mutateRows = (mutator: (list: any[], baseline: number, prov: any) => void) => {
     update((d) => {
       const prov = d.providers[provider];
-      const list = prov[cfg.rowsKey] as any[];
-      if (!list?.[index]) return;
-      const baseline = baselineForProvider(prov, list);
+      const target = ensureRowsForEdit(prov, cfg.rowsKey, year);
+      const list = target.rows;
+      const baseline = baselineForProvider(prov, list, target.openingPence, target.block);
+      mutator(list, baseline, prov);
+      sortRows(list, cfg);
+      recalculate(cfg, list, baseline);
+      if (!target.block && cfg.formula === 'telco') recalculateTelco(prov, baseline);
+      if (target.block) {
+        const block = prov.years?.[String(year)];
+        const last = list[list.length - 1];
+        if (block) block.closingPence = typeof last?.balancePence === 'number' ? last.balancePence : baseline;
+      }
+      carryForwardProviderYears(prov, cfg, year, list, baseline);
+    });
+  };
+
+  const patch = (index: number, key: string, raw: string) => {
+    if (key === 'date' && raw.trim() && !raw.startsWith(`${year}-`)) return notify(`Choose a date in ${year}`);
+    mutateRows((list) => {
+      if (!list[index]) return;
       if (key === 'balancePence') {
         if (raw.trim()) list[index].balanceOverridePence = parseMoney(raw);
         else delete list[index].balanceOverridePence;
@@ -272,10 +297,8 @@ function LedgerEditor({ ds, provider, title, cfg, update, notify, autoPayments }
         else delete list[index].totalPaidOverridePence;
       } else {
         list[index][key] = key.endsWith('Pence') ? parseMoney(raw) : raw;
+        if (key === 'paymentPence') list[index].paymentEdited = true;
       }
-      sortRows(list, cfg);
-      recalculate(cfg, list, baseline);
-      if (cfg.formula === 'telco') recalculateTelco(prov, baseline);
     });
     if (key === 'balancePence') notify(raw.trim() ? 'Balance set as a new anchor; later rows recalculated' : 'Balance returned to automatic');
     if (key === 'totalPaidPence') notify(raw.trim() ? 'Total paid set; later rows accumulate from it' : 'Total paid returned to automatic');
@@ -285,42 +308,31 @@ function LedgerEditor({ ds, provider, title, cfg, update, notify, autoPayments }
     const row = displayRows[index];
     const target = index + delta;
     if (!row || target < 0 || target >= displayRows.length) return;
-    update((d) => {
-      const prov = d.providers[provider];
-      const list = prov[cfg.rowsKey] as any[];
-      const baseline = baselineForProvider(prov, list);
-      if (!reorderRows(list, index, delta)) return;
-      recalculate(cfg, list, baseline);
-      if (cfg.formula === 'telco') recalculateTelco(prov, baseline);
-    });
+    mutateRows((list) => { reorderRows(list, index, delta); });
     notify(`${row.month || dateUk(row.date)} entry moved ${delta < 0 ? 'up' : 'down'}`);
   };
 
   const resetOrder = () => {
+    mutateRows((list) => { clearRowOrder(list, cfg); });
+    notify(cfg.monthly ? 'Ledger sorted by month' : 'Ledger sorted by date');
+  };
+
+  const recalculateLaterYears = () => {
+    if (laterYears.length === 0) return;
     update((d) => {
       const prov = d.providers[provider];
-      const list = prov[cfg.rowsKey] as any[];
-      const baseline = baselineForProvider(prov, list);
-      clearRowOrder(list, cfg);
-      recalculate(cfg, list, baseline);
-      if (cfg.formula === 'telco') recalculateTelco(prov, baseline);
+      const liveRows = prov?.[cfg.rowsKey] as any[] | undefined;
+      if (!prov || !Array.isArray(liveRows)) return;
+      carryForwardProviderYears(prov, cfg, liveYear, liveRows, prov.ledgerOpeningPence);
     });
-    notify(cfg.monthly ? 'Ledger sorted by month' : 'Ledger sorted by date');
+    notify(`Later years recalculated from the live ${liveYear} close`);
   };
 
   const remove = (index: number) => {
     const row = rows[index];
     if (!row) return;
     if (!confirm(`Remove the ${row.month || dateUk(row.date)} entry?`)) return;
-    update((d) => {
-      const prov = d.providers[provider];
-      const list = prov[cfg.rowsKey] as any[];
-      const baseline = baselineForProvider(prov, list);
-      list.splice(index, 1);
-      sortRows(list, cfg);
-      recalculate(cfg, list, baseline);
-      if (cfg.formula === 'telco') recalculateTelco(prov, baseline);
-    });
+    mutateRows((list) => { list.splice(index, 1); });
     notify(`${row.month || dateUk(row.date)} entry removed`);
   };
 
@@ -338,28 +350,37 @@ function LedgerEditor({ ds, provider, title, cfg, update, notify, autoPayments }
         continue;
       }
       row[c.key] = c.edit === 'money' ? parseMoney(draft[c.key] ?? '') : (draft[c.key] ?? '').trim();
+      if (c.key === 'paymentPence') row.paymentEdited = true;
     }
     if (cfg.monthly) {
       if (!row.month) return notify('Choose a month');
       if (rows.some((r) => r.month === row.month)) return notify(`${row.month} already has an entry — edit that row instead`);
     } else if (!row.date) return notify('Choose a date');
-    update((d) => {
-      const prov = d.providers[provider];
-      const list = prov[cfg.rowsKey] as any[];
-      const baseline = baselineForProvider(prov, list);
-      appendRow(list, row, cfg);
-      recalculate(cfg, list, baseline);
-      if (cfg.formula === 'telco') recalculateTelco(prov, baseline);
-    });
+    else if (!String(row.date).startsWith(`${year}-`)) return notify(`Choose a date in ${year}`);
+    mutateRows((list) => { appendRow(list, row, cfg); });
     setDraft({ ...cfg.defaults });
     notify(`${row.month || dateUk(row.date)} entry added`);
   };
 
   return (
     <Section
-      title={`${title} ${cfg.rowsKey === 'entries' ? 'ledger' : 'statement'}`}
-      sub={`${displayRows.length} entries · ${cfg.note}${cfg.monthly && Object.keys(autoPayments ?? {}).length ? ' · Due linked bills auto-fill Paid.' : ''} · Type a balance or total paid to anchor it; clear the cell for automatic. Move rows with ↑/↓.`}
-      actions={manualOrder ? <button className="btn ghost sm" type="button" onClick={resetOrder}>Sort automatically</button> : undefined}
+      title={`${title} ${year} ${cfg.rowsKey === 'entries' ? 'ledger' : 'statement'}`}
+      sub={`${displayRows.length} entries · ${cfg.note}${cfg.monthly && Object.keys(autoPayments ?? {}).length ? ' · Due linked bills auto-fill Paid.' : ''} · Edits carry the new close into later years. Type a balance or total paid to anchor it; clear the cell for automatic. Move rows with ↑/↓.`}
+      actions={(manualOrder || laterYears.length > 0) ? (
+        <div className="page-actions">
+          {laterYears.length > 0 && (
+            <button
+              className="btn ghost sm"
+              type="button"
+              onClick={recalculateLaterYears}
+              title={`Rebuild ${laterYears.join(', ')} from the live ${liveYear} closing balance`}
+            >
+              Recalculate later years
+            </button>
+          )}
+          {manualOrder && <button className="btn ghost sm" type="button" onClick={resetOrder}>Sort automatically</button>}
+        </div>
+      ) : undefined}
     >
       <div className="inline-form">
         {editable.map((column) => (
@@ -604,7 +625,7 @@ function rentAccountDetails(rent: any): [string, string | undefined][] {
   ];
 }
 
-export function Rent({ ds, engine, go, update, notify, vaultSession }: ViewProps) {
+export function Rent({ ds, engine, year, go, update, notify, vaultSession }: ViewProps) {
   const rent = ds.providers.rent;
   if (!rent) {
     return (
@@ -613,8 +634,10 @@ export function Rent({ ds, engine, go, update, notify, vaultSession }: ViewProps
       </Section>
     );
   }
-  const entries = rent.entries as any[];
-  const ledger = engine.rentLedger(ds.settings.asOfDate);
+  const resolved = rowsForYear(rent, 'entries', year);
+  const entries = resolved?.rows ?? [];
+  const editableYear = year >= ds.settings.targetYear;
+  const ledger = engine.rentLedger(year === ds.settings.targetYear ? ds.settings.asOfDate : `${year}-12-31`);
   const updateRentField = (field: string, value: string) => {
     update((d) => {
       const current = d.providers.rent;
@@ -662,7 +685,15 @@ export function Rent({ ds, engine, go, update, notify, vaultSession }: ViewProps
       ) : (
         <VaultLocked go={go} actions={rent.portalUrl ? <a className="btn primary" href={rent.portalUrl} target="_blank" rel="noreferrer">Login to your 'My Housing Tenancy'</a> : null} />
       )}
-      <LedgerEditor ds={ds} provider="rent" title="Rent" cfg={RENT_CONFIG} update={update} notify={notify} />
+      {editableYear ? (
+        <LedgerEditor ds={ds} provider="rent" title="Rent" cfg={RENT_CONFIG} year={year} update={update} notify={notify} />
+      ) : resolved ? (
+        <ArchivedLedger title="Rent" cfg={RENT_CONFIG} rows={entries} year={year} />
+      ) : (
+        <Section title={`Rent ${year}`} sub="No rent ledger for this year">
+          <Empty>No rent entries for {year}.</Empty>
+        </Section>
+      )}
     </>
   );
 }
@@ -757,20 +788,23 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       </Section>
     );
   }
-  // A later year reads its own imported block; only the live sheet is writable.
+  // A later year reads and writes its own block; earlier years stay read-only.
   const resolvedRows = rowsForYear(p, cfg.rowsKey, year);
   const rows: any[] = resolvedRows?.rows ?? [];
-  const archivedYear = resolvedRows?.archived === true;
+  const editableYear = year >= ds.settings.targetYear;
+  const edit = rowsForEdit(p, cfg.rowsKey, year);
+  const openingPence = edit?.openingPence ?? p?.ledgerOpeningPence;
   const contract = p.contract as ProviderContract | undefined;
   // Months left are worked out from the contract end date rather than stored,
   // so O2 (whose workbook cell says 0) and Virgin stay correct as time passes.
   const remainingMonths = contract ? telcoRemainingMonths(p, ds.settings.asOfDate) : null;
   const contractView = contract && remainingMonths !== null ? { ...contract, remaining: String(remainingMonths) } : contract;
-  const autoPayments = archivedYear ? undefined : engine.providerBillPayments(provider, year);
-  const displayRows = effectiveRowsFor(cfg, rows, autoPayments, p?.ledgerOpeningPence);
+  const autoPayments = editableYear ? engine.providerBillPayments(provider, year) : undefined;
+  const displayRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
   const statementYear = year;
-  const latest = balanceAsOf(displayRows, statementYear, ds.settings.asOfDate);
-  const latestLabel = `Balance at ${dateUk(ds.settings.asOfDate)}`;
+  const comparisonDate = year === ds.settings.targetYear ? ds.settings.asOfDate : `${year}-12-31`;
+  const latest = balanceAsOf(displayRows, statementYear, comparisonDate);
+  const latestLabel = `Balance at ${dateUk(comparisonDate)}`;
   const monthly = p.monthlyPaymentPence ?? contract?.tiers?.[0]?.amountPence ?? displayRows[displayRows.length - 1]?.paymentPence ?? 0;
   const accountDetails = providerAccountDetails(provider, p);
   if (provider === 'water') {
@@ -890,9 +924,15 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
         <VaultLocked go={go} actions={accessActions} />
       ))}
       <ContractDetails title={title} contract={contractView} logo={contractLogo} monthly={monthly} latest={latest} latestLabel={latestLabel} showAccount={provider !== 'o2' && provider !== 'virgin'} />
-      {archivedYear
-        ? <ArchivedLedger title={title} cfg={cfg} rows={rows} year={year} />
-        : <LedgerEditor ds={ds} provider={provider} title={title} cfg={cfg} update={update} notify={notify} autoPayments={autoPayments} />}
+      {editableYear ? (
+        <LedgerEditor ds={ds} provider={provider} title={title} cfg={cfg} year={year} update={update} notify={notify} autoPayments={autoPayments} />
+      ) : resolvedRows ? (
+        <ArchivedLedger title={title} cfg={cfg} rows={rows} year={year} />
+      ) : (
+        <Section title={`${title} ${year}`} sub="No ledger for this year">
+          <Empty>No {title} entries for {year}.</Empty>
+        </Section>
+      )}
     </>
   );
 }
