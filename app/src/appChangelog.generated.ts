@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.9",
-  "buildId": "9420422067b9",
+  "buildId": "4991d0a107bf",
   "builtAt": "2026-11-09",
   "releases": [
     {
@@ -26,7 +26,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Payment edits now carry the updated provider balance into later years",
             "Add a Recalculate later years action so saved provider blocks can be rebuilt from the live closing balance",
             "Add a read-only Data Health integrity centre for account names, duplicates, provider year chains, bill links, locked-month drift, dormant accounts and sync conflicts",
-            "Remove the legacy App update / Auto updates entry from the budget changelog"
+            "Remove the legacy App update / Auto updates entry from the budget changelog",
+            "Add per-record audit history with revert and transaction trash"
           ]
         }
       ]

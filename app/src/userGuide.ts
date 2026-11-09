@@ -122,10 +122,13 @@ export const USER_GUIDE: GuideEntry[] = [
       'Filter by account, month, type or free text to find a row, then open it to edit.',
       'Add, edit or delete rows in open months; locked months reject changes.',
       'Record a transfer between your own accounts as one transfer — both legs and the balance effect are created together.',
+      'Use History on a row to inspect the recorded before/after values and revert an edit or addition.',
+      'Deleted rows stay in Trash until restored; restoring a deleted row creates a new audit entry.',
     ],
     notes: [
       'Refund treatment follows the original row type so totals are not inflated.',
       'A transfer never counts as income or expense; it only moves the balance.',
+      'Reverting a locked-month row is refused until that month is unlocked.',
     ],
   },
   {

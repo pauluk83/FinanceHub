@@ -1,12 +1,19 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
-import { dateUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
+import { dateUk, dateTimeUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
+import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
+
+function auditActionLabel(entry: AuditEntry): string {
+  if (entry.action === 'update') return `Edited · ${entry.label}`;
+  if (entry.action === 'delete') return `Deleted · ${entry.label}`;
+  return `Added · ${entry.label}`;
+}
 
 export function Transactions({ ds, engine, month, setMonth, update, notify }: ViewProps) {
   const [q, setQ] = useState('');
@@ -16,6 +23,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const [page, setPage] = useState(0);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
+  const [historyRow, setHistoryRow] = useState<number | null>(null);
+  const [showTrash, setShowTrash] = useState(false);
   const [loanPrefilled, setLoanPrefilled] = useState(false);
   const [form, setForm] = useState({
     date: ds.settings.asOfDate,
@@ -73,6 +82,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const pageSize = 60;
   const pageRows = rows.slice(page * pageSize, (page + 1) * pageSize);
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const history = historyRow === null ? [] : recordHistory(ds, 'transactions', String(historyRow));
+  const deleted = deletedTransactions(ds);
 
   const exportRows = () => {
     download('financehub-transactions.csv', toCsv([
@@ -230,7 +241,25 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     const drop = new Set([t.row, partner?.row].filter((n): n is number => typeof n === 'number'));
     update((d) => { d.transactions = d.transactions.filter((x) => !drop.has(x.row)); });
     if (editing !== null && drop.has(editing)) { setEditing(null); setAdding(false); }
+    if (historyRow !== null && drop.has(historyRow)) setHistoryRow(null);
     notify(partner ? 'Transfer deleted — both legs removed' : 'Transaction deleted');
+  };
+
+  const revertEntry = (entry: AuditEntry) => {
+    const date = String(entry.before?.date ?? entry.after?.date ?? '');
+    if (entry.section === 'transactions' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const y = Number(date.slice(0, 4));
+      const m = Number(date.slice(5, 7));
+      if (engine.monthlySummary(y, m).locked) {
+        notify('That entry is in a locked month — unlock it first');
+        return;
+      }
+    }
+    const preview = structuredClone(ds);
+    const result = revertAuditEntry(preview, entry.id);
+    if (!result.ok) { notify(result.message); return; }
+    update((d) => { revertAuditEntry(d, entry.id); });
+    notify(result.message);
   };
 
   return (
@@ -239,6 +268,9 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         title="Transaction log"
         sub={`${rows.length} of ${ds.transactions.length} rows · locked months are read-only`}
         actions={<div className="page-actions">
+          <button className="btn" onClick={() => setShowTrash((open) => !open)}>
+            Trash{deleted.length ? ` (${deleted.length})` : ''}
+          </button>
           <button className="btn" onClick={exportRows}>Export CSV</button>
           <button
             className="btn primary"
@@ -367,6 +399,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
               <td>{t.budgetTreatment ? <Badge tone={t.budgetTreatment === 'Transfer' ? 'blue' : 'violet'}>{t.budgetTreatment}</Badge> : <span className="faint">Normal</span>}</td>
               <td>{t.status ? <Badge tone="amber">{t.status}</Badge> : <Badge tone="green">Open</Badge>}</td>
               <td className="nowrap">
+                <button className="btn ghost sm" onClick={() => setHistoryRow(t.row)}>History</button>{' '}
                 <button className="btn ghost sm" onClick={() => startEdit(t)}>Edit</button>{' '}
                 <button className="btn ghost sm" onClick={() => removeTx(t)}>Delete</button>
               </td>
@@ -374,6 +407,61 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           ))}
         </Table>
         {rows.length === 0 && <Empty>No transactions match these filters.</Empty>}
+        {historyRow !== null && (
+          <div className="panel" style={{ margin: 12 }}>
+            <header className="panel-head">
+              <div>
+                <h2>Transaction history</h2>
+                <p>Row {historyRow} · newest first. Reverting restores the recorded previous values.</p>
+              </div>
+              <button className="btn ghost sm" onClick={() => setHistoryRow(null)}>Close</button>
+            </header>
+            <div className="list">
+              {history.length === 0 && <Empty>No recorded changes for this row yet.</Empty>}
+              {history.map((entry) => (
+                <div className="list-row" key={entry.id}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="title">{auditActionLabel(entry)}</div>
+                    <div className="sub">{dateTimeUk(entry.at)}</div>
+                    {auditFieldChanges(entry).slice(0, 6).map((change) => (
+                      <div className="sub" key={change.field}>
+                        {change.field}: {formatAuditValue(change.field, change.before)} → {formatAuditValue(change.field, change.after)}
+                      </div>
+                    ))}
+                    {entry.revertedAt && <div className="sub">Reverted {dateTimeUk(entry.revertedAt)}</div>}
+                    {entry.restoredAt && <div className="sub">Restored {dateTimeUk(entry.restoredAt)}</div>}
+                  </div>
+                  {!entry.revertedAt && !entry.restoredAt && (
+                    <button className="btn ghost sm" onClick={() => revertEntry(entry)}>Revert</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {showTrash && (
+          <div className="panel" style={{ margin: 12 }}>
+            <header className="panel-head">
+              <div>
+                <h2>Recently deleted</h2>
+                <p>Deleted transactions stay here until restored. Locked months still reject changes.</p>
+              </div>
+              <button className="btn ghost sm" onClick={() => setShowTrash(false)}>Close</button>
+            </header>
+            <div className="list">
+              {deleted.length === 0 && <Empty>No deleted transactions.</Empty>}
+              {deleted.map((entry) => (
+                <div className="list-row" key={entry.id}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="title">{entry.label}</div>
+                    <div className="sub">Deleted {dateTimeUk(entry.at)}</div>
+                  </div>
+                  <button className="btn ghost sm" onClick={() => revertEntry(entry)}>Restore</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="toolbar" style={{ borderTop: '1px solid var(--line)', borderBottom: 0 }}>
           <span className="muted small">Page {page + 1} of {pages}</span>
           <div className="toolbar-spacer" />

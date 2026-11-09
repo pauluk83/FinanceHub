@@ -46,6 +46,7 @@ import type { EncryptedVault, UnlockedVault } from './vault';
 import { readAppLock, writeAppLock } from './appLockStore';
 import { shouldAutoLock, type AppLockConfig } from './appLock';
 import { changedBudgetSections } from './budgetChangelog';
+import { appendAudit, diffRecords } from '../../core/audit';
 import { AppLockScreen } from './views/appLock';
 
 const SUBTITLES: Record<string, string> = {
@@ -426,6 +427,10 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       const dataset = structuredClone(prev.dataset);
       mutator(dataset);
       syncBillTransactions(dataset);
+      // Record the before/after of each changed record at the single mutation
+      // boundary. Generated bill rows are excluded by diffRecords.
+      const audit = diffRecords(prev.dataset, dataset);
+      if (audit.length > 0) appendAudit(dataset, audit);
       const summary = changeSummary(prev.dataset, dataset);
       if (summary) appendChangeLog(dataset, summary);
       return { ...prev, dataset };

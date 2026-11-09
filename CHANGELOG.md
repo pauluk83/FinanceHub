@@ -20,6 +20,7 @@ and the build time.
 - Add a Recalculate later years action so saved provider blocks can be rebuilt from the live closing balance
 - Add a read-only Data Health integrity centre for account names, duplicates, provider year chains, bill links, locked-month drift, dormant accounts and sync conflicts
 - Remove the legacy App update / Auto updates entry from the budget changelog
+- Add per-record audit history with revert and transaction trash
 
 ## [2026.11.8] — 8 November 2026
 
