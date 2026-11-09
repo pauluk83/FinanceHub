@@ -20,8 +20,12 @@ export function repoSlug(repository = pkg.repository) {
   const raw = process.env.GITHUB_REPOSITORY
     || (typeof repository === 'string' ? repository : repository?.url)
     || '';
-  const match = String(raw).match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/);
-  return match ? `${match[1]}/${match[2]}` : null;
+  const text = String(raw).trim();
+  // Actions sets GITHUB_REPOSITORY to `owner/repo`; package.json uses a URL.
+  const slug = text.match(/^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?$/);
+  if (slug) return `${slug[1]}/${slug[2]}`;
+  const url = text.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/);
+  return url ? `${url[1]}/${url[2]}` : null;
 }
 
 export function releaseNotes(version, changelogPath = join(ROOT, 'CHANGELOG.md')) {

@@ -26,6 +26,8 @@ test('the app links to this repository’s GitHub Releases', () => {
 test('the repository slug comes from package.json', () => {
   assert.equal(repoSlug(pkg.repository), 'pauluk83/FinanceHub');
   assert.equal(repoSlug('git+https://github.com/owner/repo.git'), 'owner/repo');
+  assert.equal(repoSlug('pauluk83/FinanceHub'), 'pauluk83/FinanceHub');
+  assert.equal(repoSlug('owner/repo.git'), 'owner/repo');
   assert.equal(repoSlug(''), null);
 });
 
