@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-09
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated and the earlier GitHub v2026.11.9 installer assets are refreshed; build `89bb71db76a1` is deployed at `https://financehub.freedev.app/`. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated and the GitHub v2026.11.9 tag, source archives and CI-built installer are refreshed; build `89bb71db76a1` is deployed at `https://financehub.freedev.app/`. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -1039,7 +1039,7 @@ External dependencies that code changes cannot satisfy: legal review, certificat
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at build `89bb71db76a1` with matching local/live hashes; the GitHub `v2026.11.9` installer is refreshed to `d369e2afc346` and its checksum file matches. P0-6 two-account/two-device validation and Windows signing are deliberately deferred.
+**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at build `89bb71db76a1` with matching local/live hashes; the GitHub `v2026.11.9` tag and source archives are at `1272857`, and CI rebuilt the installer with a matching checksum file. P0-6 two-account/two-device validation and Windows signing are deliberately deferred.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1070,7 +1070,7 @@ Sequence chosen: low-risk, independently verifiable release work first.
 
 Decisions already taken:
 
-- Release: refresh the existing `v2026.11.9` installer assets (done); deploy the hosted web bundle (done 2026-11-09 through the file manager because FTP was unreachable); commit and push the current working tree.
+- Release: refresh the existing `v2026.11.9` installer assets (done); retarget `v2026.11.9` so the source archives match the release (done); deploy the hosted web bundle (done 2026-11-09 through the file manager because FTP was unreachable); commit and push the current working tree.
 - Locked months stay immutable imported snapshots; historical bills are not recomputed.
 - Workbook quirks are preserved and flagged where they still affect totals; the £30 `Credit Cards` row is reclassified as Starling and Dan is a linked account rather than a normal budget account.
 - The hosted `/FinanceHub/` build is structurally ready but not approved for public use until the pre-rotation snapshot purge and browser-storage hardening are complete.
@@ -1207,6 +1207,7 @@ Open items:
 - 2026-11-09: Rebuilt the Windows installer and hosted bundle after the test-script change so the generated changelog and build id are coherent: build `89bb71db76a1`, hosted bundle `index-0QAIytWd.js`, installer SHA-256 prefix `d369e2afc346`; `release:check` passes. `FTP_PASSWORD` was absent and `ftpupload.net:21` timed out, so all 11 `dist-web` files were uploaded through the signed-in InfinityFree file manager at `financehub.freedev.app/htdocs`, with `index.html` last. Live verification: page, JS and CSS return 200 with no console errors; `index.html`, `index-0QAIytWd.js` and `index-BkBanxRO.css` SHA-256 hashes match the local build exactly. The GitHub CLI/token is absent, so the published installer asset remains the earlier `1d332836fd32` build.
 - 2026-11-09: Refreshed the existing GitHub `v2026.11.9` release through the signed-in browser: removed the earlier installer and checksum, uploaded the rebuilt 117.02 MB installer and `SHA256SUMS.txt`, and saved the release. The published installer digest is now `d369e2afc34654ae5d2adcb78420bb7b0786f1ad91d8828a42ff23c4d1a6990b`; `release:check` confirms the release installer matches `SHA256SUMS.txt`.
 - 2026-11-09: Replaced the GitHub release description with the current generated `2026.11.9` notes from `CHANGELOG.md`. The release page now lists all 14 changed items instead of the original three; the installer and checksum assets are unchanged.
+- 2026-11-09: Retargeted `v2026.11.9` from `1c002df` to `1272857` so GitHub's source archives contain the delivered feature work. The tag push ran Release run `42696050584` successfully; CI rebuilt the installer (digest `91d17700c084fa53ef930429937192fcacb0d11651fb6116955bfa6578dd4d57`), the checksum asset matches, the release notes still match the generated source and the raw source at the tag contains the current plan. `release:check` passes.
 
 ---
 
