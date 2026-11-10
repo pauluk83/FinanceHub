@@ -3,6 +3,7 @@ import type { ViewProps } from '../types';
 import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
 import { dateUk, dateTimeUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
+import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
@@ -30,7 +31,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const [showTrash, setShowTrash] = useState(false);
   const [loanPrefilled, setLoanPrefilled] = useState(false);
   const [form, setForm] = useState({
-    date: ds.settings.asOfDate,
+    date: todayIso(),
     account: ds.settings.primaryAccount || ds.accounts[0]?.name || '',
     to: ds.accounts.find((a) => a.name !== (ds.settings.primaryAccount || ds.accounts[0]?.name))?.name || '',
     type: 'Expense',
@@ -103,6 +104,12 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     notify(`Exported ${rows.length} transactions`);
   };
 
+  const updateTransaction = (mutator: (dataset: typeof ds) => void) =>
+    update((d) => {
+      mutator(d);
+      advanceAsOfToLatestTransaction(d, todayIso());
+    });
+
   const submit = () => {
     const amount = Math.abs(parseMoney(form.amount));
     if (!form.date || amount === 0) { notify('Enter a date and a non-zero amount'); return; }
@@ -129,7 +136,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         return;
       }
       if (form.type === 'Transfer') {
-        update((d) => {
+        updateTransaction((d) => {
           const row = d.transactions.find((t) => t.row === editing);
           if (!row) return;
           const partner = findTransferPartner(d.transactions, row);
@@ -156,7 +163,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         notify(`Transfer updated — ${gbp(amount)} from ${form.account} to ${form.to}`);
         return;
       }
-      update((d) => {
+      updateTransaction((d) => {
         const row = d.transactions.find((t) => t.row === editing);
         if (!row) return;
         const partner = findTransferPartner(d.transactions, row);
@@ -190,7 +197,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       return;
     }
     if (form.type === 'Transfer') {
-      update((d) => {
+      updateTransaction((d) => {
         const firstRow = Math.max(0, ...d.transactions.map((t) => t.row)) + 1;
         const legs = buildTransferLegs({
           date: form.date,
@@ -208,7 +215,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       notify(`Transfer recorded — ${gbp(amount)} from ${form.account} to ${form.to}`);
       return;
     }
-    update((d) => {
+    updateTransaction((d) => {
       const row = Math.max(0, ...d.transactions.map((t) => t.row)) + 1;
       d.transactions.push({
         row,

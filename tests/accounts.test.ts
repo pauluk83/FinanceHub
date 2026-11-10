@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildEngine, type Dataset } from '../core/engine.ts';
+import { advanceAsOfToLatestTransaction, buildEngine, lockCutoffFor, type Dataset } from '../core/engine.ts';
 import { PSEUDO_ACCOUNTS, accountsNeedingReview, classifyAccount, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../core/accounts.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -90,4 +90,54 @@ test('the classifier keeps November expenses at the recorded figure', () => {
   const engine = buildEngine(ds);
   assert.equal(engine.monthlyExpenses(2026, 11).total, 226535);
   assert.equal(engine.monthlySummary(2026, 11).expensesPence, 226535);
+});
+
+test('a later transaction advances the As-Of cutoff and includes today\'s Starling income', () => {
+  const data = structuredClone(ds);
+  data.settings.asOfDate = '2026-11-09';
+  data.settings.lockCutoff = lockCutoffFor(data.settings.asOfDate);
+  data.transactions.push({
+    row: 99001,
+    date: '2026-11-09',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 5578,
+    comments: 'Balance fixture',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(data).starlingBalance('2026-11-09'), 55538);
+
+  data.transactions.push({
+    row: 99002,
+    date: '2026-11-10',
+    account: 'Starling',
+    type: 'Income',
+    amountPence: 2739,
+    comments: 'Today',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(data).starlingBalance('2026-11-09'), 55538);
+  assert.equal(advanceAsOfToLatestTransaction(data, '2026-11-10'), true);
+  assert.equal(data.settings.asOfDate, '2026-11-10');
+  assert.equal(data.settings.lockCutoff, '2026-11-01');
+  assert.equal(buildEngine(data).starlingBalance(data.settings.asOfDate), 58277);
+});
+
+test('a planned transaction after today does not move the As-Of cutoff', () => {
+  const data = structuredClone(ds);
+  data.settings.asOfDate = '2026-11-09';
+  data.transactions.push({
+    row: 99003,
+    date: '2026-11-11',
+    account: 'Starling',
+    type: 'Income',
+    amountPence: 2739,
+    comments: 'Planned',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(advanceAsOfToLatestTransaction(data, '2026-11-10'), false);
+  assert.equal(data.settings.asOfDate, '2026-11-09');
 });

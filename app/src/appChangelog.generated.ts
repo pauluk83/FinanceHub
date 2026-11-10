@@ -4,10 +4,23 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.9",
-  "buildId": "89bb71db76a1",
-  "builtAt": "2026-11-09",
+  "version": "2026.11.10",
+  "buildId": "d487c28831e9",
+  "builtAt": "2026-11-10",
   "releases": [
+    {
+      "version": "2026.11.10",
+      "date": "10 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Advance the As-Of cutoff to the latest real transaction so a current Starling transaction updates the balance.",
+            "Only show the Dashboard duplicate warning when the selected month contains duplicate rows."
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.9",
       "date": "9 November 2026",

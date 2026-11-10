@@ -35,7 +35,7 @@ test('release notes are taken from the changelog section for the version', () =>
   const notes = releaseNotes(pkg.version);
   assert.match(notes, new RegExp(`^# FinanceHub ${pkg.version.replaceAll('.', '\\.')}`));
   assert.match(notes, /## Windows installer/);
-  assert.match(notes, /FinanceHub-Setup-2026\.11\.9\.exe/);
+  assert.ok(notes.includes(installerFileName(pkg.version)));
   assert.match(notes, /SHA256SUMS\.txt/);
   assert.doesNotMatch(notes, /stable download name/);
 });

@@ -1,10 +1,11 @@
 // Resolved by Vite and tsconfig: the private workbook when present, otherwise the
 // committed blank seed, so a clean checkout still typechecks and builds.
 import seed from '@workbook';
-import type { Dataset } from '../../core/engine';
+import { advanceAsOfToLatestTransaction, latestTransactionDate, type Dataset } from '../../core/engine';
 import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
+import { todayIso } from './format';
 import type { EncryptedVault } from './vault';
 
 export interface AppState {
@@ -296,12 +297,29 @@ function hydrateProviderPaid(state: AppState): AppState {
   return changed ? { ...state, dataset: { ...state.dataset, providers } } : state;
 }
 
+/**
+ * One-time repair for budgets saved before the As-Of cutoff followed new
+ * transactions. The marker records the latest transaction date already handled,
+ * so a deliberately historical As-Of date survives a reload while genuinely
+ * newer synced data can still move the cutoff forward.
+ */
+function ensureAsOfCoversTransactions(state: AppState): AppState {
+  const meta = (state.dataset.meta ?? {}) as { asOfAdvance?: string };
+  const today = todayIso();
+  const latest = latestTransactionDate(state.dataset, today);
+  if (!latest || (meta.asOfAdvance && latest <= meta.asOfAdvance)) return state;
+  const dataset = structuredClone(state.dataset);
+  advanceAsOfToLatestTransaction(dataset, today);
+  dataset.meta = { ...(state.dataset.meta ?? {}), asOfAdvance: latest };
+  return { ...state, dataset };
+}
+
 function decodeState(raw: string | null): AppState | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as AppState;
     if (parsed?.version !== 1 || !parsed.dataset?.settings) return null;
-    return applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails({ ...parsed, theme: parsed.theme === 'light' ? 'light' : 'dark' })))));
+    return ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails({ ...parsed, theme: parsed.theme === 'light' ? 'light' : 'dark' }))))));
   } catch {
     return null;
   }

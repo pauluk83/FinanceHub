@@ -221,14 +221,7 @@ export function buildEngine(ds: Dataset) {
    * Kept as a pure helper so devices with different clocks still agree.
    */
   function lockCutoff(asOf: string): string {
-    const day = Number(asOf.slice(8, 10));
-    const y = yearOf(asOf), m = monthIndexOf(asOf);
-    if (day < 3) {
-      const py = m === 1 ? y - 1 : y;
-      const pm = m === 1 ? 12 : m - 1;
-      return monthStart(py, pm);
-    }
-    return monthStart(y, m);
+    return lockCutoffFor(asOf);
   }
 
   /** Bills that exist in a given month (Monthly_Overview bill mask). */
@@ -941,6 +934,46 @@ export function buildEngine(ds: Dataset) {
     scheduledBillsPostAnchor, monthlyIncome, monthlyExpenses, monthlySummary, owedAt, owedByPerson,
     cardBalances, starlingBalance, starlingBreakdown, accountBalances, accountFlow, yearToDate, statement, rentLedger, holidays, dashboard, throughFor,
   };
+}
+
+/** The lock cutoff that belongs to an As-Of date: its month start, or the previous month before the 3rd. */
+export function lockCutoffFor(asOf: string): string {
+  const day = Number(asOf.slice(8, 10));
+  const year = Number(asOf.slice(0, 4));
+  const month = Number(asOf.slice(5, 7));
+  if (day < 3) {
+    const previousYear = month === 1 ? year - 1 : year;
+    const previousMonth = month === 1 ? 12 : month - 1;
+    return `${previousYear}-${String(previousMonth).padStart(2, '0')}-01`;
+  }
+  return `${year}-${String(month).padStart(2, '0')}-01`;
+}
+
+/** The latest real transaction date on or before today, or an empty string. */
+export function latestTransactionDate(ds: Dataset, today: string): string {
+  const through = today.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(through)) return '';
+  let latest = '';
+  for (const transaction of ds.transactions) {
+    if (transaction.autoBill === true) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(transaction.date)) continue;
+    if (transaction.date > through) continue;
+    if (transaction.date > latest) latest = transaction.date;
+  }
+  return latest;
+}
+
+/**
+ * Make the As-Of cutoff cover the latest real transaction, without ever moving
+ * it past today. Planned rows and generated bill-log rows do not advance it.
+ * Returns true when the cutoff changed.
+ */
+export function advanceAsOfToLatestTransaction(ds: Dataset, today: string): boolean {
+  const latest = latestTransactionDate(ds, today);
+  if (!latest || latest <= ds.settings.asOfDate) return false;
+  ds.settings.asOfDate = latest;
+  ds.settings.lockCutoff = lockCutoffFor(latest);
+  return true;
 }
 
 export type Engine = ReturnType<typeof buildEngine>;

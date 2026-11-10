@@ -34,7 +34,11 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   const yearProgress = Math.max(0, Math.min(1, (now - start) / (end - start)));
   const holidayTrips = groupHolidayTrips(engine.holidays(ds.settings.asOfDate), (holiday) => holiday).slice(0, 7);
   const needsReview = accountsNeedingReview(ds.transactions, ds, d.asOf);
-  const duplicateReview = duplicateGroups(ds.transactions.filter((t) => t.autoBill !== true));
+  // The Dashboard warning is for the month on screen, not the whole history.
+  const duplicateReview = duplicateGroups(ds.transactions.filter((t) =>
+    t.autoBill !== true
+    && Number(t.date.slice(0, 4)) === year
+    && Number(t.date.slice(5, 7)) === month));
   const duplicateRows = duplicateReview.reduce((sum, group) => sum + group.rows.length, 0);
   const peopleOwed = d.owedByPerson
     .filter((person) => person.balancePence > 0)

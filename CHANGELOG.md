@@ -5,6 +5,12 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.10] — 10 November 2026
+
+### Changed
+- Advance the As-Of cutoff to the latest real transaction so a current Starling transaction updates the balance.
+- Only show the Dashboard duplicate warning when the selected month contains duplicate rows.
+
 ## [2026.11.9] — 9 November 2026
 
 ### Changed

@@ -195,6 +195,29 @@ test('the encrypted backup panel shows the retention limit and stored restore po
   assert.match(empty, /No encrypted restore points yet/);
 });
 
+test('the dashboard only warns about duplicates in the month on screen', async () => {
+  const { Dashboard } = await server.ssrLoadModule('/src/views/overview.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const transaction = (row, date) => ({
+    row,
+    date,
+    account: 'Current',
+    type: 'Expense',
+    amountPence: 1_234,
+    comments: 'Shop',
+    status: '',
+    budgetTreatment: '',
+  });
+
+  const october = dataset({ transactions: [transaction(1, '2026-10-05'), transaction(2, '2026-10-05')] });
+  const novemberView = render(Dashboard, props(october, { engine: buildEngine(october) }));
+  assert.doesNotMatch(novemberView, /duplicate group/);
+
+  const november = dataset({ transactions: [transaction(3, '2026-11-05'), transaction(4, '2026-11-05')] });
+  const novemberViewWithDuplicates = render(Dashboard, props(november, { engine: buildEngine(november) }));
+  assert.match(novemberViewWithDuplicates, /duplicate group/);
+});
+
 test('account security renders local-only guidance and signed-in MFA/deletion controls', async () => {
   const { AccountSecuritySection } = await server.ssrLoadModule('/src/views/accountSecurity.tsx');
   const cloud = render(AccountSecuritySection, props({}, { isLocal: false }));
