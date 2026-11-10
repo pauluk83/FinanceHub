@@ -10,6 +10,7 @@ and the build time.
 ### Changed
 - Advance the As-Of cutoff to the latest real transaction so a current Starling transaction updates the balance.
 - Only show the Dashboard duplicate warning when the selected month contains duplicate rows.
+- Refuse to sync plaintext credential fields; added a nested cloud-payload guard and regression coverage.
 
 ## [2026.11.9] — 9 November 2026
 

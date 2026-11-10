@@ -1,5 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import {
+  assertNoPlaintextCredentials,
   canonicalJson,
   changedPaths,
   enqueueOutbox,
@@ -512,6 +513,9 @@ export class CloudSyncEngine {
   private async push(): Promise<void> {
     const item = this.outbox[0];
     if (!item) return;
+
+    // Re-check older outbox entries written before this guard existed.
+    assertNoPlaintextCredentials(item.state);
 
     const { data, error } = await this.client.rpc('financehub_push_state', {
       p_base_rev: item.baseRev,

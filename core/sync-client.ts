@@ -51,6 +51,43 @@ export function canonicalJson(value: unknown): string {
   return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`;
 }
 
+/** Keys that must never carry a plaintext value into a cloud document. */
+const CREDENTIAL_KEY = /(?:passwords?|passphrases?|secrets?|credentials?|accessbills?|accesstokens?|apikeys?|privatekeys?|usernames?)$/i;
+
+function hasCredentialValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === '' || value === false) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
+  return true;
+}
+
+/**
+ * Find plaintext credential fields anywhere in a cloud document. The encrypted
+ * vault is safe because its ciphertext/salt/iv keys do not match; its optional
+ * reminder is stored as `hint`, never under a credential name.
+ */
+export function plaintextCredentialPaths(value: unknown, prefix = '', out: string[] = []): string[] {
+  if (!value || typeof value !== 'object') return out;
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => plaintextCredentialPaths(entry, `${prefix}[${index}]`, out));
+    return out;
+  }
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (CREDENTIAL_KEY.test(key) && hasCredentialValue(child)) out.push(path);
+    plaintextCredentialPaths(child, path, out);
+  }
+  return out;
+}
+
+/** Fail closed before a cloud write rather than uploading a plaintext secret. */
+export function assertNoPlaintextCredentials(value: unknown): void {
+  const paths = plaintextCredentialPaths(value);
+  if (paths.length) {
+    throw new Error(`Refusing to sync plaintext credential fields: ${paths.join(', ')}`);
+  }
+}
+
 function finiteNumber(value: unknown, fallback = 0): number {
   const number = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(number) ? number : fallback;
@@ -110,6 +147,7 @@ export function enqueueOutbox<T>(options: {
     now = new Date().toISOString(),
     idFactory = defaultId,
   } = options;
+  assertNoPlaintextCredentials(state);
   const existing = items[0];
   if (existing && canonicalJson(existing.state) === canonicalJson(state)) return items;
 

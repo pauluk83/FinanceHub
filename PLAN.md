@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
-Last updated: 2026-11-09
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated and the GitHub v2026.11.9 tag, source archives and CI-built installer are refreshed; build `89bb71db76a1` is deployed at `https://financehub.freedev.app/`. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
+Last updated: 2026-11-10
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.10 tag, source archives and CI-built installer are published; build `d487c28831e9` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and its regression test are built as `2026.11.10` build `77c4c33c16cd` but are not in that deployed bundle. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -1039,7 +1039,7 @@ External dependencies that code changes cannot satisfy: legal review, certificat
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at build `89bb71db76a1` with matching local/live hashes; the GitHub `v2026.11.9` tag and source archives are at `1272857`, and CI rebuilt the installer with a matching checksum file. P0-6 two-account/two-device validation and Windows signing are deliberately deferred.
+**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at `2026.11.10`, build `d487c28831e9`, with matching local/live hashes; the GitHub `v2026.11.10` tag and source archives are at `a5011a1`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard is built as `2026.11.10` build `77c4c33c16cd` and needs deployment. P0-6 two-account/two-device validation and Windows signing are deliberately deferred.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1210,6 +1210,9 @@ Open items:
 - 2026-11-09: Retargeted `v2026.11.9` from `1c002df` to `1272857` so GitHub's source archives contain the delivered feature work. The tag push ran Release run `42696050584` successfully; CI rebuilt the installer (digest `91d17700c084fa53ef930429937192fcacb0d11651fb6116955bfa6578dd4d57`), the checksum asset matches, the release notes still match the generated source and the raw source at the tag contains the current plan. `release:check` passes.
 
 ---
+
+- 2026-11-10: Released `2026.11.10`: commit `a5011a1` and tag `v2026.11.10` pushed; Release run `42850560790` succeeded; GitHub assets are `FinanceHub-Setup-2026.11.10.exe` (122,611,527 bytes) and `SHA256SUMS.txt` with installer SHA-256 `055aaf67708793640e3f99340e63914e96543e4beb4c7f9fa459341258a3a4df`. The live bundle serves build `d487c28831e9`, JS `assets/index-BZ6wsYFk.js` and CSS `assets/index-BkBanxRO.css`; the live JS hash matches the local build, the public dashboard rendered without console errors, and the owner verified the personal Starling balance and month-scoped duplicate review. `npm test` **272/272**, `tsc` and `release:check` passed.
+- 2026-11-10: Implemented the remaining A-02 code guard. `core/sync-client.ts` now walks a cloud document and refuses any non-empty password, passphrase, secret, credential, access-bill, access-token, API-key, private-key or username field, while allowing empty legacy placeholders; `app/src/sync.ts` re-checks older outbox entries before every push. Added `tests/sync-payload-secrets.test.ts` for nested fields, empty placeholders, refusal at enqueue time and the current workbook payload. `npm test` **276/276**, `tsc` and the web build clean. The rebuild is build `77c4c33c16cd`, hosted bundle `index-CJuyMBkJ.js` and installer SHA-256 prefix `2cab796c9d54`; `release:check` passed with live parity skipped. This guard is **not** in the deployed `d487c28831e9` bundle; deploy it after the P0-8 purge.
 
 ## 18. Notes and constraints
 
@@ -1447,7 +1450,7 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
 - [~] **A-02 — Keep secrets out of cloud state and the conflict archive.**
   - [x] The live cloud revision carries only the encrypted vault envelope and no legacy credential fields; conflicts now store revisions, timestamps and changed paths rather than whole documents.
   - [x] Decision: no plaintext secrets in cloud state. The vault ciphertext may sync as an opaque envelope; the passphrase never leaves the device.
-  - [ ] Add a payload test that walks the push object and fails on any new credential key.
+  - [x] Added `plaintextCredentialPaths` / `assertNoPlaintextCredentials` in `core/sync-client.ts`; `enqueueOutbox` and the push path refuse any plaintext credential key, and `tests/sync-payload-secrets.test.ts` covers nested fields, empty legacy placeholders and the current workbook payload.
   - [ ] Purge the retained pre-rotation conflict snapshots and cloud backups.
   - Acceptance: an injected cloud document and a conflict row contain no plaintext credential field; conflict row JSON stays under 8 KB for the current dataset. The purge is the remaining remediation.
 

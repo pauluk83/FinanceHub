@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.10",
-  "buildId": "d487c28831e9",
+  "buildId": "77c4c33c16cd",
   "builtAt": "2026-11-10",
   "releases": [
     {
@@ -16,7 +16,8 @@ export const APP_CHANGELOG: AppChangelog = {
           "title": "Changed",
           "items": [
             "Advance the As-Of cutoff to the latest real transaction so a current Starling transaction updates the balance.",
-            "Only show the Dashboard duplicate warning when the selected month contains duplicate rows."
+            "Only show the Dashboard duplicate warning when the selected month contains duplicate rows.",
+            "Refuse to sync plaintext credential fields; added a nested cloud-payload guard and regression coverage."
           ]
         }
       ]
