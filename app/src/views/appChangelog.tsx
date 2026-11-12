@@ -5,7 +5,6 @@ import { HOSTED_WEB } from '../runtime';
 import { APP_VERSION } from '../version';
 import {
   GITHUB_REPO_URL,
-  GITHUB_RELEASES_URL,
   installerChecksumsUrl,
   installerDownloadUrl,
 } from '../installer';
@@ -29,7 +28,6 @@ function InstallerDownload() {
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <a className="btn primary" href={installerDownloadUrl(APP_VERSION)}>Download for Windows</a>
-        <a className="btn ghost" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">All releases</a>
         <a className="btn ghost" href={installerChecksumsUrl(APP_VERSION)} target="_blank" rel="noreferrer">SHA-256 checksums</a>
       </div>
       <div className="muted small">
