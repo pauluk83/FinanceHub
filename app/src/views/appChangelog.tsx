@@ -74,8 +74,7 @@ function ReleaseList() {
 }
 
 function buildMeta() {
-  const releases = APP_CHANGELOG.releases.length;
-  return `Version ${APP_CHANGELOG.version} · build ${APP_CHANGELOG.buildId} · ${APP_CHANGELOG.builtAt.slice(0, 10)} · ${releases} release${releases === 1 ? '' : 's'} kept`;
+  return `Version ${APP_CHANGELOG.version} · build ${APP_CHANGELOG.buildId} · ${APP_CHANGELOG.builtAt.slice(0, 10)}`;
 }
 
 /** In-app view: Tools → Application changelog. */

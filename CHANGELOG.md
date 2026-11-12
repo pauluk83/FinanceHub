@@ -10,6 +10,7 @@ and the build time.
 ### Changed
 - Add a Card payment flow: create the bank expense and card credit together, default the source to the main account and allow a different bank account.
 - Remove the All releases link from the application changelog and keep the current installer and checksum links.
+- Remove the release count from the application changelog header.
 
 ## [2026.11.10] — 10 November 2026
 

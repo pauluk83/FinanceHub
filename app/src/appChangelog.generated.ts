@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.12",
-  "buildId": "e0258777546f",
+  "buildId": "1769103a8691",
   "builtAt": "2026-11-12",
   "releases": [
     {
@@ -16,7 +16,8 @@ export const APP_CHANGELOG: AppChangelog = {
           "title": "Changed",
           "items": [
             "Add a Card payment flow: create the bank expense and card credit together, default the source to the main account and allow a different bank account.",
-            "Remove the All releases link from the application changelog and keep the current installer and checksum links."
+            "Remove the All releases link from the application changelog and keep the current installer and checksum links.",
+            "Remove the release count from the application changelog header."
           ]
         }
       ]
