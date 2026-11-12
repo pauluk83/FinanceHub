@@ -74,6 +74,16 @@ Rules that follow from this:
   the private workbook use `data/web-seed.json` (blank) so CI and contributors can build.
   Do not add a personal budget file to make a check pass.
 
+## Publishing every build
+
+The owner wants every completed release build published, not left only on this machine:
+
+1. Build with `npm run release -- "..."`; use `FTP_PASSWORD` for the deploy or `--no-deploy` when it is unavailable.
+2. Commit the release output.
+3. Push `main` and the matching `v<version>` tag, then wait for the `Release` workflow to attach the installer.
+4. Deploy the hosted bundle and verify the live page after every build: HTML/JS/CSS hashes, version and build id, and the installer link.
+5. If `FTP_PASSWORD` is unavailable, use the signed-in InfinityFree File Manager. Its zip extractor skips nested `assets`, so upload the new JS/CSS directly into `assets` as well as the root files.
+
 ## Verification
 
 - `npm test` — the full suite, including changelog/version coherence.
