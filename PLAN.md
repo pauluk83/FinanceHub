@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-12
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.12 tag, source archives and CI-built installer are published; build `1769103a8691` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, bank linking after C-4, packaged-security checks and Windows signing remain**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.12 tag, source archives and CI-built installer are published; build `1769103a8691` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, packaged-security checks and bank linking after C-4 remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -297,23 +297,9 @@ No secret values were read or printed during this review. Severity reflects the 
   - [x] Webviews blocked; packaged builds disable DevTools and reload shortcuts.
   - [x] Single-instance lock and About dialog replace placeholder navigation.
   - [x] Packaged runtime smoke test: the unpacked build opens a responsive FinanceHub window.
-  - [ ] Exercise packaged navigation, external-link blocking, CSP enforcement, secure storage and the OAuth callback inside the signed installer.
+  - [ ] Exercise packaged navigation, external-link blocking, CSP enforcement, secure storage and the OAuth callback inside the packaged app.
 
-- [~] **P0-5 — Windows release engineering**
-  - [x] `package.json` entry point corrected to `electron/main.cjs`.
-  - [x] `xlsx` moved to dev dependencies; production audit is currently clean.
-  - [x] NSIS x64 installer builds with `npm run dist:win`.
-  - [ ] Code signing. Blocked until a signing certificate is available.
-  - [ ] Auto-update and rollback.
-  - [~] Packaged archive excludes the source workbook, spreadsheet, `.env` and `xlsx`; the renderer still embeds the workbook seed data in its JS bundle.
-  - [ ] Remove or replace the embedded workbook seed before distributing the installer outside the data owner.
-
-- [~] **P0-6 — Live cloud validation**
-  - [x] Applied both SQL migrations to the Supabase project.
-  - [x] Google OAuth callback and sign-in completed.
-  - [x] One-account document sync verified: remote `settings` revision 3, 1,120 transactions, account cache and server state matched.
-  - [ ] Test email/password, sign-out, two accounts, RLS isolation, two devices, offline edits and conflicts.
-  - [ ] Exercise packaged OAuth callback and CSP.
+- P0-5 (Windows release engineering) and P0-6 (live cloud validation) were removed from scope by the owner on 2026-11-12.
 
 - [x] **P0-7 — Statement correctness** — closed 2026-11-08.
   - [x] Monthly statements carry prior transactions into the selected period; verified for all 9 people, all 4 cards and 5 non-Starling accounts across 12 months and “All months”.
@@ -867,7 +853,7 @@ Exit criteria: every figure on Dashboard, Monthly, Statements and each provider 
 
 Delivered: Electron + React shell, all workbook views, dark/light theme, command palette, month navigation, CSV staging and exports, validated backup restore, last-known-good recovery, render error boundary, single-instance lock.
 
-Remaining: signed installer, native SQLCipher layer, Excel/PDF export, accessibility pass. See P0-4, P0-5 and P2.
+Remaining: native SQLCipher layer, Excel/PDF export, accessibility pass. See P0-4 and P2.
 
 ### Phase 4 — iOS app — 4–6 weeks
 
@@ -889,7 +875,7 @@ Dependencies: macOS + Xcode, Apple Developer account, APNs key — none availabl
 
 Delivered so far: Supabase Auth gate and desktop OAuth callback; DPAPI-backed session/token storage; a cloud-only outbox/pull/push client for the complete `settings.state_json` document; server revision checks, idempotent operations, retry backoff and retained conflict records. Google sign-in and one-account cloud sync are live-verified (remote revision 3, 1,120 transactions). Signed-in local mode offers manual Sync, Exit and Log out. Local mode still creates no sync engine and makes no sync requests until Sync is chosen.
 
-Remaining: run live email/password and sign-out tests, two-account RLS and two-device/offline/conflict tests, exercise the packaged OAuth/CSP path (P0-6), build the conflict-review screen, and add realtime propagation. The current client syncs the document, not individual normalised rows.
+Remaining: run live email/password and sign-out tests, exercise the packaged OAuth/CSP path (P0-4), build the conflict-review screen, and add realtime propagation. The current client syncs the document, not individual normalised rows.
 
 Exit: edit on iOS appears on Windows within seconds online; airplane-mode edits merge; reconciliation after merge is identical.
 
@@ -1039,7 +1025,7 @@ External dependencies that code changes cannot satisfy: legal review, certificat
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at `2026.11.12`, build `1769103a8691`, with matching local/live hashes; the GitHub `v2026.11.12` tag and source archives are at `04dd02a`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-6 two-account/two-device validation and Windows signing are deliberately deferred.
+**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at `2026.11.12`, build `1769103a8691`, with matching local/live hashes; the GitHub `v2026.11.12` tag and source archives are at `04dd02a`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1048,9 +1034,9 @@ Sequence chosen: low-risk, independently verifiable release work first.
 5. [x] Add explicit local-to-cloud import consent.
 6. [x] Add a top-level render error boundary.
 7. [x] Add last-known-good recovery and blocked-state handling.
-8. [~] Package the Windows build. Unsigned NSIS installer verified and branded icon still to add; signing and signed auto-update are deferred until a certificate is available.
+8. [x] Windows NSIS installer builds. Code signing, auto-update and embedded-seed removal were removed from scope on 2026-11-12.
 9. [x] Fixed Starling statement reconciliation and added full statement coverage (P0-7) — closed 2026-11-08.
-10. [~] Complete live cloud, packaged-security and automated UI smoke-test verification. Google sign-in, the local-data consent prompt and one-account cloud sync are verified; packaged OAuth/CSP and UI smoke tests remain. Two-account/RLS and two-device/offline/conflict validation are deferred by the owner.
+10. [~] Complete packaged-security and automated UI smoke-test verification. Google sign-in, the local-data consent prompt and one-account cloud sync are verified; packaged OAuth/CSP and UI smoke tests remain.
 11. [~] Data Health / Integrity Centre delivered, including failed-sync state and backup-age checks. P0-8 rotation is confirmed; the old-snapshot purge remains.
 12. [~] Started the compliance workstream with the **DPIA and ICO pack**. It cannot be closed by code and it gates public distribution, any store submission and every regulatory or security claim.
 13. [x] Added a safe **Remove local copy** action in Settings → Account. It removes only the device-only document and its recovery copies after confirming a saved cloud budget exists; it never uploads or resets cloud data.
@@ -1076,8 +1062,7 @@ Decisions already taken:
 - The hosted `/FinanceHub/` build is structurally ready but not approved for public use until the pre-rotation snapshot purge and browser-storage hardening are complete.
 - Provider credentials must not live in the synced document; the vault is the target home.
 - P0-8: the owner confirmed on 2026-11-09 that every exposed third-party provider password has been rotated. Purge pre-rotation conflict snapshots and old backups rather than retaining them.
-- P0-6 two-account RLS and two-device/offline/conflict validation is deferred.
-- Windows signing is deferred. Signed auto-update with rollback is selected, but it cannot ship before signing.
+- P0-5 Windows release engineering and P0-6 live cloud validation were removed from scope by the owner on 2026-11-12.
 - Distribution is direct Windows download first. Microsoft Store is not opened. iOS is deferred; Windows and web remain the supported targets.
 - Secure bank linking stays CSV-only until C-4 clears; integration starts only after the gate.
 - Transactions use one category plus free-form tags.
@@ -1097,11 +1082,9 @@ Open items:
 1. **Bank-linking provider and C-4** — the regulated provider, cloud-only linking, consent duration/re-consent, raw-payload retention, receipt-bucket sharing and household connection sharing are still undecided. Integration starts only after C-4.
 2. **Supabase project** (URL + anon key) for live auth and sync testing. Never paste service-role keys.
 3. **Barclays/Monzo/Revolut/Nationwide** — keep workbook behaviour (excluded from budget totals) or normalise them? Dan is now a linked account and the £30 `Credit Cards` row is reclassified as Starling.
-4. **Windows signing certificate** — deferred; signing and signed auto-update remain blocked until a certificate is available.
-5. **Second account/device** — deferred; two-account RLS and two-device/offline/conflict validation cannot close until provided.
-6. **Web deployment** — the GitHub `v2026.11.9` installer assets are refreshed and verified. On 2026-11-09 `ftpupload.net:21` timed out, so the web bundle was uploaded through the signed-in InfinityFree file manager instead. The live page, JS and CSS return 200 and their SHA-256 hashes match the local build. The site stays private until the pre-rotation purge and browser-storage hardening are complete.
-7. **Pre-rotation purge access** — the owner selected purge; the production cloud/local backup locations must be made available, or the owner must run the purge.
-8. **iOS** — deferred; reopen only with macOS/Xcode and an Apple Developer account.
+4. **Web deployment** — the GitHub `v2026.11.9` installer assets are refreshed and verified. On 2026-11-09 `ftpupload.net:21` timed out, so the web bundle was uploaded through the signed-in InfinityFree file manager instead. The live page, JS and CSS return 200 and their SHA-256 hashes match the local build. The site stays private until the pre-rotation purge and browser-storage hardening are complete.
+5. **Pre-rotation purge access** — the owner selected purge; the production cloud/local backup locations must be made available, or the owner must run the purge.
+6. **iOS** — deferred; reopen only with macOS/Xcode and an Apple Developer account.
 
 ---
 
@@ -1263,7 +1246,7 @@ FinanceHub is a **fidelity tool**: it reproduces one household's workbook to the
 | Long-range forecasting | PocketSmith projects daily balances up to 60 years with what-if scenarios; Monarch Plus does retirement forecasting | Only the 12-month cash-flow forecast in §9 C, on top of the existing open-month projection |
 | Multi-currency | PocketSmith, including native and converted balances | Not planned anywhere |
 | Excel/PDF reports and cash-flow statements | PocketSmith cash-flow statement; YNAB net-worth reports | In P2 and §9 E |
-| Conflict-free multi-device sync | Assumed working by every competitor | One-account sync and the conflict-resolution UI are delivered; two-device/RLS/offline tests remain (P0-6) |
+| Conflict-free multi-device sync | Assumed working by every competitor | One-account sync and the conflict-resolution UI are delivered; live multi-device and RLS testing were removed from scope |
 
 ### 19.3 Do not copy — explicit non-goals
 
@@ -1562,7 +1545,7 @@ Added 2026-11-08. A quantitative read of this plan and a market check of the app
 
 The audit items closed are A-04 (unknown-account classification), A-05 (in-batch import dedupe), A-13 (content limits and CSV safety), A-14 (holiday trips), A-15 (pseudo-accounts visible) and A-16 (read-only duplicate report) — the money-integrity and content-safety fixes.
 
-**Gate level at this snapshot:** four of nine P0 gates were closed — P0-1 local-to-cloud consent, P0-2 persistence and recovery, P0-7 statement correctness and P0-9 money-integrity guardrails. P0-3 was still in progress. Current status: **five closed** (P0-3 backups added), P0-4/P0-5/P0-6 in progress, P0-8 open on the snapshot purge.
+**Gate level at this snapshot:** four of nine P0 gates were closed — P0-1 local-to-cloud consent, P0-2 persistence and recovery, P0-7 statement correctness and P0-9 money-integrity guardrails. P0-3 was still in progress. Current status: **five closed** (P0-3 backups added), P0-4 in progress, P0-5/P0-6 removed from scope, P0-8 open on the snapshot purge.
 
 | Phase (§12) | Status | Remaining |
 | --- | --- | --- |
