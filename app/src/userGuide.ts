@@ -169,11 +169,11 @@ export const USER_GUIDE: GuideEntry[] = [
     summary: 'Credit limits, current balances and utilisation for each card.',
     steps: [
       'Add a card with its limit, opening balance and any promotional rate.',
-      'Record spending and card payments through Transactions; the balance updates automatically.',
+      'Record spending and card payments through Transactions. Choose Card payment to move money from the main account, or pick another bank account in Pay from account.',
       'Watch utilisation and the minimum-payment hints when planning the month.',
     ],
     notes: [
-      'Card spending counts as an expense when it happens; paying the card is a transfer, not a second expense.',
+      'Card spending counts as an expense when it happens; paying the card creates two linked transfer legs, so the card and the chosen bank account both update without counting the payment as spending again.',
       'A balance over the limit is flagged in the card summary.',
     ],
   },

@@ -29,6 +29,18 @@ export type TransferLeg = {
   tags?: string[];
 };
 
+export type CardPaymentInput = {
+  date: string;
+  /** Bank account the money leaves. */
+  from: string;
+  /** Credit card the money pays down. */
+  card: string;
+  amountPence: number;
+  comments?: string;
+  /** Row number for the outgoing bank leg; the card leg takes the next number. */
+  firstRow: number;
+};
+
 export type TransferCandidate = {
   row: number;
   date: string;
@@ -52,6 +64,33 @@ export function findTransferPartner<T extends TransferCandidate>(transactions: T
     other.type !== leg.type &&
     other.account !== leg.account,
   );
+}
+
+export function buildCardPaymentLegs(input: CardPaymentInput): TransferLeg[] {
+  const amountPence = Math.abs(Math.round(input.amountPence));
+  const note = (input.comments ?? '').trim() || `Card payment — ${input.card}`;
+  return [
+    {
+      row: input.firstRow,
+      date: input.date,
+      account: input.from,
+      type: 'Expense',
+      amountPence,
+      comments: note,
+      status: '',
+      budgetTreatment: 'Transfer',
+    },
+    {
+      row: input.firstRow + 1,
+      date: input.date,
+      account: input.card,
+      type: 'Income',
+      amountPence,
+      comments: note,
+      status: '',
+      budgetTreatment: 'Transfer',
+    },
+  ];
 }
 
 export function buildTransferLegs(input: TransferInput): TransferLeg[] {

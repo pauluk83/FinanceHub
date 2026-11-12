@@ -5,7 +5,7 @@ import { dateUk, dateTimeUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIs
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
-import { buildTransferLegs, findTransferPartner } from '../../../core/transfers';
+import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
 
@@ -49,6 +49,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     [ds.accounts, ds.people, ds.cards],
   );
   const bankAccounts = useMemo(() => ds.accounts.map((a) => a.name), [ds.accounts]);
+  const cardNames = useMemo(() => ds.cards.map((c) => c.name), [ds.cards]);
   const unknownNames = Array.from(new Set(ds.transactions.map((t) => t.account)))
     .filter((name) => kindOf(name) === 'unknown');
   const linkedUnknownNames = new Set(
@@ -63,9 +64,11 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const mappingRequired = Boolean(editingRow && kindOf(editingRow.account) === 'unknown' && form.account === editingRow.account);
   const formAccounts = form.type === 'Transfer'
     ? bankAccounts
-    : mappingRequired
-      ? [form.account, ...accounts.filter((name) => name !== form.account)]
-      : accounts;
+    : form.type === 'Card payment'
+      ? cardNames
+      : mappingRequired
+        ? [form.account, ...accounts.filter((name) => name !== form.account)]
+        : accounts;
   const linkedTo = account !== 'All' && (kindOf(account) === 'unknown' || linkedPersonNames.has(account)) ? account : null;
 
   const rows = useMemo(() => ds.transactions
@@ -121,6 +124,10 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       notify('Choose two different accounts to transfer between');
       return;
     }
+    if (form.type === 'Card payment' && (kindOf(form.account) !== 'card' || kindOf(form.to) !== 'bank')) {
+      notify('Choose a card and the bank account paying it');
+      return;
+    }
     const y = Number(form.date.slice(0, 4));
     const m = Number(form.date.slice(5, 7));
     if (engine.monthlySummary(y, m).locked) {
@@ -133,6 +140,35 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       const originalAccount = original.account;
       if (engine.monthlySummary(Number(original.date.slice(0, 4)), Number(original.date.slice(5, 7))).locked) {
         notify('That entry is in a locked month — unlock it first');
+        return;
+      }
+      if (form.type === 'Card payment') {
+        updateTransaction((d) => {
+          const row = d.transactions.find((t) => t.row === editing);
+          if (!row) return;
+          const partner = findTransferPartner(d.transactions, row);
+          const outgoingRow = row.type === 'Expense' ? row.row : partner?.row;
+          const incomingRow = row.type === 'Income' ? row.row : partner?.row;
+          const drop = new Set([row.row, partner?.row].filter((n): n is number => typeof n === 'number'));
+          const maxRow = Math.max(0, ...d.transactions.map((t) => t.row));
+          const legs = buildCardPaymentLegs({
+            date: form.date,
+            from: form.to,
+            card: form.account,
+            amountPence: amount,
+            comments: form.comments,
+            firstRow: outgoingRow ?? row.row,
+          });
+          legs[0].row = outgoingRow ?? row.row;
+          legs[1].row = incomingRow ?? maxRow + 1;
+          if (legs[1].row === legs[0].row) legs[1].row = Math.max(maxRow, ...legs.map((l) => l.row)) + 1;
+          for (const leg of legs) { leg.category = category; leg.tags = formTags; }
+          d.transactions = [...d.transactions.filter((t) => !drop.has(t.row)), legs[0], legs[1]];
+        });
+        setEditing(null);
+        setForm({ ...form, amount: '', comments: '' });
+        setAdding(false);
+        notify(`Card payment updated — ${gbp(amount)} from ${form.to} to ${form.account}`);
         return;
       }
       if (form.type === 'Transfer') {
@@ -196,6 +232,25 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       notify('Transaction updated');
       return;
     }
+    if (form.type === 'Card payment') {
+      updateTransaction((d) => {
+        const firstRow = Math.max(0, ...d.transactions.map((t) => t.row)) + 1;
+        const legs = buildCardPaymentLegs({
+          date: form.date,
+          from: form.to,
+          card: form.account,
+          amountPence: amount,
+          comments: form.comments,
+          firstRow,
+        });
+        for (const leg of legs) { leg.category = category; leg.tags = formTags; }
+        d.transactions.push(...legs);
+      });
+      setForm({ ...form, amount: '', comments: '' });
+      setAdding(false);
+      notify(`Card payment recorded — ${gbp(amount)} from ${form.to} to ${form.account}`);
+      return;
+    }
     if (form.type === 'Transfer') {
       updateTransaction((d) => {
         const firstRow = Math.max(0, ...d.transactions.map((t) => t.row)) + 1;
@@ -238,11 +293,18 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const startEdit = (t: any) => {
     const partner = findTransferPartner(ds.transactions, t);
     const paired = t.budgetTreatment === 'Transfer' && !!partner;
+    const cardPayment = paired && (kindOf(t.account) === 'card' || kindOf(partner?.account) === 'card');
+    const cardAccount = cardPayment
+      ? [t.account, partner?.account].find((name) => name && kindOf(name) === 'card') ?? ''
+      : '';
+    const bankAccount = cardPayment
+      ? [t.account, partner?.account].find((name) => name && kindOf(name) === 'bank') ?? mainAccount
+      : '';
     setForm({
       date: t.date,
-      account: paired ? (t.type === 'Expense' ? t.account : partner.account) : t.account,
-      to: paired ? (t.type === 'Expense' ? partner.account : t.account) : (bankAccounts.find((a) => a !== t.account) ?? ''),
-      type: paired ? 'Transfer' : t.type,
+      account: cardPayment ? cardAccount : paired ? (t.type === 'Expense' ? t.account : partner?.account ?? '') : t.account,
+      to: cardPayment ? bankAccount : paired ? (t.type === 'Expense' ? partner?.account ?? '' : t.account) : (bankAccounts.find((a) => a !== t.account) ?? ''),
+      type: cardPayment ? 'Card payment' : paired ? 'Transfer' : t.type,
       amount: (t.amountPence / 100).toFixed(2),
       comments: t.comments,
       treatment: paired ? 'Transfer' : t.budgetTreatment,
@@ -251,6 +313,34 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     });
     setEditing(t.row);
     setAdding(true);
+  };
+
+  const changeTransactionType = (next: string) => {
+    if (next === 'Card payment') {
+      setForm((f) => ({
+        ...f,
+        type: next,
+        account: cardNames.includes(f.account) ? f.account : cardNames[0] ?? '',
+        to: mainAccount,
+        treatment: 'Transfer',
+      }));
+      return;
+    }
+    if (next === 'Transfer') {
+      setForm((f) => {
+        const account = bankAccounts.includes(f.account) ? f.account : mainAccount;
+        const to = bankAccounts.includes(f.to) && f.to !== account
+          ? f.to
+          : bankAccounts.find((name) => name !== account) ?? '';
+        return { ...f, type: next, account, to, treatment: 'Transfer' };
+      });
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      type: next,
+      treatment: f.treatment === 'Transfer' ? '' : f.treatment,
+    }));
   };
 
   const removeTx = (t: any) => {
@@ -344,7 +434,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         {adding && (
           <div className="inline-form">
             <Field label="Date"><input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-            <Field label={form.type === 'Transfer' ? 'From account' : 'Account'}>
+            <Field label={form.type === 'Transfer' ? 'From account' : form.type === 'Card payment' ? 'Card' : 'Account'}>
               <select
                 className="select"
                 value={form.account}
@@ -373,16 +463,17 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
                 “{form.account}” is not a bank, person, card or pseudo-account. Choose a known account to save this row.
               </div>
             )}
-            {form.type === 'Transfer' && (
-              <Field label="To account">
+            {(form.type === 'Transfer' || form.type === 'Card payment') && (
+              <Field label={form.type === 'Card payment' ? 'Pay from account' : 'To account'}>
                 <select className="select" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })}>
                   {bankAccounts.filter((a) => a !== form.account).map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
               </Field>
             )}
             <Field label="Type">
-              <select className="select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              <select className="select" value={form.type} onChange={(e) => changeTransactionType(e.target.value)}>
                 <option>Expense</option><option>Income</option><option>Transfer</option>
+                {cardNames.length > 0 && <option>Card payment</option>}
               </select>
             </Field>
             <Field label="Amount (£)"><input className="input" inputMode="decimal" placeholder="0.00" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
@@ -394,7 +485,12 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
             <Field label="Tags" hint="Comma-separated; up to 8">
               <input className="input" placeholder="weekly, tesco" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
             </Field>
-            {form.type !== 'Transfer' && (
+            {form.type === 'Card payment' && (
+              <div className="notice info" style={{ flexBasis: '100%' }}>
+                This creates two linked legs: the chosen bank account falls and the card balance falls. It is a transfer, not extra spending.
+              </div>
+            )}
+            {form.type !== 'Transfer' && form.type !== 'Card payment' && (
               <Field label="Budget treatment">
                 <select className="select" value={form.treatment} onChange={(e) => setForm({ ...form, treatment: e.target.value })}>
                   <option value="">Normal</option><option value="Transfer">Transfer</option><option value="Refund">Card refund</option><option value="Ambiguous">Ambiguous</option>

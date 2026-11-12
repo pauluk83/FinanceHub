@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.12] — 12 November 2026
+
+### Changed
+- Add a Card payment flow: create the bank expense and card credit together, default the source to the main account and allow a different bank account.
+
 ## [2026.11.10] — 10 November 2026
 
 ### Changed

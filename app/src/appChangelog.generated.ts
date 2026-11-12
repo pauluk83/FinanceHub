@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.10",
-  "buildId": "77c4c33c16cd",
-  "builtAt": "2026-11-10",
+  "version": "2026.11.12",
+  "buildId": "ac4bf7537be9",
+  "builtAt": "2026-11-12",
   "releases": [
+    {
+      "version": "2026.11.12",
+      "date": "12 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Add a Card payment flow: create the bank expense and card credit together, default the source to the main account and allow a different bank account."
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.10",
       "date": "10 November 2026",

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildEngine, type Dataset } from '../core/engine.ts';
-import { buildTransferLegs, findTransferPartner } from '../core/transfers.ts';
+import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../core/transfers.ts';
 
 function loadDataset(): Dataset {
   return JSON.parse(
@@ -46,6 +46,70 @@ test('transfer legs find each other, and ordinary rows have no partner', () => {
   assert.equal(findTransferPartner(rows, rows[1])?.row, 5);
   assert.equal(findTransferPartner(rows, rows[2]), undefined, 'a normal expense has no partner');
   assert.equal(findTransferPartner([rows[0], rows[2]], rows[0]), undefined, 'no pair when nothing matches');
+});
+
+test('a card payment creates a bank expense and a card credit', () => {
+  const legs = buildCardPaymentLegs({
+    date: '2026-11-12', from: 'Starling', card: 'Zable', amountPence: 2739, comments: 'Paid off', firstRow: 900,
+  });
+
+  assert.deepEqual(
+    legs.map((leg) => [leg.row, leg.account, leg.type, leg.amountPence, leg.budgetTreatment]),
+    [
+      [900, 'Starling', 'Expense', 2739, 'Transfer'],
+      [901, 'Zable', 'Income', 2739, 'Transfer'],
+    ],
+  );
+  assert.equal(legs[0].comments, 'Paid off');
+  assert.equal(legs[1].comments, 'Paid off');
+  assert.equal(findTransferPartner(legs, legs[0])?.row, 901);
+
+  const defaultComments = buildCardPaymentLegs({
+    date: '2026-11-12', from: 'Starling', card: 'Zable', amountPence: 2739, firstRow: 902,
+  });
+  assert.equal(defaultComments[0].comments, defaultComments[1].comments);
+  assert.equal(defaultComments[0].comments, 'Card payment — Zable');
+});
+
+test('a card payment reduces the card and the main account without counting as spending', () => {
+  const dataset = loadDataset();
+  dataset.cards.push({ name: 'ZZZ Card', limitPence: 100_000, openingPence: 50_000, sortOrder: 99, active: true });
+  const before = buildEngine(dataset);
+  const beforeSummary = before.monthlySummary(2026, 11);
+  const beforeAccounts = before.accountBalances('2026-11-30');
+  const beforeCards = before.cardBalances('2026-11-30');
+  const firstRow = Math.max(0, ...dataset.transactions.map((t) => t.row)) + 1;
+
+  dataset.transactions.push(...buildCardPaymentLegs({
+    date: '2026-11-12', from: 'Starling', card: 'ZZZ Card', amountPence: 12_345, firstRow,
+  }));
+
+  const after = buildEngine(dataset);
+  const afterSummary = after.monthlySummary(2026, 11);
+  const balance = (name: string, list: any[]) => list.find((entry) => entry.name === name)?.balancePence;
+
+  assert.equal(balance('Starling', after.accountBalances('2026-11-30')), balance('Starling', beforeAccounts)! - 12_345);
+  assert.equal(balance('ZZZ Card', after.cardBalances('2026-11-30')), balance('ZZZ Card', beforeCards)! - 12_345);
+  assert.equal(afterSummary.incomePence, beforeSummary.incomePence, 'the card credit is not income');
+  assert.equal(afterSummary.expensesPence, beforeSummary.expensesPence, 'the bank leg is not a second expense');
+  assert.equal(afterSummary.netPence, beforeSummary.netPence);
+});
+
+test('a card payment can come from another bank account', () => {
+  const dataset = loadDataset();
+  dataset.cards.push({ name: 'ZZZ Card', limitPence: 100_000, openingPence: 50_000, sortOrder: 99, active: true });
+  const before = buildEngine(dataset).accountBalances('2026-11-30');
+  const firstRow = Math.max(0, ...dataset.transactions.map((t) => t.row)) + 1;
+
+  dataset.transactions.push(...buildCardPaymentLegs({
+    date: '2026-11-12', from: 'Nationwide', card: 'ZZZ Card', amountPence: 7_500, firstRow,
+  }));
+
+  const after = buildEngine(dataset).accountBalances('2026-11-30');
+  const balance = (name: string, list: any[]) => list.find((entry) => entry.name === name)?.balancePence;
+
+  assert.equal(balance('Starling', after), balance('Starling', before), 'the main account is untouched');
+  assert.equal(balance('Nationwide', after), balance('Nationwide', before)! - 7_500);
 });
 
 test('a recorded transfer moves the balances but not income or expenses', () => {
