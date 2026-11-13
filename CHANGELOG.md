@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.13] — 13 November 2026
+
+### Changed
+- Dashboard income and expenses breakdown rings with percentage legends
+
 ## [2026.11.12] — 12 November 2026
 
 ### Changed

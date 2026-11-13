@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.12",
-  "buildId": "1769103a8691",
-  "builtAt": "2026-11-12",
+  "version": "2026.11.13",
+  "buildId": "2aef9384c403",
+  "builtAt": "2026-11-13",
   "releases": [
+    {
+      "version": "2026.11.13",
+      "date": "13 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Dashboard income and expenses breakdown rings with percentage legends"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.12",
       "date": "12 November 2026",

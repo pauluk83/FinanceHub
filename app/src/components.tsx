@@ -96,3 +96,67 @@ export function Money({ pence, sign = false }: { pence: number | null | undefine
 export function Ratio({ value, tone }: { value: number; tone?: string }) {
   return <span className="ratio">{pct(value)}{tone ? '' : ''}</span>;
 }
+
+export type DonutSlice = { label: string; value: number; tone?: string };
+
+/**
+ * A ring chart with a legend. Slices are drawn from the top clockwise with a
+ * small gap between them; a slice can be any positive pence amount, so callers
+ * must net negative buckets (refunds) before passing them in.
+ */
+export function Donut({ slices, totalLabel = 'Total', totalSub, emptyLabel = 'Nothing recorded for this month' }: {
+  slices: DonutSlice[];
+  totalLabel?: string;
+  totalSub?: string;
+  emptyLabel?: string;
+}) {
+  const shown = slices.filter((slice) => Number.isFinite(slice.value) && slice.value > 0);
+  const sum = shown.reduce((total, slice) => total + slice.value, 0);
+  if (sum <= 0) return <div className="empty">{emptyLabel}</div>;
+  const gap = shown.length > 1 ? 1 : 0;
+  let offset = 0;
+  const description = shown.map((slice) => `${slice.label} ${gbp(slice.value)}`).join(', ');
+  return (
+    <div className="donut-block">
+      <div className="donut-wrap">
+        <svg className="donut" viewBox="0 0 100 100" role="img" aria-label={`${totalLabel}: ${description}`}>
+          <circle className="donut-track" cx="50" cy="50" r="40" pathLength={100} />
+          <g transform="rotate(-90 50 50)">
+            {shown.map((slice) => {
+              const share = (slice.value / sum) * 100;
+              const length = Math.max(share - gap, 0.6);
+              const segment = (
+                <circle
+                  key={slice.label}
+                  className={`donut-seg ${slice.tone ?? 'accent'}`}
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  pathLength={100}
+                  strokeDasharray={`${length} ${100 - length}`}
+                  strokeDashoffset={-offset}
+                />
+              );
+              offset += share;
+              return segment;
+            })}
+          </g>
+        </svg>
+        <div className="donut-center">
+          <span>{totalLabel}</span>
+          <strong>{totalSub ?? gbp(sum)}</strong>
+        </div>
+      </div>
+      <ul className="donut-legend">
+        {shown.map((slice) => (
+          <li key={slice.label}>
+            <span className={`donut-dot ${slice.tone ?? 'accent'}`} aria-hidden="true" />
+            <span className="donut-legend-label" title={slice.label}>{slice.label}</span>
+            <span className="donut-legend-pct">{pct(slice.value / sum, 0)}</span>
+            <span className="donut-legend-value">{gbp(slice.value)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

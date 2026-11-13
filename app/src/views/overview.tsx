@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
-import { Badge, Bar, Card, Empty, Field, Money, Section, Table } from '../components';
+import { Badge, Bar, Card, Donut, Empty, Field, Money, Section, Table } from '../components';
 import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct } from '../format';
 import { groupHolidayTrips } from '../../../core/holidays';
 import { accountsNeedingReview } from '../../../core/accounts';
@@ -43,6 +43,31 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   const peopleOwed = d.owedByPerson
     .filter((person) => person.balancePence > 0)
     .sort((a, b) => b.balancePence - a.balancePence);
+  // Breakdown rings are built from the live ledger so an open month shows
+  // exactly what produced its income and expenses. Refunds are netted off card
+  // spend because a ring cannot draw a negative slice.
+  const mainAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || 'Main account';
+  const incomeMix = engine.monthlyIncome(year, month);
+  const expenseMix = engine.monthlyExpenses(year, month);
+  const incomeSlices = [
+    { label: 'PIP', value: incomeMix.pip, tone: 'accent' },
+    { label: 'Universal Credit', value: incomeMix.uc, tone: 'blue' },
+    { label: `${mainAccount} income`, value: incomeMix.starlingIncome, tone: 'violet' },
+    { label: 'People repayments', value: incomeMix.peopleIncome, tone: 'amber' },
+  ];
+  const expenseSlices = [
+    { label: 'Scheduled bills', value: expenseMix.bills, tone: 'violet' },
+    { label: 'People', value: expenseMix.people, tone: 'blue' },
+    { label: `${mainAccount} cash`, value: expenseMix.starling, tone: 'accent' },
+    { label: 'Petrol / other', value: expenseMix.pseudo, tone: 'amber' },
+    { label: 'Card spend', value: Math.max(0, expenseMix.cardSpend - expenseMix.cardRefunds), tone: 'red' },
+  ];
+  const incomeTotal = incomeSlices.reduce((sum, slice) => sum + Math.max(0, slice.value), 0);
+  const expenseTotal = expenseSlices.reduce((sum, slice) => sum + slice.value, 0);
+  const spentShare = incomeTotal === 0 ? 0 : expenseTotal / incomeTotal;
+  const topIncome = incomeSlices
+    .filter((slice) => slice.value > 0)
+    .sort((a, b) => b.value - a.value)[0];
   const unreadFeedback = feedbackItems
     .filter((item) => !item.readAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -128,6 +153,58 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Card title="Account target" value={gbp(d.accounts.reduce((s, a) => s + a.targetPence, 0))} sub="Combined target" />
         <Card title="Card balance" value={gbp(d.cardBalancePence)} sub={`${pct(d.cardUtilisation)} of ${gbp(d.cardLimitPence)}`} tone={d.cardBalancePence > 0 ? 'warn' : 'neutral'} />
         <Card title="Bills this month" value={gbp(d.billsTotalPence)} sub={`${d.bills.length} scheduled bills`} />
+      </div>
+
+      <div className="grid cols-2">
+        <section className="panel">
+          <header className="panel-head">
+            <div>
+              <h2>Income breakdown</h2>
+              <p>Where {MONTH_LONG[month - 1]}’s income came from</p>
+            </div>
+            <Badge tone="green">{gbp(incomeTotal)}</Badge>
+          </header>
+          <Donut
+            slices={incomeSlices}
+            totalLabel="Income"
+            totalSub={gbp(incomeTotal)}
+            emptyLabel={`No income recorded for ${MONTH_LONG[month - 1]} ${year}`}
+          />
+          {topIncome && (
+            <div className="donut-foot">
+              <div className="donut-foot-head">
+                <span>Largest source</span>
+                <strong>{topIncome.label} · {pct(topIncome.value / incomeTotal, 0)}</strong>
+              </div>
+              <Bar value={topIncome.value / incomeTotal} tone={topIncome.tone} />
+            </div>
+          )}
+        </section>
+
+        <section className="panel">
+          <header className="panel-head">
+            <div>
+              <h2>Expenses breakdown</h2>
+              <p>Where {MONTH_LONG[month - 1]}’s spending went</p>
+            </div>
+            <Badge tone="red">{gbp(expenseTotal)}</Badge>
+          </header>
+          <Donut
+            slices={expenseSlices}
+            totalLabel="Spent"
+            totalSub={gbp(expenseTotal)}
+            emptyLabel={`No spending recorded for ${MONTH_LONG[month - 1]} ${year}`}
+          />
+          {incomeTotal > 0 && expenseTotal > 0 && (
+            <div className="donut-foot">
+              <div className="donut-foot-head">
+                <span>Spent vs income</span>
+                <strong>{pct(spentShare, 0)} of income</strong>
+              </div>
+              <Bar value={spentShare} tone={spentShare > 0.9 ? 'red' : spentShare > 0.75 ? 'amber' : 'accent'} />
+            </div>
+          )}
+        </section>
       </div>
 
       <Section
