@@ -8,6 +8,7 @@ import { backupFileProblem } from '../../../core/importLimits';
 import { decryptBackup, encryptBackup, MIN_BACKUP_PASSPHRASE } from '../backupArchive';
 import { stripLegacySecrets } from '../vault';
 import {
+  autoBackupPassphrase,
   listRestorePoints,
   markBackupExported,
   readRestorePoint,
@@ -89,15 +90,19 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
   };
 
   const restorePoint = async (id: string) => {
-    if (passphrase.length < MIN_BACKUP_PASSPHRASE) {
-      notify('Enter the backup passphrase to unlock this restore point');
+    const point = points.find((entry) => entry.id === id);
+    const secret = point?.automatic ? autoBackupPassphrase(userId) : passphrase;
+    if (!secret || (!point?.automatic && passphrase.length < MIN_BACKUP_PASSPHRASE)) {
+      notify(point?.automatic
+        ? 'The automatic backup key is no longer available on this device'
+        : 'Enter the backup passphrase to unlock this restore point');
       return;
     }
     const backup = readRestorePoint(userId, id);
     if (!backup) { notify('That restore point is no longer available'); refresh(); return; }
     setBusy(true);
     try {
-      const plain = await decryptBackup(backup, passphrase);
+      const plain = await decryptBackup(backup, secret);
       const restored = plain ? decodeBackupDataset(plain) : null;
       if (!restored) { notify('The restore point could not be decrypted with that passphrase'); return; }
       if (applyRestored(restored, `restore point ${dateTimeUk(backup.createdAt)}`)) setPassphrase('');
@@ -129,7 +134,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
   return (
     <Section
       title="Encrypted backups & restore points"
-      sub="Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. The newest seven encrypted restore points stay on this device."
+      sub="Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. One automatic restore point is created each day, and the newest seven restore points stay on this device."
       actions={<Badge tone={points.length ? 'green' : 'neutral'}>{points.length}/7 restore points</Badge>}
     >
       <div className="inline-form">
@@ -163,7 +168,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
         />
       </div>
       <div style={{ padding: '0 16px 16px' }} className="notice info">
-        A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a restore point can be opened.
+        A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a manual restore point can be opened. Automatic daily points use a key held in this device's secure store and restore here without a prompt.
       </div>
       {points.length === 0 ? (
         <div style={{ padding: 16 }}><Empty>No encrypted restore points yet. Create one before a large edit or import.</Empty></div>
@@ -172,7 +177,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
           {points.map((point) => (
             <tr key={point.id}>
               <td className="muted">{dateTimeUk(point.createdAt)}</td>
-              <td>{point.label}</td>
+              <td>{point.automatic && <Badge tone="blue">Auto</Badge>} {point.label}</td>
               <td className="num muted">{Math.ceil(point.bytes / 1024)} KB</td>
               <td className="nowrap">
                 <button className="btn ghost sm" disabled={busy} onClick={() => void restorePoint(point.id)}>Restore</button>{' '}

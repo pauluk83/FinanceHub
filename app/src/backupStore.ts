@@ -9,6 +9,7 @@ export interface RestorePointMeta {
   createdAt: string;
   label: string;
   bytes: number;
+  automatic?: boolean;
 }
 
 interface StoredPoint extends RestorePointMeta {
@@ -17,6 +18,7 @@ interface StoredPoint extends RestorePointMeta {
 
 const keyFor = (ownerId: string) => `financehub.restore-points.v1:${ownerId}`;
 const exportKeyFor = (ownerId: string) => `financehub.last-backup-export.v1:${ownerId}`;
+const autoKeyFor = (ownerId: string) => `financehub.auto-backup-key.v1:${ownerId}`;
 
 function parsePoints(raw: string | null): StoredPoint[] {
   if (!raw) return [];
@@ -29,6 +31,7 @@ function parsePoints(raw: string | null): StoredPoint[] {
       && typeof entry.createdAt === 'string'
       && typeof entry.label === 'string'
       && typeof entry.bytes === 'number'
+      && (entry.automatic === undefined || typeof entry.automatic === 'boolean')
       && Boolean(entry.backup),
     );
   } catch {
@@ -44,13 +47,14 @@ export function readRestorePoint(ownerId: string, id: string): EncryptedBackup |
   return parsePoints(readPersistedValue(keyFor(ownerId))).find((entry) => entry.id === id)?.backup ?? null;
 }
 
-export function saveRestorePoint(ownerId: string, backup: EncryptedBackup, label: string): RestorePointMeta | null {
+export function saveRestorePoint(ownerId: string, backup: EncryptedBackup, label: string, automatic = false): RestorePointMeta | null {
   const points = parsePoints(readPersistedValue(keyFor(ownerId)));
   const point: StoredPoint = {
     id: `restore_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     createdAt: backup.createdAt,
     label: label.trim().slice(0, 80) || 'Manual restore point',
     bytes: JSON.stringify(backup).length,
+    automatic,
     backup,
   };
   const next = pruneRestorePoints([point, ...points]);
@@ -72,4 +76,17 @@ export function lastBackupExportedAt(ownerId: string): string | null {
 
 export function latestRestorePointAt(ownerId: string): string | null {
   return listRestorePoints(ownerId)[0]?.createdAt ?? null;
+}
+
+export function latestAutomaticRestorePointAt(ownerId: string): string | null {
+  return listRestorePoints(ownerId).find((point) => point.automatic)?.createdAt ?? null;
+}
+
+/** Random device-bound passphrase for automatic restore points. */
+export function autoBackupPassphrase(ownerId: string): string | null {
+  const existing = readPersistedValue(autoKeyFor(ownerId));
+  if (existing) return existing;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const next = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return writePersistedValue(autoKeyFor(ownerId), next) ? next : null;
 }

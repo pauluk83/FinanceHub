@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { decodeBackupDataset } from '../app/src/backup.ts';
 import { buildEngine } from '../core/engine.ts';
+import { shouldCreateAutomaticBackup } from '../core/backupSchedule.ts';
 
 const valid = {
   settings: {
@@ -78,4 +79,12 @@ test('a backup with missing or malformed data is rejected', () => {
     ...valid,
     incomeSchedules: { pip: [] },
   }), null);
+});
+
+test('an automatic backup is created at most once a day', () => {
+  const now = Date.parse('2026-11-13T12:00:00.000Z');
+  assert.equal(shouldCreateAutomaticBackup(null, now), true);
+  assert.equal(shouldCreateAutomaticBackup('not a date', now), true);
+  assert.equal(shouldCreateAutomaticBackup('2026-11-13T11:59:00.000Z', now), false);
+  assert.equal(shouldCreateAutomaticBackup('2026-11-12T12:00:00.000Z', now), true);
 });

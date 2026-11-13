@@ -15,6 +15,7 @@ import {
   type LoadedState,
 } from './store';
 import { useCloudSync } from './useCloudSync';
+import { useAutomaticBackup } from './useAutomaticBackup';
 import type { LocalAccountControls, ViewProps } from './types';
 import { MONTHS, MONTH_LONG, gbp, todayIso } from './format';
 import { NAV_GROUP_TIPS, buildNav } from './nav';
@@ -406,6 +407,13 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     setToast(message);
     window.setTimeout(() => setToast((current) => (current === message ? null : current)), 2800);
   };
+
+  useAutomaticBackup({
+    userId: user.id,
+    ds: state.dataset,
+    enabled: !demo && !blocked && (state.dataset.accounts.length > 0 || state.dataset.transactions.length > 0),
+    notify,
+  });
 
   const openFeedback = (tab: 'send' | 'inbox' = 'inbox') => setFeedbackTab(tab);
 
