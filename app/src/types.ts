@@ -54,6 +54,7 @@ export interface ViewProps {
   syncConflicts: ConflictSummary[];
   resolveSyncConflict: (id: string, choice: 'local' | 'remote') => void;
   exportSyncConflict: (id: string) => ConflictExport | null;
+  purgeSyncConflicts: () => Promise<number>;
   /** Transport state used by Data Health; local workspaces leave this undefined. */
   syncHealth?: { phase?: string; pending?: number; message?: string; lastSyncedAt?: string | null };
   /** Opens the demo workspace from guided setup. */

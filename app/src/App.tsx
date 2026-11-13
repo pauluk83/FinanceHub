@@ -523,6 +523,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     syncConflicts: sync.conflictList,
     resolveSyncConflict: sync.resolveConflict,
     exportSyncConflict: sync.exportConflict,
+    purgeSyncConflicts: sync.purgeConflicts,
     syncHealth: sync.enabled ? { phase: sync.phase, pending: sync.pending, message: sync.message, lastSyncedAt: sync.lastSyncedAt } : undefined,
     onOpenDemo,
   };

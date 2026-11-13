@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.13",
-  "buildId": "2aef9384c403",
+  "buildId": "c46b06de1e55",
   "builtAt": "2026-11-13",
   "releases": [
     {
@@ -15,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Dashboard income and expenses breakdown rings with percentage legends"
+            "Dashboard income and expenses breakdown rings with percentage legends",
+            "Add a confirmed Purge conflict history action that removes local and cloud conflict copies without touching budget records."
           ]
         }
       ]

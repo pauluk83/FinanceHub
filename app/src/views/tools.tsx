@@ -623,7 +623,7 @@ function CredentialVault({ ds, update, notify, vault, vaultSession, setVault, se
   );
 }
 
-export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, userId, userEmail, isLocal, signOut, localAccount, workspace, vault, appLock, setAppLock, vaultSession, setVault, setVaultSession, syncConflicts, resolveSyncConflict, exportSyncConflict, year, setYear }: ViewProps) {
+export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, userId, userEmail, isLocal, signOut, localAccount, workspace, vault, appLock, setAppLock, vaultSession, setVault, setVaultSession, syncConflicts, resolveSyncConflict, exportSyncConflict, purgeSyncConflicts, year, setYear }: ViewProps) {
   const [acct, setAcct] = useState({ name: '', target: '', opening: '' });
   const [person, setPerson] = useState({ short: '', full: '', opening: '' });
   const [card, setCard] = useState({ name: '', limit: '', opening: '' });
@@ -930,7 +930,23 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       <Section
         title="Sync conflicts"
         sub="Both versions are kept when this device and the cloud edit the same revision. Nothing is discarded automatically."
-        actions={<Badge tone={syncConflicts.length ? 'amber' : 'green'}>{syncConflicts.length ? `${syncConflicts.length} to review` : 'None'}</Badge>}
+        actions={<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Badge tone={syncConflicts.length ? 'amber' : 'green'}>{syncConflicts.length ? `${syncConflicts.length} to review` : 'None'}</Badge>
+          <button
+            className="btn ghost sm"
+            onClick={async () => {
+              if (!confirm('Purge all sync-conflict history?\n\nThis deletes every local and cloud conflict snapshot for this account. Budget records and transactions are not touched. This cannot be undone.')) return;
+              try {
+                const purged = await purgeSyncConflicts();
+                notify(purged ? `Purged ${purged} conflict snapshot${purged === 1 ? '' : 's'}` : 'Conflict history purged');
+              } catch {
+                notify('The conflict history could not be purged');
+              }
+            }}
+          >
+            Purge conflict history
+          </button>
+        </div>}
       >
         {syncConflicts.length === 0 ? (
           <div style={{ padding: 16 }}><Empty>No unresolved sync conflicts.</Empty></div>

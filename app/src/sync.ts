@@ -584,6 +584,22 @@ export class CloudSyncEngine {
   }
 
   /**
+   * Delete the retained conflict history, locally and in the account archive.
+   * Budget records are untouched; this only removes the copies kept for review.
+   */
+  async purgeConflicts(): Promise<number> {
+    const count = this.conflicts.length;
+    const { error } = await this.client.from('sync_conflicts').delete().eq('user_id', this.userId);
+    if (error) throw error;
+    this.conflicts = [];
+    this.saveConflicts();
+    this.message = undefined;
+    this.phase = this.outbox.length ? 'pending' : (this.meta.lastSyncedAt ? 'synced' : 'idle');
+    this.emit();
+    return count;
+  }
+
+  /**
    * Resolve one conflict. Remote is already shown after a conflict, so `remote`
    * only dismisses it. `local` returns the stored local document for the caller
    * to put back into React state; that edit is then queued against the server

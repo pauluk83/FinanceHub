@@ -13,6 +13,7 @@ export interface CloudSyncView extends SyncStatus {
   conflictList: ConflictSummary[];
   resolveConflict: (id: string, choice: 'local' | 'remote') => void;
   exportConflict: (id: string) => ConflictExport | null;
+  purgeConflicts: () => Promise<number>;
 }
 
 /**
@@ -123,5 +124,12 @@ export function useCloudSync(options: {
       if (restored) restoreHandlerRef.current?.(restored);
     },
     exportConflict: (id) => engineRef.current?.exportConflict(id) ?? null,
+    purgeConflicts: async () => {
+      const engine = engineRef.current;
+      if (!engine) return 0;
+      const purged = await engine.purgeConflicts();
+      setConflictList(engine.getConflictSummaries());
+      return purged;
+    },
   };
 }

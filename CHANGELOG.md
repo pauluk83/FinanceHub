@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Dashboard income and expenses breakdown rings with percentage legends
+- Add a confirmed Purge conflict history action that removes local and cloud conflict copies without touching budget records.
 
 ## [2026.11.12] — 12 November 2026
 

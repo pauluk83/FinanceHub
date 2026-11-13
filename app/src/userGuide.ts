@@ -432,6 +432,7 @@ export const USER_GUIDE: GuideEntry[] = [
       'Set the budget year, As-of date, anchor date, theme and Menu layout.',
       'Export a JSON backup, restore the imported workbook, or manage sync and local data in Data & backups.',
       'For a protected copy, enter a backup passphrase and export an encrypted backup. The seven newest restore points stay on this device.',
+      'In Settings → Sync conflicts, review both versions, export a copy, or purge the retained conflict history once nothing needs reviewing. The purge removes local and cloud conflict copies only; every budget record stays intact.',
       'Add an authenticator app under Account security, or delete the cloud account and its records permanently.',
     ],
     notes: [
