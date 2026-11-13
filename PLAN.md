@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-12
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.13 tag, source archives and CI-built installer are published; build `2aef9384c403` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, packaged-security checks and bank linking after C-4 remain**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion and render-level UI smoke tests delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.13 tag, source archives and CI-built installer are published; build `c46b06de1e55` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. Not release-ready — pre-rotation snapshot/backup purge, passkey/WebAuthn configuration, packaged-security checks and bank linking after C-4 remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -311,7 +311,7 @@ No secret values were read or printed during this review. Severity reflects the 
   - [x] Rotate every credential that has appeared in a build, backup or cloud workspace. The owner confirmed on 2026-11-09 that all exposed provider passwords are rotated; the values were not shared with the repository.
   - [x] Move provider credentials to a passphrase-derived AES-256-GCM vault; new writes carry ciphertext only and the provider screen never reads legacy fields.
   - [x] Remove old plaintext fields from the live `settings.state_json` by creating the vault, then verify the pushed revision — revision 16 is clean with an empty sync outbox and no conflicts.
-  - [ ] Purge or accept as exposed the retained `sync_conflicts` snapshots and old builds.
+  - [~] Purge or accept as exposed the retained `sync_conflicts` snapshots and old builds. Settings → Sync conflicts now has a confirmed **Purge conflict history** action that removes local and cloud copies (2026-11-13); the owner still needs to run it and remove any old backup files.
   - [x] Exclude credentials from JSON backup exports.
   - [x] `data/workbook.json`, `dist/` and `dist-web/` are now in `.gitignore`. The public GitHub repository was initialized from a tree that excludes the workbook, local databases, build output and screenshots, so no personal history was published.
   - [x] Correct documentation claiming no secret values were imported.
@@ -340,7 +340,7 @@ No secret values were read or printed during this review. Severity reflects the 
 - [ ] Scheduled/automatic backup creation; only manual exports and restore points exist.
 - [~] Automated UI smoke tests. Four render-level tests now cover transaction categories/tags and filters, the notification centre, the backup panel/restore-point metadata and account security (`tests/ui-smoke.test.mjs`). Remaining: click-through coverage for navigation, add/edit/delete, CSV staging, actual restore, month-end lock/unlock, statement totals, settings propagation and recovery.
 - [~] Automated security regression tests. Built-artifact credential scanning, CSV formula neutralisation and HTTPS-only URL validation are covered. Remaining: exact Supabase CSP-origin and forged/replayed OAuth callback tests (A-01, A-12, A-13).
-- [~] Security hardening. CSV formula cells are neutralised, URL schemes are validated and a valid Supabase configuration produces an exact-origin CSP. Remaining: remove the wildcard CSP fallback and document/test OAuth state handling (A-12, A-13).
+- [~] Security hardening. CSV formula cells are neutralised, URL schemes are validated and the CSP now fails closed with only the exact HTTPS/WSS Supabase origin. Remaining: document/test OAuth state handling (A-12, A-13).
 - [ ] Provider schema validation and migration-based hydration so malformed data cannot blank the app and the seed cannot overwrite edits (A-07, A-08).
 - [ ] Capacity guard: dataset-size warning, IndexedDB for the web build and a measured edit-latency budget (A-09).
 - [ ] Separate the personal workbook seed from the distributable build (A-10).
@@ -348,7 +348,7 @@ No secret values were read or printed during this review. Severity reflects the 
 - [ ] Keep hosted `/FinanceHub/` deployment blocked until P0-8 and browser storage are secured.
 - [~] Build/release secret scan and sensitive-file ignore checks. `tests/build-secrets.test.ts` scans built bundles for legacy credential values; a regression test for the sensitive-file ignore rules remains.
 - [~] MFA/passkeys and email-verification review. TOTP MFA and self-serve deletion are implemented; the deletion migration, passkeys and email-verification review remain.
-- [ ] CI for typecheck, tests, production build and packaging.
+- [~] CI runs typecheck and the hosted build on every push. The full test suite needs the private workbook, so public CI runs it only when that file is present and otherwise skips it with a message; packaging remains outside CI.
 - [ ] iOS client (separate Mac/Xcode track).
 
 ---
@@ -1022,7 +1022,7 @@ External dependencies that code changes cannot satisfy: legal review, Apple hard
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** purge the retained pre-rotation `sync_conflicts` snapshots and old backups and verify the purge. The hosted bundle is live at `2026.11.13`, build `2aef9384c403`, with matching local/live hashes; the GitHub `v2026.11.13` tag and source archives are at `5059fcc`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
+**Immediate next:** sign in as the owner, open Settings → Sync conflicts and use **Purge conflict history**, then remove any old backup files and verify no pre-rotation snapshots remain. The hosted bundle is live at `2026.11.13`, build `c46b06de1e55`, with matching local/live hashes; the GitHub `v2026.11.13` tag and source archives are at `fe3ed46`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1034,7 +1034,7 @@ Sequence chosen: low-risk, independently verifiable release work first.
 8. [x] Windows NSIS installer builds. Code signing, auto-update and embedded-seed removal were removed from scope on 2026-11-12.
 9. [x] Fixed Starling statement reconciliation and added full statement coverage (P0-7) — closed 2026-11-08.
 10. [~] Complete packaged-security and automated UI smoke-test verification. Google sign-in, the local-data consent prompt and one-account cloud sync are verified; packaged OAuth/CSP and UI smoke tests remain.
-11. [~] Data Health / Integrity Centre delivered, including failed-sync state and backup-age checks. P0-8 rotation is confirmed; the old-snapshot purge remains.
+11. [~] Data Health / Integrity Centre delivered, including failed-sync state and backup-age checks. P0-8 rotation is confirmed and the in-app conflict-history purge is delivered; running it and removing old backup files remains.
 12. [~] Started the compliance workstream with the **DPIA and ICO pack**. It cannot be closed by code and it gates public distribution, any store submission and every regulatory or security claim.
 13. [x] Added a safe **Remove local copy** action in Settings → Account. It removes only the device-only document and its recovery copies after confirming a saved cloud budget exists; it never uploads or resets cloud data.
 14. [x] Added per-record audit history, revert and transaction trash/undo. Transactions, accounts, people, cards, bills and bill changes are diffed at the update boundary; Transactions exposes row history and recently deleted restore.
@@ -1198,6 +1198,8 @@ Open items:
 - 2026-11-12: Removed the **All releases** button from the application changelog and installer panel; the direct Windows installer and SHA-256 checksum links remain. Release build `e0258777546f`, hosted bundle `index-BFIIBcDY.js`, local installer SHA-256 prefix `1e32cc2e2b90`; Release run `43292176243` succeeded and replaced the GitHub installer with 122,612,133 bytes, SHA-256 `3e4153729bca8e830f7edeadf63a2a8c1adb11986ba3b0cf9cf997f4be871729`. Live HTML/JS/CSS hashes match the local bundle and the live changelog shows only the two remaining buttons. `npm test` **279/279**, `tsc` and `release:check` clean.
 - 2026-11-12: Removed the release-count suffix from the application changelog header; it now shows only the version, build id and date. Release build `1769103a8691`, hosted bundle `index-TdOI5Q5W.js`, local installer SHA-256 prefix `26bbac4bce57`; Release run `43293183909` succeeded and replaced the GitHub installer with 122,612,110 bytes, SHA-256 `4b98677256610b7031277569354aed2ac2ae5d9a14a81d96addced18c4137838`. Live JS hash matches the local bundle and the live header contains no release count. `npm test` **279/279**, `tsc` and `release:check` clean.
 - 2026-11-13: Dashboard income and expenses breakdown rings published as `2026.11.13`, build `2aef9384c403`, hosted bundle `index-DReyl8vz.js`, tag `5059fcc`. GitHub release assets are `FinanceHub-Setup-2026.11.13.exe` (122,613,331 bytes, SHA-256 `2eb19790e0afbcc84a0cae5d67a9e88d867824398dec04fcb1898d2818d0fcdc`) and `SHA256SUMS.txt`. The live page reports `2026.11.13` / `2aef9384c403`.
+- 2026-11-13: Added **Settings → Sync conflicts → Purge conflict history**. It deletes the local and cloud conflict copies for the signed-in account after confirmation and leaves budget records untouched. Release build `c46b06de1e55`, hosted bundle `index-D9xz5RlG.js`, tag `40aba84`; Release run `43456160256` replaced the GitHub installer with 122,613,396 bytes, SHA-256 `415f288cfce85a2514ca69f003948fdf5d034dd7178d7bed68967327135b2d4d`. `npm test` **280/280**, `tsc` and `release:check` clean.
+- 2026-11-13: Removed the wildcard Supabase CSP fallback. A missing or invalid URL now yields `connect-src 'self'` only; a valid URL adds just its exact HTTPS/WSS origin. The hosted bundle is `index-BazeCTgG.js`, tag `fe3ed46`; Release run `43457692671` replaced the GitHub installer with 122,613,481 bytes, SHA-256 `744f266183b198113132aac4565634cb67c0b1ad9e861f6ce82cada700daa68e`. CI run `43457687117` passed typecheck, the private-workbook test skip and the hosted build; `npm test` **281/281** and `tsc` clean.
 
 ## 18. Notes and constraints
 
@@ -1413,7 +1415,7 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
 | A-09 | P1 | Whole-document writes, 5 MB ceiling, whole-document sync (`§20`) | Row store (§20 phases 1–4), throttled last-good, IndexedDB for web, size guard | Edit latency independent of dataset size; no quota loss at 5× data | L |
 | A-10 | P1 | Personal seed (names, amounts, credentials) ships in the bundle | Blank/demo seed by default; owner-only import path | Default installer opens blank; no personal data in the build | M |
 | A-11 | P1 | Rent/water/telco/provider logic duplicated between engine and views | One domain module per provider used by both | Golden tests compare UI preview with engine rows | M |
-| A-12 | P1 | Unsigned release; OAuth has no state; wildcard CSP; web session in `localStorage` (`S-04`, `S-07`, `S-10`, `S-11`) | Signing and update feed; state/nonce; exact origin; hosted web deployment blocked | Signed installer; forged callback rejected | M/L |
+| A-12 | P1 | Unsigned release accepted; OAuth has no state; web session in `localStorage` (`S-04`, `S-07`, `S-10`, `S-11`) | State/nonce; hosted web deployment blocked | Forged callback rejected | M/L |
 | A-13 | P1 | Import/backup limits are size-only; CSV formula export (`S-08`, `S-12`) | Byte/row caps, HTTPS URL validation, formula neutralisation | Oversized file rejected before parse; formula cells inert | S |
 | A-14 | P2 | Holiday list shows cost rows; 2027 insurance end date is a year late | Group by trip, cap cost rows, fix the data | One headline row per trip; sane dates | S |
 | A-15 | P2 | Pseudo/orphan accounts are not visible as accounts | Show them, or exclude them with a visible note | `Petrol`, `Other`, `Dan`, `Credit Cards` semantics documented in-app | S |
@@ -1480,7 +1482,7 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
 
 - [~] **A-12 — Release and auth hardening.**
   - [x] A valid Supabase configuration now restricts CSP `connect-src` to the exact HTTPS/WSS origin; CSV/URL hardening is covered by A-13.
-  - [ ] Remove the wildcard CSP fallback and add an exact-origin test.
+  - [x] Remove the wildcard CSP fallback and add an exact-origin test.
   - [ ] Add OAuth `state`/nonce validation or document Supabase PKCE as the accepted check, with a forged/replayed callback test.
   - [ ] Branded icon.
   - [~] Hosted web stays private until P0-8 and browser-storage hardening are complete.
