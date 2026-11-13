@@ -10,6 +10,9 @@ data/*.db-*
 analysis/
 reports/
 tmp/
+test-results/
+playwright-report/
+blob-report/
 *.lnk
 FinanceHubBrowser.cmd
 /*.png

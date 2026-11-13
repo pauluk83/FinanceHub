@@ -129,9 +129,11 @@ Implemented: the calculation core and workbook parity, the Windows/web UI, cloud
 the credential vault, people statements, app lock, year rollover, provider setup and
 ledgers, menu layout, legal documents, the two changelogs and GitHub release publishing.
 
-Outstanding: iOS, SQLCipher/full-database encryption, automated browser E2E coverage,
-and the purge of pre-rotation snapshots and old backups. [`PLAN.md`](./PLAN.md) is the single
-source for the roadmap, release gates and security findings.
+Outstanding: iOS, bank linking and the purge of pre-rotation snapshots and old backups.
+SQLCipher full-database encryption is deferred; the DPAPI-backed value store remains the
+accepted design. Automatic daily restore points and Playwright browser coverage are
+implemented. [`PLAN.md`](./PLAN.md) is the single source for the
+roadmap, release gates and security findings.
 
 ## Owner and licence
 

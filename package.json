@@ -25,6 +25,7 @@
     "release:bump": "node scripts/release.mjs bump",
     "release:check": "node scripts/release.mjs check",
     "preview:web:hosted": "vite preview --config app/vite.config.ts --mode hosted --port 4173",
+    "test:e2e": "npm run build:web:hosted && playwright test",
     "dist:win": "npm run build:web && electron-builder --win nsis --x64 --publish never",
     "start": "npm run build:web && electron electron/main.cjs",
     "desktop": "electron electron/main.cjs"
@@ -40,6 +41,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@vitejs/plugin-react": "^6.2.1",
     "electron": "^45.2.3",
     "electron-builder": "^26.18.0",
