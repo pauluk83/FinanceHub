@@ -26,7 +26,7 @@ budget data or identity documents.
 - [ ] TOTP MFA enabled and tested; recovery path documented.
 - [ ] Passkey/WebAuthn settings recorded (RP ID and origins) after `OWNER_ACTIONS.md`.
 - [ ] Account-deletion SQL applied and tested with a throwaway account.
-- [ ] Pre-rotation conflict history purged and old backups removed.
+- [x] Pre-rotation conflict history purged and old backups removed (owner confirmed 13 November 2026).
 - [ ] Encrypted backup and restore tested; automatic restore point observed.
 - [ ] Redacted support bundle checked for names, amounts and credentials.
 

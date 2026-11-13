@@ -3,7 +3,7 @@
 These are the steps that need Supabase dashboard, mailbox or legal access. Do them in
 this order. They are not performed by the app build.
 
-## 1. Purge the pre-rotation conflict history
+## 1. Purge the pre-rotation conflict history — COMPLETED 13 NOVEMBER 2026
 
 1. Sign in as the owner at https://financehub.freedev.app/.
 2. Open **Settings → Sync conflicts**.
@@ -13,6 +13,7 @@ this order. They are not performed by the app build.
 6. Keep only backups created after the rotation and store them encrypted.
 
 The purge removes local and cloud conflict snapshots only; budget records are not changed.
+The owner confirmed this step and the old backup-file removal on 13 November 2026.
 
 ## 2. Apply the account-deletion SQL
 
