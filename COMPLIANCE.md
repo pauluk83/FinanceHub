@@ -1,7 +1,11 @@
 # FinanceHub — legal and regulatory applicability
 
-Not legal advice. Prepared 7 November 2026 for the product described in `PLAN.md`.
-Confirm with a UK solicitor before any commercial launch.
+Not legal advice. Prepared 7 November 2026 and updated 13 November 2026 for the product
+described in `PLAN.md`. Confirm with a UK solicitor before any commercial launch.
+
+Draft working documents for professional review are in `docs/compliance/`:
+DPIA, privacy notice, retention schedule, DSAR procedure, breach runbook and evidence
+checklist. The owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
 
 ## Product facts that decide applicability
 
@@ -29,14 +33,14 @@ Confirm with a UK solicitor before any commercial launch.
 | FCA authorisation | No | No regulated activity: no advice, payments, credit or investments | Avoid advice or payment features, or obtain permissions first |
 | FinCEN MSB / state money transmitter licences | No | No money transmission | Reassess if account funding or payments are added |
 | KYC / AML | No | No customer funds and no transmission | Reassess with payments; do not add account funding without a compliance programme |
-| MFA | Not implemented | Supabase supports MFA | Roadmap: enable TOTP/passkeys and document it; password + optional Google sign-in today |
+| MFA | Implemented (TOTP); passkeys pending | Supabase supports MFA | TOTP enrolment/removal and MFA challenge are implemented; passkey backend settings are prepared in `docs/OWNER_ACTIONS.md`, but passkey enrolment UI is not yet built |
 | Biometric login | Not implemented | Web build; desktop OS keychain is possible | Roadmap |
 | Zero Trust | Partial | HTTPS, row-level security, anon key only, client-side E2EE vault | Keep the service-role key server-side only (already the case) |
 | App store declarations | Only on store release | Google Play Financial Features Declaration; Apple organisation account for some finance categories | Prepare at submission |
 | Trademark | Common-law ™ only | Not registered | Register with UKIPO (and USPTO if US) before enforcement; use ™ now, ® only after registration |
 | Copyright notice | Yes | UK CDPA / Berne | © 2026 Zane Stanton on sign-in, legal pages and Settings |
 | Data access and portability | Implemented | JSON and CSV export | Documented in the Privacy Policy |
-| Right to erasure | Partial | Local reset, vault deletion and request-based account deletion | Add self-serve account deletion when the backend allows; 30-day request target is stated |
+| Right to erasure | Implemented, pending migration | Local reset, vault deletion and self-serve cloud deletion | The app calls `delete_my_account`; apply `db/migrations/postgres/0003_account_deletion.sql` and test it with a throwaway account |
 | Consent | Partial | Workspace choice; optional vault and People sign-ins | Consider explicit Terms/Privacy acceptance at sign-up, recorded with version and timestamp |
 | Cookie banner | Not needed | No analytics or advertising cookies; functional local storage only | Reassess if analytics are added |
 | Processor agreements | Needed | Supabase, hosting, Google | Accept or execute DPAs and keep a processing register |
@@ -59,6 +63,6 @@ or a screen in the app would not satisfy them.
 4. Have a solicitor review the three documents for England and Wales.
 5. Register the FinanceHub trade mark (UKIPO at minimum) before enforcing the name.
 6. Add explicit acceptance of the Terms and Privacy Policy at sign-up, recording version and timestamp.
-7. Add self-serve account deletion, or document the request workflow and 30-day service level.
-8. Write a breach-response runbook and publish a security contact.
+7. Apply and test the self-serve account-deletion SQL in `docs/OWNER_ACTIONS.md`; document the 30-day service level for requests that cannot use the app.
+8. Review and publish the draft breach-response runbook and a security contact from `docs/compliance/`.
 9. If bank aggregation, payments or financial advice are ever added, reassess PSD2/FCA/PCI/KYC before shipping.
