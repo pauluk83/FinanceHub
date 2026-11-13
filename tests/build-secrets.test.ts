@@ -59,3 +59,21 @@ test('built bundles carry no legacy credential values', (t) => {
   }
   assert.ok(scanned > 0, 'at least one built text file was scanned');
 });
+
+test('the public repository ignores personal budgets, databases, builds and environment files', () => {
+  const ignored = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8').split(/\r?\n/);
+  for (const pattern of [
+    'data/workbook.json',
+    'data/*.db',
+    'data/*.db-*',
+    'dist/',
+    'dist-web/',
+    'analysis/',
+    'reports/',
+    '.env',
+    '.env.*',
+  ]) {
+    assert.ok(ignored.includes(pattern), `${pattern} is missing from .gitignore`);
+  }
+  assert.ok(ignored.includes('!.env.example'), 'the safe .env template must remain committable');
+});
