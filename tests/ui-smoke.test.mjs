@@ -226,7 +226,7 @@ test('account security renders local-only guidance and signed-in MFA/deletion co
   assert.match(cloud, /Set up authenticator app/);
   assert.match(cloud, /Delete cloud account permanently/);
   assert.match(cloud, /delete_my_account/);
-  assert.match(cloud, /Passkeys still depend/);
+  assert.match(cloud, /Passkeys need the hosted website/);
 
   const local = render(AccountSecuritySection, props({}, { isLocal: true }));
   assert.match(local, /This is a local-only workspace/);

@@ -62,8 +62,10 @@ passkey option until that UI is added.
 
 **Configured 13 November 2026.** Passkey authentication is on with display name
 `FinanceHub`, RP ID `financehub.freedev.app` and origin `https://financehub.freedev.app`.
-The page was reloaded after saving to confirm the values persisted. No in-app passkey
-enrolment or sign-in test has been run because that UI does not exist yet.
+The page was reloaded after saving to confirm the values persisted. In-app passkey
+controls are now delivered in Account security and on the hosted login page. A real
+enrolment and sign-in has not been run because it needs a supported browser and an
+actual authenticator.
 
 1. Open **Supabase → Authentication → Passkeys**.
 2. Turn on **Enable Passkey authentication**.
@@ -80,7 +82,7 @@ enrolment or sign-in test has been run because that UI does not exist yet.
    `https://financehub.freedev.app/`, `https://financehub.freedev.app/**`,
    `http://localhost:5173/**` and the desktop callback.
 6. Recorded in `docs/compliance/EVIDENCE_CHECKLIST.md`. Do not enable passkeys as a
-   required factor until the in-app enrolment and recovery flow has been tested.
+   required factor until enrolment and sign-in have been tested and account recovery is confirmed.
 
 ## 4. Privacy and processor actions
 

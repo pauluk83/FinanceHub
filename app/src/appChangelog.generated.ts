@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.13",
-  "buildId": "9d20ad542569",
+  "buildId": "2d5916cbac50",
   "builtAt": "2026-11-13",
   "releases": [
     {
@@ -21,7 +21,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Create one device-encrypted automatic restore point per day, keeping the newest seven.",
             "Add Playwright browser coverage for transaction edits, CSV staging, month-end locking, restore points and statement totals.",
             "Download a redacted support bundle from Data health for troubleshooting without sharing names, amounts or credentials.",
-            "Export transactions and statements to Excel, and print or save them as PDF."
+            "Export transactions and statements to Excel, and print or save them as PDF.",
+            "Add passkey enrolment and sign-in to Account security and the hosted login page"
           ]
         }
       ]

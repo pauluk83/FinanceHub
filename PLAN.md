@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-13
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.13 tag, source archives and CI-built installer are published; build `9d20ad542569` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — passkey enrolment UI, packaged-security checks, a throwaway-account deletion test and bank linking after C-4 remain**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, TOTP MFA, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.13 tag, source archives and CI-built installer are published; build `9d20ad542569` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — a live passkey ceremony test, passkeys in the packaged desktop app, packaged-security checks, a throwaway-account deletion test and bank linking after C-4 remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -53,9 +53,9 @@ Effort (roadmap sections only): **S** small · **M** medium · **L** large · **
 | People statement sign-ins | `app/src/portal.ts`, `app/src/views/peoplePortal.tsx` | Settings creates a per-person username/password (PBKDF2-SHA-256, 600,000 iterations, 16-byte salt); `#people` opens a read-only statement scoped to that person; snapshots refresh on save; device-local only and explicitly not a security boundary; 6 tests |
 | Provider setup (onboarding step 5) | `app/src/providerSetup.ts`, `app/src/views/providerSetup.tsx` | Adds or re-enables any of the eight provider ledgers, hides one while keeping its data, renames it, stores a custom PNG/JPEG/WebP logo (≤200 KB data URL) and edits metadata-driven account/detail fields; provider ledger rows support persistent up/down ordering with carry-forward recalculation; `tests/provider-setup.test.ts`, `tests/provider-ledger.test.ts` |
 | Sidebar menu layout | `app/src/nav.ts`, `app/src/views/menuLayout.tsx` | Settings → Menu layout hides items and moves them between Overview, Ledger and Providers; Tools is static and cannot be hidden or moved; overrides live in `settings.navLayout`; `tests/nav.test.ts` |
-| Legal, privacy and IP | `app/src/legal/`, `COMPLIANCE.md` | Privacy Policy, Terms of Service and EULA published in-app and linked from sign-in and Settings; owner, © 2026 and FinanceHub™ notices; applicability matrix records UK GDPR as applicable and PCI DSS, Open Banking/PSD2, FCA, MSB/KYC-AML as out of scope for a read-only budgeting app; TOTP MFA and self-serve deletion implemented (deletion SQL applied 2026-11-13; throwaway-account test pending); passkey backend configured but enrolment/sign-in UI not built; email verification pending; 4 tests |
+| Legal, privacy and IP | `app/src/legal/`, `COMPLIANCE.md` | Privacy Policy, Terms of Service and EULA published in-app and linked from sign-in and Settings; owner, © 2026 and FinanceHub™ notices; applicability matrix records UK GDPR as applicable and PCI DSS, Open Banking/PSD2, FCA, MSB/KYC-AML as out of scope for a read-only budgeting app; TOTP MFA and self-serve deletion implemented (deletion SQL applied 2026-11-13; throwaway-account test pending); passkey backend configured and hosted enrolment/sign-in controls delivered; the packaged app cannot use WebAuthn; email verification pending; 4 tests |
 | Live cloud workspace | Supabase `settings.state_json` | Google sign-in working; remote revision 16 carries the encrypted vault with no legacy credential fields; password rotation confirmed; owner purged conflict history and old pre-rotation backups on 2026-11-13 |
-| Hosted static web build (financehub.freedev.app) | `app/vite.config.ts`, `data/web-seed.json`, `dist-web/` | Deployed to InfinityFree `financehub.freedev.app/htdocs` with a root base; the FTP service was unreachable on 2026-11-09, so build `89bb71db76a1` was uploaded through the signed-in file manager. It serves `assets/index-0QAIytWd.js` and `assets/index-BkBanxRO.css`; local and live SHA-256 hashes match for the document, JS and CSS; app-wide feedback, the Dashboard unread notice, editable provider-ledger **Balance** and **Total paid** columns and the O2/Virgin **Bill** column are live; the footer version comes from `app/src/version.ts`, baked from `package.json` by Vite, so the web build and the Windows app report the same number; the login page and Tools carry an **Application changelog** regenerated from `CHANGELOG.md` on every build, and the Windows installer is published as a GitHub Releases asset instead of on the web host; login, local and demo flows load at `https://financehub.freedev.app/`; Supabase Site URL/redirect allow-list includes `https://financehub.freedev.app/`, `https://financehub.freedev.app/**` and the desktop callback; vault rev 16 clean; owner confirmed the pre-rotation purge on 2026-11-13; the remaining release gates are the passkey UI, packaged checks, a throwaway-account deletion test and legal review |
+| Hosted static web build (financehub.freedev.app) | `app/vite.config.ts`, `data/web-seed.json`, `dist-web/` | Deployed to InfinityFree `financehub.freedev.app/htdocs` with a root base; the FTP service was unreachable on 2026-11-09, so build `89bb71db76a1` was uploaded through the signed-in file manager. It serves `assets/index-0QAIytWd.js` and `assets/index-BkBanxRO.css`; local and live SHA-256 hashes match for the document, JS and CSS; app-wide feedback, the Dashboard unread notice, editable provider-ledger **Balance** and **Total paid** columns and the O2/Virgin **Bill** column are live; the footer version comes from `app/src/version.ts`, baked from `package.json` by Vite, so the web build and the Windows app report the same number; the login page and Tools carry an **Application changelog** regenerated from `CHANGELOG.md` on every build, and the Windows installer is published as a GitHub Releases asset instead of on the web host; login, local and demo flows load at `https://financehub.freedev.app/`; Supabase Site URL/redirect allow-list includes `https://financehub.freedev.app/`, `https://financehub.freedev.app/**` and the desktop callback; vault rev 16 clean; owner confirmed the pre-rotation purge on 2026-11-13; the remaining release gates are a live passkey test, packaged checks, a throwaway-account deletion test and legal review |
 
 Commands:
 
@@ -253,7 +253,7 @@ No secret values were read or printed during this review. Severity reflects the 
 
 - **S-13 — Development dependency advisories.** `xlsx` is a high-severity direct dev dependency with no fix; `electron-builder`/`minimatch` are moderate build-tool advisories. `npm audit --omit=dev` is clean; do not parse untrusted workbooks in development/build.
 - **S-14 — Privacy lifecycle partly delivered.** Privacy Policy, Terms and self-serve account deletion are implemented; the deletion SQL is applied, and a throwaway-account deletion test, retention schedule and DSAR/breach runbooks remain.
-- **S-15 — Authentication hardening partly delivered.** TOTP MFA is implemented and the passkey backend is configured; passkey enrolment/sign-in UI, email-verification review and live MFA/deletion testing remain.
+- **S-15 — Authentication hardening partly delivered.** TOTP MFA is implemented and the passkey backend and hosted enrolment/sign-in controls are delivered; a live passkey ceremony test, the packaged-app WebAuthn limitation, email-verification review and live MFA/deletion testing remain.
 
 ### Existing controls
 
@@ -318,7 +318,7 @@ No secret values were read or printed during this review. Severity reflects the 
   - [x] Add a source-seed regression test that rejects credential field keys; still add a built-artifact check (A-01).
   - [x] Build-time guard added: `tests/build-secrets.test.ts` scans `dist/` and `dist-web/` for a legacy credential field carrying a value, while allowing the vault's migration code to mention the field names. Registered in `npm test` and rerun after every release build.
 
-**Distribution gate:** the pre-rotation snapshot/backup purge is complete. Do not distribute the current installer broadly until the passkey UI, packaged-app checks, throwaway-account deletion test and legal review are finished; the owner may continue using it privately.
+**Distribution gate:** the pre-rotation snapshot/backup purge is complete. Do not distribute the current installer broadly until a live passkey test, packaged-app checks, throwaway-account deletion test and legal review are finished; the owner may continue using it privately.
 
 - [x] **P0-9 — Money-integrity guardrails** — closed 2026-11-08.
   - [x] Classify every transaction account and fail closed on unknown values instead of silently excluding the row (A-04) — 2026-11-07.
@@ -347,7 +347,7 @@ No secret values were read or printed during this review. Severity reflects the 
 - [~] SQLCipher deferred by the owner on 2026-11-13; the accepted design keeps the DPAPI-backed value store rather than adding a native SQLite encryption dependency.
 - [ ] Keep hosted `/FinanceHub/` deployment blocked until P0-8 and browser storage are secured.
 - [~] Build/release secret scan and sensitive-file ignore checks. `tests/build-secrets.test.ts` scans built bundles for legacy credential values; a regression test for the sensitive-file ignore rules remains.
-- [~] MFA/passkeys and email-verification review. TOTP MFA and self-serve deletion are implemented and the deletion SQL is applied; the passkey UI, email-verification review and throwaway-account deletion test remain.
+- [~] MFA/passkeys and email-verification review. TOTP MFA and self-serve deletion are implemented and the deletion SQL is applied; a live passkey ceremony test, packaged WebAuthn limitation, email-verification review and throwaway-account deletion test remain.
 - [x] CI runs typecheck, the hosted build and the Playwright Chromium suite on every push. The full test suite needs the private workbook, so public CI runs it only when that file is present and otherwise skips it with a message; packaging remains outside CI.
 - [ ] iOS client (separate Mac/Xcode track).
 
@@ -867,7 +867,7 @@ Dependencies: macOS + Xcode, Apple Developer account, APNs key — none availabl
 ### Phase 5 — Sync & auth — partial
 
 - Supabase project: `db/migrations/postgres/`, RLS on every table, per-user isolation.
-- Auth: email + password and Google OAuth; passkeys/WebAuthn and secure reset are next. Apple and Microsoft are not offered; session tokens stay in Keychain/DPAPI, with optional PIN only after first login.
+- Auth: email + password and Google OAuth; passkey/WebAuthn enrolment and sign-in are delivered for the hosted web app, and secure reset is next. The packaged desktop window cannot use WebAuthn because it loads a local file. Apple and Microsoft are not offered; session tokens stay in Keychain/DPAPI, with optional PIN only after first login.
 - Sync: outbox per device, `updated_at`/`rev`/`device_id` metadata, pull cursor, tombstones, idempotent upserts. Transactions are append-only; reference data is last-write-wins per record with a **conflict review screen** when both sides changed since the last sync. The losing version is stored in `sync_conflicts`, never discarded. Realtime channel per user for "within seconds" propagation.
 - Tests: two accounts isolated; foreign-origin rejected; offline merge; conflict resolution; no silent loss.
 
@@ -917,7 +917,7 @@ The current gaps against this design are in §4; the release gates are in §5 an
 
 - TLS 1.3 in transit; SQLCipher at rest on both clients; Supabase disk encryption.
 - Passwords handled by Supabase Auth (Argon2id/bcrypt server-side); no password material in the app database.
-- Passkeys (WebAuthn) next; biometric unlock gates a Keychain-held key, not a stored password. Apple sign-in is added only if the iOS/App Store workstream requires it; Microsoft sign-in is out of scope.
+- Passkeys (WebAuthn) are delivered on the hosted web app; the packaged Electron window cannot use WebAuthn from `file://`. Biometric unlock gates a Keychain-held key, not a stored password. Apple sign-in is added only if the iOS/App Store workstream requires it; Microsoft sign-in is out of scope.
 - Vault: AES-256-GCM, per-item nonce, key wrapped by DPAPI (Windows) / Keychain (iOS); ciphertext syncs, key does not.
 - RLS: every table scoped to `auth.uid()`; no service-role key in client code.
 - Audit log for structural changes; export/backup encrypted.
@@ -1022,7 +1022,7 @@ External dependencies that code changes cannot satisfy: legal review, Apple hard
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** add the passkey enrolment/sign-in UI, run the throwaway-account deletion test, and run the packaged-app security checks. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.13`, build `9d20ad542569`, with matching local/live hashes; the GitHub `v2026.11.13` tag and source archives are at `02c7bb0`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
+**Immediate next:** run a live passkey enrolment/sign-in test on the hosted app, run the throwaway-account deletion test, and run the packaged-app security checks. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.13`, build `9d20ad542569`, with matching local/live hashes; the GitHub `v2026.11.13` tag and source archives are at `02c7bb0`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1044,7 +1044,7 @@ Sequence chosen: low-risk, independently verifiable release work first.
 18. [x] Added encrypted backup format v2 (PBKDF2-SHA-256 + AES-256-GCM), checksum verification and seven newest local restore points.
 19. [x] Added provider balances and statement references to month-end locks, provider drift to Data Health, and an All years statement view.
 20. [x] Added failed-sync, pending-change, missing-backup and backup-age diagnostics to Data Health.
-21. [~] Added self-serve cloud account deletion and TOTP authenticator MFA. The deletion SQL is applied and the passkey backend is configured; the passkey UI and a throwaway-account deletion test remain.
+21. [~] Added self-serve cloud account deletion, TOTP authenticator MFA and passkey controls for the hosted web app. The deletion SQL is applied; a live passkey ceremony test, the packaged-app WebAuthn limitation and a throwaway-account deletion test remain.
 22. [ ] Bank linking remains gated on C-4; no provider credentials or integration code have been added.
 
 ---
@@ -1056,7 +1056,8 @@ Decisions already taken:
 - Release: refresh the existing `v2026.11.9` installer assets (done); retarget `v2026.11.9` so the source archives match the release (done); deploy the hosted web bundle (done 2026-11-09 through the file manager because FTP was unreachable); commit and push the current working tree.
 - Locked months stay immutable imported snapshots; historical bills are not recomputed.
 - Workbook quirks are preserved and flagged where they still affect totals; the £30 `Credit Cards` row is reclassified as Starling and Dan is a linked account rather than a normal budget account.
-- The hosted `/FinanceHub/` build is structurally ready; the pre-rotation purge is complete, but passkey configuration, packaged checks, browser-storage hardening and legal review remain before broad public use.
+- The hosted `/FinanceHub/` build is structurally ready; the pre-rotation purge is complete, but a live passkey test, packaged checks, browser-storage hardening and legal review remain before broad public use.
+- Passkeys require a supported browser on the hosted HTTPS origin. The packaged Electron window loads `file://` and cannot use WebAuthn, so it shows an explanation instead of passkey controls.
 - Provider credentials must not live in the synced document; the vault is the target home.
 - P0-8: the owner confirmed on 2026-11-09 that every exposed third-party provider password has been rotated, and on 2026-11-13 that the pre-rotation conflict snapshots and old backups were purged.
 - P0-5 Windows release engineering and P0-6 live cloud validation were removed from scope by the owner on 2026-11-12.

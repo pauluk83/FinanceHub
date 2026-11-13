@@ -15,6 +15,7 @@ and the build time.
 - Add Playwright browser coverage for transaction edits, CSV staging, month-end locking, restore points and statement totals.
 - Download a redacted support bundle from Data health for troubleshooting without sharing names, amounts or credentials.
 - Export transactions and statements to Excel, and print or save them as PDF.
+- Add passkey enrolment and sign-in to Account security and the hosted login page
 
 ## [2026.11.12] — 12 November 2026
 

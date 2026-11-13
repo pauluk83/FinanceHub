@@ -33,7 +33,7 @@ checklist. The owner-side Supabase and mailbox actions are in `docs/OWNER_ACTION
 | FCA authorisation | No | No regulated activity: no advice, payments, credit or investments | Avoid advice or payment features, or obtain permissions first |
 | FinCEN MSB / state money transmitter licences | No | No money transmission | Reassess if account funding or payments are added |
 | KYC / AML | No | No customer funds and no transmission | Reassess with payments; do not add account funding without a compliance programme |
-| MFA | Implemented (TOTP); passkey backend configured | Supabase supports MFA | TOTP enrolment/removal and MFA challenge are implemented; Supabase passkeys are enabled with RP ID `financehub.freedev.app` (13 November 2026), but passkey enrolment UI is not yet built |
+| MFA | Implemented (TOTP and passkeys on the hosted web app) | Supabase supports MFA | TOTP enrolment/removal and MFA challenge are implemented; Supabase passkeys are enabled with RP ID `financehub.freedev.app` and the passkey controls are built. The packaged Electron window loads `file://` and cannot use WebAuthn, and a real passkey ceremony is still untested |
 | Biometric login | Not implemented | Web build; desktop OS keychain is possible | Roadmap |
 | Zero Trust | Partial | HTTPS, row-level security, anon key only, client-side E2EE vault | Keep the service-role key server-side only (already the case) |
 | App store declarations | Only on store release | Google Play Financial Features Declaration; Apple organisation account for some finance categories | Prepare at submission |

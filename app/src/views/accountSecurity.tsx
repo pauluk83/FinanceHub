@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section } from '../components';
-import { deleteCloudAccount, enrollTotp, listMfaFactors, removeMfaFactor, verifyTotp, type MfaEnrollment, type MfaFactor } from '../account';
+import { passkeyErrorMessage, passkeysSupported } from '../auth';
+import {
+  deleteCloudAccount,
+  enrollTotp,
+  listMfaFactors,
+  listPasskeys,
+  registerPasskey,
+  removeMfaFactor,
+  removePasskey,
+  verifyTotp,
+  type MfaEnrollment,
+  type MfaFactor,
+  type StoredPasskey,
+} from '../account';
 
 type Props = Pick<ViewProps, 'isLocal' | 'notify' | 'signOut' | 'userEmail'>;
 
@@ -12,6 +25,9 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [passkeys, setPasskeys] = useState<StoredPasskey[]>([]);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeyAvailable] = useState(() => passkeysSupported());
 
   const refresh = async () => {
     if (isLocal) { setLoaded(true); return; }
@@ -20,9 +36,16 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
       setError(null);
     } catch (next) {
       setError(next instanceof Error ? next.message : 'Account security could not be loaded.');
-    } finally {
-      setLoaded(true);
     }
+    if (passkeyAvailable) {
+      try {
+        setPasskeys(await listPasskeys());
+        setPasskeyError(null);
+      } catch (next) {
+        setPasskeyError(passkeyErrorMessage(next));
+      }
+    }
+    setLoaded(true);
   };
 
   useEffect(() => { void refresh(); }, [isLocal]);
@@ -72,6 +95,35 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
     }
   };
 
+  const addPasskey = async () => {
+    setBusy(true);
+    setPasskeyError(null);
+    try {
+      const added = await registerPasskey();
+      setPasskeys((current) => [...current.filter((passkey) => passkey.id !== added.id), added]);
+      notify(`Passkey added — ${added.friendlyName}`);
+    } catch (next) {
+      setPasskeyError(passkeyErrorMessage(next));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const forgetPasskey = async (passkey: StoredPasskey) => {
+    if (!confirm(`Remove the passkey “${passkey.friendlyName}”?\n\nYou can still sign in with your password or another passkey.`)) return;
+    setBusy(true);
+    setPasskeyError(null);
+    try {
+      await removePasskey(passkey.id);
+      setPasskeys((current) => current.filter((entry) => entry.id !== passkey.id));
+      notify('Passkey removed');
+    } catch (next) {
+      setPasskeyError(passkeyErrorMessage(next));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const eraseAccount = async () => {
     if (!confirm(
       'Delete your FinanceHub cloud account and every cloud budget record?\n\n'
@@ -93,7 +145,7 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
 
   if (isLocal) {
     return (
-      <Section title="Account security" sub="MFA and cloud account deletion are available for signed-in cloud accounts">
+      <Section title="Account security" sub="Passkeys, MFA and cloud account deletion are available for signed-in cloud accounts">
         <div style={{ padding: 16 }}><Empty>This is a local-only workspace. Use Remove local copy or reset in Data &amp; backups to erase this device copy.</Empty></div>
       </Section>
     );
@@ -102,12 +154,17 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
   return (
     <Section
       title="Account security"
-      sub={`Signed in as ${userEmail ?? 'your account'} · authenticator-app MFA and self-serve account deletion`}
-      actions={<Badge tone={factors.length ? 'green' : 'amber'}>{factors.length ? 'MFA active' : 'MFA not set up'}</Badge>}
+      sub={`Signed in as ${userEmail ?? 'your account'} · passkeys, authenticator-app MFA and self-serve account deletion`}
+      actions={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Badge tone={passkeyAvailable && passkeys.length ? 'green' : 'amber'}>
+          {passkeyAvailable ? `${passkeys.length} passkey${passkeys.length === 1 ? '' : 's'}` : 'Passkeys unavailable'}
+        </Badge>
+        <Badge tone={factors.length ? 'green' : 'amber'}>{factors.length ? 'MFA active' : 'MFA not set up'}</Badge>
+      </div>}
     >
       <div style={{ padding: 16, display: 'grid', gap: 12 }}>
         <div className="notice info">
-          Add a time-based authenticator app (TOTP). Passkeys still depend on the Supabase project’s WebAuthn configuration and are not enabled by this build.
+          Add a passkey for phishing-resistant sign-in, or a time-based authenticator app (TOTP) as a second factor.
         </div>
         {error && <div className="notice danger" role="alert">{error}</div>}
         {!loaded && <div className="muted">Checking account security…</div>}
@@ -140,6 +197,40 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
             </div>
           </div>
         )}
+        <hr style={{ border: 0, borderTop: '1px solid var(--line)', width: '100%' }} />
+        <div>
+          <strong>Passkeys</strong>
+          <div className="muted small" style={{ margin: '4px 0 10px' }}>
+            Sign in without a password using Windows Hello, Touch ID, a security key or your password manager. A passkey is stored by your device, not by FinanceHub.
+          </div>
+          {!passkeyAvailable ? (
+            <div className="notice info">
+              Passkeys need the hosted website in a supported browser. The packaged desktop window loads local files and cannot use WebAuthn.
+            </div>
+          ) : (
+            <>
+              {passkeys.length > 0 && (
+                <div className="list" style={{ marginBottom: 10 }}>
+                  {passkeys.map((passkey) => (
+                    <div className="list-row" key={passkey.id}>
+                      <div>
+                        <div className="title">{passkey.friendlyName}</div>
+                        <div className="sub">
+                          Created {new Date(passkey.createdAt).toLocaleDateString()}
+                          {passkey.lastUsedAt ? ` · Last used ${new Date(passkey.lastUsedAt).toLocaleDateString()}` : ' · Not used yet'}
+                        </div>
+                      </div>
+                      <button className="btn ghost sm" disabled={busy} onClick={() => void forgetPasskey(passkey)}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="btn" disabled={busy} onClick={() => void addPasskey()}>Add a passkey</button>
+              {passkeys.length === 0 && <div className="muted small" style={{ marginTop: 8 }}>No passkeys registered yet.</div>}
+            </>
+          )}
+          {passkeyError && <div className="notice danger" role="alert" style={{ marginTop: 10 }}>{passkeyError}</div>}
+        </div>
         <hr style={{ border: 0, borderTop: '1px solid var(--line)', width: '100%' }} />
         <div>
           <strong>Delete cloud account</strong>

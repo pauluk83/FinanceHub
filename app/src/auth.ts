@@ -78,6 +78,61 @@ export async function signInWithProvider(provider: AuthProvider): Promise<void> 
   if (error) throw error;
 }
 
+/** WebAuthn needs a secure hosted origin; the packaged Electron window loads a local file. */
+export function passkeysSupported(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  if (!window.location || window.location.protocol === 'file:' || !window.isSecureContext) return false;
+  if (typeof window.PublicKeyCredential === 'undefined') return false;
+  return typeof navigator.credentials?.create === 'function' && typeof navigator.credentials?.get === 'function';
+}
+
+/** Turn WebAuthn and Supabase passkey errors into messages a user can act on. */
+export function passkeyErrorMessage(error: unknown): string {
+  const source = error as { code?: unknown; message?: unknown } | null;
+  const code = typeof source?.code === 'string' ? source.code : '';
+  const raw = error instanceof Error
+    ? error.message
+    : typeof source?.message === 'string'
+      ? source.message
+      : 'The passkey request did not complete. Please try again.';
+
+  if (code === 'passkey_disabled' || /passkey_disabled|passkeys? (?:is|are) not enabled/i.test(raw)) {
+    return 'Passkey sign-in is not enabled for this project yet.';
+  }
+  if (code === 'too_many_passkeys' || /too_many_passkeys|maximum number of passkeys/i.test(raw)) {
+    return 'This account has reached its passkey limit. Remove one before adding another.';
+  }
+  if (code === 'webauthn_credential_exists' || /already.*registered|credential_exists/i.test(raw)) {
+    return 'This device already has a passkey for FinanceHub.';
+  }
+  if (code === 'webauthn_credential_not_found' || /credential_not_found|no passkey/i.test(raw)) {
+    return 'No FinanceHub passkey was found on this device. Sign in with your password, then add a passkey in Account security.';
+  }
+  if (code === 'webauthn_challenge_expired' || /challenge.*expired/i.test(raw)) {
+    return 'The passkey prompt expired. Try again.';
+  }
+  if (code === 'webauthn_verification_failed') {
+    return 'The passkey could not be verified. Try again or use your password.';
+  }
+  if (code === 'ERROR_CEREMONY_ABORTED' || /not allowed|timed out|abort|cancel/i.test(raw)) {
+    return 'The passkey prompt was cancelled or timed out.';
+  }
+  if (/browser does not support webauthn|webauthn.*not supported/i.test(raw)) {
+    return 'This browser does not support passkeys. Use the hosted FinanceHub app in a supported browser.';
+  }
+  if (/relying party|registrable domain|invalid domain/i.test(raw)) {
+    return 'Passkeys are registered for the FinanceHub domain. Open the hosted app at that address to use them.';
+  }
+  return raw;
+}
+
+export async function signInWithPasskey(): Promise<void> {
+  if (!authClient) throw new Error('Authentication is not configured.');
+  if (!passkeysSupported()) throw new Error('This browser does not support passkeys.');
+  const { error } = await authClient.auth.signInWithPasskey();
+  if (error) throw error;
+}
+
 export async function endSession(): Promise<void> {
   if (!authClient) return;
   const { error } = await authClient.auth.signOut();

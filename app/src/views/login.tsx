@@ -3,6 +3,9 @@ import {
   authClient,
   authConfigured,
   authRedirectTo,
+  passkeyErrorMessage,
+  passkeysSupported,
+  signInWithPasskey,
   signInWithProvider,
   type AuthProvider,
 } from '../auth';
@@ -35,6 +38,17 @@ function ShieldIcon() {
       <path
         fill="currentColor"
         d="M12 2.4 20 5v6.1c0 5.1-3.4 9.1-8 10.5-4.6-1.4-8-5.4-8-10.5V5l8-2.6Zm0 2.2L6 6.5v4.6c0 3.9 2.4 7 6 8.3 3.6-1.3 6-4.4 6-8.3V6.5l-6-1.9Zm-.1 4.1 1.7 1.7 3.4-3.4 1.4 1.4-4.8 4.8-3.1-3.1 1.4-1.4Z"
+      />
+    </svg>
+  );
+}
+
+function PasskeyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M14.5 3a6.5 6.5 0 0 0-6.3 8.1L3 16.3V21h4.7l1.2-1.2v-2.1h2.1l1.2-1.2v-2.1h2l1.4-1.4A6.5 6.5 0 1 0 14.5 3Zm2.2 3.3a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6Z"
       />
     </svg>
   );
@@ -221,10 +235,11 @@ export function LoginPage({ onContinueLocally, onTryDemo, onOpenPeoplePortal }: 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState<AuthProvider | 'email' | null>(null);
+  const [busy, setBusy] = useState<AuthProvider | 'email' | 'passkey' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const passkeyAvailable = passkeysSupported();
   const disabled = !authConfigured || busy !== null;
   const title = mode === 'signIn' ? 'Welcome back' : mode === 'signUp' ? 'Create your account' : 'Reset your password';
   const subtitle = mode === 'signIn'
@@ -250,6 +265,18 @@ export function LoginPage({ onContinueLocally, onTryDemo, onOpenPeoplePortal }: 
       await signInWithProvider(provider);
     } catch (err) {
       setError(authErrorMessage(err));
+      setBusy(null);
+    }
+  };
+
+  const handlePasskey = async () => {
+    setError(null);
+    setNotice(null);
+    setBusy('passkey');
+    try {
+      await signInWithPasskey();
+    } catch (err) {
+      setError(passkeyErrorMessage(err));
       setBusy(null);
     }
   };
@@ -345,6 +372,13 @@ export function LoginPage({ onContinueLocally, onTryDemo, onOpenPeoplePortal }: 
               <span>Continue with Google</span>
               <span className="auth-social-arrow" aria-hidden="true">→</span>
             </button>
+            {mode === 'signIn' && passkeyAvailable && (
+              <button type="button" className="auth-social" onClick={() => void handlePasskey()} disabled={disabled}>
+                <PasskeyIcon />
+                <span>{busy === 'passkey' ? 'Waiting for your passkey…' : 'Sign in with a passkey'}</span>
+                <span className="auth-social-arrow" aria-hidden="true">→</span>
+              </button>
+            )}
           </div>
           <div className="auth-divider"><span>or use email and password</span></div>
         </>
