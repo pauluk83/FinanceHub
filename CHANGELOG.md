@@ -10,6 +10,7 @@ and the build time.
 ### Changed
 - Dashboard income and expenses breakdown rings with percentage legends
 - Add a confirmed Purge conflict history action that removes local and cloud conflict copies without touching budget records.
+- Remove the wildcard Supabase CSP fallback so a missing or invalid URL fails closed.
 
 ## [2026.11.12] — 12 November 2026
 

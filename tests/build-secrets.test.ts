@@ -11,6 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { connectSources } from '../app/csp.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const TEXT_FILE = /\.(?:js|mjs|html|json|css)$/i;
@@ -58,6 +59,17 @@ test('built bundles carry no legacy credential values', (t) => {
     }
   }
   assert.ok(scanned > 0, 'at least one built text file was scanned');
+});
+
+test('the CSP connect sources fail closed without a valid Supabase URL', () => {
+  assert.equal(connectSources({}), "'self'");
+  assert.equal(connectSources({ VITE_SUPABASE_URL: 'not a url' }), "'self'");
+  assert.equal(connectSources({ VITE_SUPABASE_URL: 'http://example.supabase.co' }), "'self'");
+  assert.equal(
+    connectSources({ VITE_SUPABASE_URL: 'https://abc.supabase.co' }),
+    "'self' https://abc.supabase.co wss://abc.supabase.co",
+  );
+  assert.doesNotMatch(connectSources({ VITE_SUPABASE_URL: '' }), /\*/);
 });
 
 test('the public repository ignores personal budgets, databases, builds and environment files', () => {

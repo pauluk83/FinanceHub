@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { connectSources } from './csp.ts';
 
 const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -12,24 +13,6 @@ const privateWorkbook = fileURLToPath(new URL('../data/workbook.json', import.me
 // The real workbook is private and gitignored. A clean checkout (CI, a contributor,
 // or the public repository) must still build, so it uses the blank seed instead.
 const hasPrivateWorkbook = existsSync(privateWorkbook);
-
-function connectSources(env: Record<string, string>): string {
-  const sources = new Set(["'self'"]);
-  try {
-    const url = new URL(env.VITE_SUPABASE_URL ?? '');
-    if (url.protocol === 'https:') {
-      sources.add(url.origin);
-      sources.add(`wss://${url.host}`);
-    } else {
-      sources.add('https://*.supabase.co');
-      sources.add('wss://*.supabase.co');
-    }
-  } catch {
-    sources.add('https://*.supabase.co');
-    sources.add('wss://*.supabase.co');
-  }
-  return [...sources].join(' ');
-}
 
 function productionCsp(command: string, env: Record<string, string>): Plugin {
   const policy = [
