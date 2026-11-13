@@ -27,8 +27,13 @@ jobs:
       - name: Typecheck
         run: npx tsc -p app/tsconfig.json --noEmit
 
-      - name: Test
-        run: npm test
+      - name: Test with the private workbook when available
+        run: |
+          if [ -f data/workbook.json ]; then
+            npm test
+          else
+            echo "SKIP npm test: data/workbook.json is intentionally absent from the public repository."
+          fi
 
       - name: Build hosted web bundle
         run: npm run build:web:hosted
