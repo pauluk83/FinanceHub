@@ -24,8 +24,9 @@ budget data or identity documents.
 - [ ] Supabase RLS enabled and tested with two accounts.
 - [ ] Service-role key never present in client code or public assets.
 - [ ] TOTP MFA enabled and tested; recovery path documented.
-- [ ] Passkey/WebAuthn settings recorded (RP ID and origins) after `OWNER_ACTIONS.md`.
-- [ ] Account-deletion SQL applied and tested with a throwaway account.
+- [x] Passkey/WebAuthn settings recorded 13 November 2026: display name `FinanceHub`; RP ID `financehub.freedev.app`; origin `https://financehub.freedev.app`. In-app enrolment/sign-in UI is still pending.
+- [x] Account-deletion SQL applied 13 November 2026; `SECURITY DEFINER`, owned by `postgres`, `anon` execute denied and `authenticated` allowed.
+- [ ] Account deletion tested with a throwaway account (never the owner's account).
 - [x] Pre-rotation conflict history purged and old backups removed (owner confirmed 13 November 2026).
 - [ ] Encrypted backup and restore tested; automatic restore point observed.
 - [ ] Redacted support bundle checked for names, amounts and credentials.

@@ -15,11 +15,15 @@ this order. They are not performed by the app build.
 The purge removes local and cloud conflict snapshots only; budget records are not changed.
 The owner confirmed this step and the old backup-file removal on 13 November 2026.
 
-## 2. Apply the account-deletion SQL
+## 2. Apply the account-deletion SQL — COMPLETED 13 NOVEMBER 2026
 
 The app already has **Settings → Account security → Delete cloud account permanently**.
 It calls the `delete_my_account` RPC. The function is defined in
 `db/migrations/postgres/0003_account_deletion.sql` and is not applied automatically.
+
+**Applied and verified 13 November 2026.** The function exists as `SECURITY DEFINER`,
+owned by `postgres`, and `anon` has no execute privilege; only `authenticated` does.
+The function still refuses calls when `auth.uid()` is null.
 
 1. Open **Supabase → SQL Editor** for the FinanceHub project.
 2. Run the whole of `db/migrations/postgres/0003_account_deletion.sql` once. It is
@@ -37,7 +41,7 @@ join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and p.proname = 'delete_my_account';
 ```
 
-4. In a private window, create a throwaway account with no real data, sign in, and use
+4. **Still pending — throwaway-account test.** In a private window, create a throwaway account with no real data, sign in, and use
    **Delete cloud account permanently**. Confirm:
    - the app signs out;
    - signing in again creates a fresh account;
@@ -50,11 +54,16 @@ The function deletes `auth.users` for `auth.uid()`; every public table reference
 A local workspace copy and exported files are outside this deletion and must be removed
 separately by the owner.
 
-## 3. Enable passkeys / WebAuthn in Supabase
+## 3. Enable passkeys / WebAuthn in Supabase — COMPLETED 13 NOVEMBER 2026
 
 Passkey support is a Supabase beta feature. Enabling it configures the backend; this
 build does not yet show passkey enrolment or sign-in controls, so users will not see a
 passkey option until that UI is added.
+
+**Configured 13 November 2026.** Passkey authentication is on with display name
+`FinanceHub`, RP ID `financehub.freedev.app` and origin `https://financehub.freedev.app`.
+The page was reloaded after saving to confirm the values persisted. No in-app passkey
+enrolment or sign-in test has been run because that UI does not exist yet.
 
 1. Open **Supabase → Authentication → Passkeys**.
 2. Turn on **Enable Passkey authentication**.
@@ -66,8 +75,11 @@ passkey option until that UI is added.
      project settings if you test passkeys there.
 4. Save. Keep the RP ID stable: changing it makes every existing passkey unusable.
 5. Confirm the project's Site URL and redirect URLs include
-   `https://financehub.freedev.app/`.
-6. Record the configuration in the evidence checklist. Do not enable passkeys as a
+   `https://financehub.freedev.app/`. Confirmed 13 November 2026: the Site URL is
+   `https://financehub.freedev.app/` and the redirect list includes
+   `https://financehub.freedev.app/`, `https://financehub.freedev.app/**`,
+   `http://localhost:5173/**` and the desktop callback.
+6. Recorded in `docs/compliance/EVIDENCE_CHECKLIST.md`. Do not enable passkeys as a
    required factor until the in-app enrolment and recovery flow has been tested.
 
 ## 4. Privacy and processor actions

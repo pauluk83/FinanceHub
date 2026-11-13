@@ -13,6 +13,7 @@ test('account deletion is owner-bound, security definer and authenticated only',
   assert.match(sql, /security definer/i);
   assert.match(sql, /auth\.uid\(\)/i);
   assert.match(sql, /delete from auth\.users/i);
+  assert.match(sql, /revoke all on function public\.delete_my_account\(\) from public, anon/i);
   assert.match(sql, /grant execute on function public\.delete_my_account\(\) to authenticated/i);
 });
 

@@ -15,5 +15,7 @@ begin
 end;
 $$;
 
-revoke all on function public.delete_my_account() from public;
+-- Supabase grants EXECUTE to anon and authenticated by default, so revoke anon
+-- explicitly as well as PUBLIC. The function still checks auth.uid() itself.
+revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;

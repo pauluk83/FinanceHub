@@ -129,9 +129,10 @@ Implemented: the calculation core and workbook parity, the Windows/web UI, cloud
 the credential vault, people statements, app lock, year rollover, provider setup and
 ledgers, menu layout, legal documents, the two changelogs and GitHub release publishing.
 
-Outstanding: iOS, bank linking, passkey configuration, packaged-app checks and professional
-review of the compliance drafts. The pre-rotation conflict history and old backups were
-purged by the owner on 13 November 2026.
+Outstanding: iOS, bank linking, passkey enrolment UI, packaged-app checks, a
+throwaway-account deletion test and professional review of the compliance drafts. The
+pre-rotation conflict history and old backups were purged by the owner on 13 November
+2026; the Supabase deletion function and passkey backend were configured the same day.
 SQLCipher full-database encryption is deferred; the DPAPI-backed value store remains the
 accepted design. Automatic daily restore points and Playwright browser coverage are
 implemented. [`PLAN.md`](./PLAN.md) is the single source for the
