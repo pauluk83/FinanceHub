@@ -13,6 +13,7 @@ and the build time.
 - Remove the wildcard Supabase CSP fallback so a missing or invalid URL fails closed.
 - Create one device-encrypted automatic restore point per day, keeping the newest seven.
 - Add Playwright browser coverage for transaction edits, CSV staging, month-end locking, restore points and statement totals.
+- Download a redacted support bundle from Data health for troubleshooting without sharing names, amounts or credentials.
 
 ## [2026.11.12] — 12 November 2026
 

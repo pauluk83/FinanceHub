@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildEngine, type Bill, type Dataset, type Tx } from '../core/engine.ts';
 import { buildDataHealth, type HealthCheck } from '../core/dataHealth.ts';
+import { buildSupportBundle } from '../app/src/supportBundle.ts';
 
 const TX: Tx = {
   row: 1,
@@ -73,6 +74,28 @@ function finding(ds: Dataset, id: string): HealthCheck | undefined {
 function findingWith(ds: Dataset, id: string, options: Parameters<typeof report>[1]): HealthCheck | undefined {
   return report(ds, options).checks.find((check) => check.id === id);
 }
+
+test('a support bundle contains counts but no names, comments or amounts', () => {
+  const ds = base();
+  ds.accounts[0].name = 'Secret Account';
+  ds.transactions[0] = { ...ds.transactions[0], comments: 'Private purchase', amountPence: 999999 };
+  const bundle = buildSupportBundle({
+    ds,
+    report: report(ds),
+    app: { version: '2026.11.13', buildId: 'test-build', builtAt: '2026-11-13' },
+    conflicts: 2,
+    backup: { lastExportedAt: '2026-11-08T10:00:00.000Z', lastRestorePointAt: null },
+    runtime: { userAgent: 'test-agent', platform: 'test', language: 'en-GB', online: true },
+    now: '2026-11-13T12:00:00.000Z',
+  });
+  const text = JSON.stringify(bundle);
+  assert.equal(text.includes('Secret Account'), false);
+  assert.equal(text.includes('Private purchase'), false);
+  assert.equal(text.includes('999999'), false);
+  assert.equal(bundle.dataset.counts.transactions, 1);
+  assert.equal(bundle.sync.conflicts, 2);
+  assert.equal(bundle.schema, 'financehub-support-v1');
+});
 
 test('a healthy budget passes every check', () => {
   const result = report(base());

@@ -47,6 +47,14 @@ test('statement totals render for the selected account', async ({ page }) => {
   await expect(page.getByText('£12,045.10', { exact: true }).first()).toBeVisible();
 });
 
+test('a redacted support bundle downloads', async ({ page }) => {
+  await page.getByRole('button', { name: /Data health/ }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download support bundle' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^financehub-support-\d{4}-\d{2}-\d{2}\.json$/);
+});
+
 test('a bank CSV is staged and only added after confirmation', async ({ page }) => {
   await page.getByRole('button', { name: /Import/ }).click();
   await page.locator('input[type="file"]').setInputFiles('tests/e2e/fixtures/bank.csv');

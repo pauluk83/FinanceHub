@@ -3,6 +3,9 @@ import { Badge, Card, Empty, Section, Table } from '../components';
 import { buildDataHealth, type HealthCheck } from '../../../core/dataHealth';
 import { billSheetsFor } from '../billSheets';
 import { lastBackupExportedAt, latestRestorePointAt } from '../backupStore';
+import { buildSupportBundle } from '../supportBundle';
+import { APP_CHANGELOG } from '../appChangelog.generated';
+import { download, todayIso } from '../format';
 
 function severityLabel(severity: HealthCheck['severity']): string {
   if (severity === 'critical') return 'Critical';
@@ -18,7 +21,7 @@ function severityTone(severity: HealthCheck['severity']): string {
   return 'green';
 }
 
-export function DataHealthView({ ds, engine, go, syncConflicts, syncHealth, userId }: ViewProps) {
+export function DataHealthView({ ds, engine, go, notify, syncConflicts, syncHealth, userId }: ViewProps) {
   const report = buildDataHealth(ds, engine, {
     sheets: billSheetsFor(ds),
     syncConflicts: syncConflicts.length,
@@ -40,6 +43,27 @@ export function DataHealthView({ ds, engine, go, syncConflicts, syncHealth, user
   const statusTone = report.status === 'critical' ? 'red' : report.status === 'warning' ? 'amber' : 'green';
   const noticeTone = report.status === 'critical' ? 'danger' : report.status === 'warning' ? 'warn' : 'info';
 
+  const downloadSupportBundle = () => {
+    const bundle = buildSupportBundle({
+      ds,
+      report,
+      app: { version: APP_CHANGELOG.version, buildId: APP_CHANGELOG.buildId, builtAt: APP_CHANGELOG.builtAt },
+      conflicts: syncConflicts.length,
+      backup: {
+        lastExportedAt: lastBackupExportedAt(userId),
+        lastRestorePointAt: latestRestorePointAt(userId),
+      },
+      runtime: {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        online: navigator.onLine,
+      },
+    });
+    download(`financehub-support-${todayIso()}.json`, JSON.stringify(bundle, null, 2), 'application/json');
+    notify('Support bundle downloaded — no names, amounts or credentials included');
+  };
+
   return (
     <>
       <section className="hero">
@@ -60,6 +84,7 @@ export function DataHealthView({ ds, engine, go, syncConflicts, syncHealth, user
             <span>Locked months <strong>{report.stats.lockedMonths}</strong></span>
           </div>
           <div className="muted">This page only reads the loaded budget.</div>
+          <button className="btn" type="button" onClick={downloadSupportBundle}>Download support bundle</button>
         </div>
       </section>
 
