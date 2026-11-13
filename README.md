@@ -129,9 +129,8 @@ Implemented: the calculation core and workbook parity, the Windows/web UI, cloud
 the credential vault, people statements, app lock, year rollover, provider setup and
 ledgers, menu layout, legal documents, the two changelogs and GitHub release publishing.
 
-Outstanding: iOS, code signing and auto-update, SQLCipher/full-database encryption,
-live two-account/two-device validation, automated browser E2E coverage, and rotation of
-credentials exposed in older builds and snapshots. [`PLAN.md`](./PLAN.md) is the single
+Outstanding: iOS, SQLCipher/full-database encryption, automated browser E2E coverage,
+and the purge of pre-rotation snapshots and old backups. [`PLAN.md`](./PLAN.md) is the single
 source for the roadmap, release gates and security findings.
 
 ## Owner and licence
