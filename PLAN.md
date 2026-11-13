@@ -241,8 +241,7 @@ No secret values were read or printed during this review. Severity reflects the 
   - Provider portal, bill and charge-letter URLs are accepted only as plain HTTP or HTTPS without embedded credentials, both in provider fields and on backup restore.
   - Covered by `tests/provider-setup.test.ts` and `tests/import-safety.test.ts`; React 19 still blocks script URLs defensively.
 - **S-10 — Release artifact integrity is weak.**
-  - The installer is unsigned, uses the default Electron icon and has no auto-update/rollback channel.
-  - Remediation: code signing, branded installer and signed update feed before distribution.
+  - The installer is unsigned and uses the default Electron icon. Code signing and signed auto-update were removed from scope by the owner on 2026-11-12; the unsigned installer is an accepted distribution risk.
 - **S-11 — OAuth desktop callback still lacks an explicit callback test.**
   - The client uses Supabase PKCE and forwards `code`/`error` from the loopback callback.
   - Remaining remediation: add an automated forged/replayed callback test and document whether Supabase’s PKCE verification is the accepted state check.
@@ -422,7 +421,7 @@ Competitor comparison, the gaps worth closing and the explicit non-goals are in 
 
 ### Guiding order
 
-1. **Protect the data** — backups, encryption, app lock, signing.
+1. **Protect the data** — backups, encryption and app lock.
 2. **Make imports trustworthy** — reconciliation and secure bank linking.
 3. **Help users plan** — forecast, budgets, goals and alerts.
 4. **Make collaboration safe** — conflicts, realtime and sharing.
@@ -438,8 +437,7 @@ Competitor comparison, the gaps worth closing and the explicit non-goals are in 
 | Local app lock (PIN or Windows Hello) | Protects a device-only workspace, including local mode with no account | M | Electron secure store |
 | Credential vault UI | Lets users store provider logins without plaintext | M | Existing vault schema |
 | SQLCipher database encryption | Encrypts the whole local database, not just values | L | Native SQLite build |
-| Code signing | Removes Windows security warnings and establishes publisher identity | M | Certificate |
-| Auto-update and rollback | Delivers fixes without asking users to reinstall | L | Signing and update feed |
+| Auto-update and rollback | Delivers fixes without asking users to reinstall | L | Update feed |
 | Branded icon and installer artwork | Removes the default Electron identity | S | Brand assets |
 | CI for typecheck, tests, build and installer | Prevents regressions on every change | M | Repository runner |
 | Automated UI tests | Covers add/edit/delete, import, restore, month-end and recovery | L | Stable test harness |
@@ -511,11 +509,11 @@ Competitor comparison, the gaps worth closing and the explicit non-goals are in 
 1. Encrypted backups and restore points.
 2. Local app lock.
 3. Credential vault UI.
-4. Code signing and branded icon.
+4. Branded icon.
 5. CI, UI tests and crash reporting.
 6. Privacy policy, account deletion and data export.
 
-**Exit:** a user can recover from a lost or corrupted device, local-only mode is protected, and Windows no longer warns about an unknown publisher.
+**Exit:** a user can recover from a lost or corrupted device and local-only mode is protected.
 
 #### Feature phase 2 — Import and reconciliation
 
@@ -843,7 +841,7 @@ Remaining:
 
 Exit criteria: every figure on Dashboard, Monthly, Statements and each provider sheet matches for every month **and** year; month-close/rollover/bill-change/transfer cases in the Changelog are test cases.
 
-### Phase 3 — Windows app — **UI built; installer unsigned**
+### Phase 3 — Windows app — **UI built; installer available**
 
 - Electron/Vite scaffold, dark theme tokens from the workbook palette, 24-section shell.
 - Dashboard (YTD cards, reconciliation with penny tolerance, utilisation, bills, holiday countdown), Monthly, Month end, Transactions (virtualised grid, keyboard entry, auto-lock status), Accounts, Cards, People, Bills, provider ledgers, Statements, Import, Settings hub, Changelog, Guides.
@@ -960,7 +958,6 @@ Scope assumed for the current build:
 - [ ] Microsoft Store track (only if chosen): Partner Center account, reserved app identity, age-rating questionnaire, privacy-policy URL, support contact and Store listing disclosures that match the real data flows.
 - [ ] Review the Microsoft Store Policies that apply: distinctive functionality, security, personal-data handling and the financial-services policy (for example Policy 7.20). Fix anything the listing cannot honestly claim.
 - [ ] Package for Store requirements (MSIX) and pass the Windows App Certification Kit; ensure a clean uninstall that leaves no budget or credentials behind.
-- [ ] Code sign the direct-download installer with an OV/EV certificate or Azure Trusted Signing, with timestamping, and build SmartScreen reputation before publicising the download.
 - [ ] Publish installer hashes, an SBOM and release notes per build.
 - [ ] Meet Windows accessibility expectations: UI Automation names, keyboard-only operation, contrast, focus order and 125–200% scaling.
 - [ ] Provide a privacy policy link and a support/security contact in the app and on the download page.
@@ -1005,19 +1002,19 @@ Scope assumed for the current build:
 - [ ] Store-listing disclosures and privacy labels checked against the build.
 - [ ] Penetration-test report and remediation record.
 - [ ] Accessibility test record and scaling results.
-- [ ] Signed installer hashes, SBOM, release notes and the claim list from C-5.
+- [ ] Installer hashes, SBOM, release notes and the claim list from C-5.
 
 ### Compliance order and gates
 
 1. Close P0-8 (credentials removed) — data minimisation underpins C-1.
 2. Complete the UK data-protection pack in C-1 before any public distribution.
-3. Complete C-2 before publicising a Windows download; code signing first.
+3. Complete C-2 before publicising a Windows download.
 4. Open C-3 only when an iOS build can be made and tested on Apple hardware.
 5. Clear C-4 before any real bank connection.
 6. Complete C-5 before any public security claim.
 7. Assemble C-7 for every release; keep it with the build it describes.
 
-External dependencies that code changes cannot satisfy: legal review, certificate purchase, Apple hardware and account, ICO fee payment, any FCA application and third-party penetration testing.
+External dependencies that code changes cannot satisfy: legal review, Apple hardware and account, ICO fee payment, any FCA application and third-party penetration testing.
 
 ---
 
@@ -1212,12 +1209,12 @@ Open items:
 - Electron navigation guards and CSP have not been exercised inside a packaged installer yet.
 - The local-to-cloud consent screen is live-tested with Google sign-in. Keeping local retains the account session for manual Sync, Exit and Log out; local mode still does not auto-sync.
 - Recovery covers the device-cached budget document. Cloud sync is disabled while the local document is blocked, so a remote copy cannot overwrite it automatically.
-- The Windows installer is unsigned and uses the default Electron icon. Code signing, branded icons and auto-update need release credentials/assets.
+- The Windows installer is unsigned and uses the default Electron icon; this is an accepted distribution risk. A branded icon remains optional.
 - The renderer bundle still contains the workbook seed data; do not treat the installer as free of personal data until the seed is replaced or confirmed appropriate for distribution.
-- Live Google sign-in and one-account cloud sync are verified. A full visual click-through, packaged OAuth/CSP exercise, two-account RLS and two-device/offline/conflict tests remain release gates.
+- Live Google sign-in and one-account cloud sync are verified. A full visual click-through and packaged OAuth/CSP exercise remain release gates.
 - Provider credentials must never re-enter the seed, renderer bundle, plain backups, cloud `state_json` or sync-conflict snapshots.
 - The hosted `/FinanceHub/` build is structurally ready but not approved for public use until P0-8 and browser-storage hardening are complete.
-- Completing P0/P1/P2 does not equal compliance. The compliance workstream needs external legal, registrar, certificate, Apple-hardware and FCA inputs, and must be evidenced per release.
+- Completing P0/P1/P2 does not equal compliance. The compliance workstream needs external legal, registrar, Apple-hardware and FCA inputs, and must be evidenced per release.
 - The app must not describe itself as compliant, certified, approved or "bank-level secure" until the matching C-5/C-7 evidence exists.
 
 ---
@@ -1484,9 +1481,9 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
   - [x] A valid Supabase configuration now restricts CSP `connect-src` to the exact HTTPS/WSS origin; CSV/URL hardening is covered by A-13.
   - [ ] Remove the wildcard CSP fallback and add an exact-origin test.
   - [ ] Add OAuth `state`/nonce validation or document Supabase PKCE as the accepted check, with a forged/replayed callback test.
-  - [ ] Code signing, branded icon and signed update feed/rollback.
+  - [ ] Branded icon.
   - [~] Hosted web stays private until P0-8 and browser-storage hardening are complete.
-  - Acceptance: signed installer; forged/replayed callback rejected; CSP has no wildcard Supabase origin.
+  - Acceptance: installer builds; forged/replayed callback rejected; CSP has no wildcard Supabase origin.
 
 - [x] **A-13 — Content limits and CSV safety.** Implemented 2026-11-07.
   - CSV imports are rejected above **10 MB** or **20,000 physical data rows** before `parseCsv` runs (`core/importLimits.ts`, used by `app/src/views/tools.tsx`); backup restores use the shared **25 MB** cap.
