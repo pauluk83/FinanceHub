@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -24,13 +25,13 @@ test('a transaction can be added, edited and deleted', async ({ page }) => {
   await page.locator('input[type="date"]').fill('2026-11-12');
   await page.locator('input[placeholder="0.00"]').fill('12.34');
   await page.locator('input[placeholder="e.g. Food"]').fill('E2E lunch');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: /^Save( changes)?$/ }).click();
 
   let row = page.getByRole('row').filter({ hasText: 'E2E lunch' });
   await expect(row).toBeVisible();
   await row.getByRole('button', { name: 'Edit' }).click();
   await page.locator('input[placeholder="0.00"]').fill('99.99');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: /^Save( changes)?$/ }).click();
   row = page.getByRole('row').filter({ hasText: 'E2E lunch' });
   await expect(row).toContainText('99.99');
 
@@ -53,6 +54,19 @@ test('a redacted support bundle downloads', async ({ page }) => {
   await page.getByRole('button', { name: 'Download support bundle' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^financehub-support-\d{4}-\d{2}-\d{2}\.json$/);
+});
+
+test('an Excel statement downloads', async ({ page }) => {
+  await page.getByRole('button', { name: /Statements/ }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export Excel' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^statement-.+\.xls$/);
+  const file = await download.path();
+  expect(file).toBeTruthy();
+  const xml = await readFile(file as string, 'utf8');
+  expect(xml).toContain('urn:schemas-microsoft-com:office:spreadsheet');
+  expect(xml).toContain('Statement');
 });
 
 test('a bank CSV is staged and only added after confirmation', async ({ page }) => {

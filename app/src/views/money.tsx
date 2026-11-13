@@ -8,6 +8,8 @@ import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
+import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
+import { printHtml } from '../print';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
@@ -105,6 +107,54 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       ...rows.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.category ?? '', tagsText(t.tags), t.budgetTreatment, t.status]),
     ]));
     notify(`Exported ${rows.length} transactions`);
+  };
+
+  const exportExcel = () => {
+    download(
+      'financehub-transactions.xls',
+      buildExcelWorkbook([{
+        name: 'Transactions',
+        rows: [
+          ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status'],
+          ...rows.map((t) => [
+            t.date,
+            t.account,
+            t.type,
+            t.amountPence / 100,
+            t.comments,
+            t.category ?? '',
+            tagsText(t.tags),
+            t.budgetTreatment,
+            t.status,
+          ]),
+        ],
+      }]),
+      'application/vnd.ms-excel',
+    );
+    notify(`Exported ${rows.length} transactions to Excel`);
+  };
+
+  const printLog = () => {
+    const netPence = rows.reduce((sum, t) => sum + (t.type === 'Income' ? t.amountPence : -t.amountPence), 0);
+    const html = buildPrintReport({
+      title: 'FinanceHub transaction log',
+      subtitle: `${rows.length} rows · filters: ${account === 'All' ? 'all accounts' : account}, ${type === 'All' ? 'all types' : type}`,
+      summary: [
+        ['Rows', String(rows.length)],
+        ['Net', gbp(netPence)],
+      ],
+      head: ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags'],
+      rows: rows.map((t) => [
+        t.date,
+        t.account,
+        t.type,
+        gbp(t.amountPence),
+        t.comments,
+        t.category ?? '',
+        tagsText(t.tags),
+      ]),
+    });
+    if (!printHtml(html)) notify('The print view could not be opened');
   };
 
   const updateTransaction = (mutator: (dataset: typeof ds) => void) =>
@@ -388,6 +438,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
             Trash{deleted.length ? ` (${deleted.length})` : ''}
           </button>
           <button className="btn" onClick={exportRows}>Export CSV</button>
+          <button className="btn" onClick={exportExcel}>Export Excel</button>
+          <button className="btn" onClick={printLog}>Print / Save PDF</button>
           <button
             className="btn primary"
             onClick={() => {

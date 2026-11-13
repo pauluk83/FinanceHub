@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.13",
-  "buildId": "be45a788affe",
+  "buildId": "9d20ad542569",
   "builtAt": "2026-11-13",
   "releases": [
     {
@@ -20,7 +20,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Remove the wildcard Supabase CSP fallback so a missing or invalid URL fails closed.",
             "Create one device-encrypted automatic restore point per day, keeping the newest seven.",
             "Add Playwright browser coverage for transaction edits, CSV staging, month-end locking, restore points and statement totals.",
-            "Download a redacted support bundle from Data health for troubleshooting without sharing names, amounts or credentials."
+            "Download a redacted support bundle from Data health for troubleshooting without sharing names, amounts or credentials.",
+            "Export transactions and statements to Excel, and print or save them as PDF."
           ]
         }
       ]

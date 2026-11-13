@@ -8,6 +8,8 @@ import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { providerBilling } from '../providerSetup';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
+import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
+import { printHtml } from '../print';
 import type { VaultSecrets } from '../vault';
 
 const asset = (file: string) => `${import.meta.env.BASE_URL}${file}`;
@@ -937,7 +939,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   );
 }
 
-export function Statements({ ds, engine, year, availableYears, go }: ViewProps) {
+export function Statements({ ds, engine, year, availableYears, go, notify }: ViewProps) {
   const options = [
     ...ds.accounts.map((a) => a.name),
     ...ds.people.map((p) => p.shortName),
@@ -961,17 +963,58 @@ export function Statements({ ds, engine, year, availableYears, go }: ViewProps) 
   const primaryAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || '';
   const anchorAdjusted = account === primaryAccount;
 
+  const statementRows = st.lines.map((l) => [
+    l.date,
+    l.comments,
+    l.type === 'Income' ? (l.amountPence / 100).toFixed(2) : '',
+    l.type === 'Expense' ? (l.amountPence / 100).toFixed(2) : '',
+    (l.runningPence / 100).toFixed(2),
+  ]);
+  const safeAccount = account.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'account';
   const exportStatement = () => download(`statement-${account}-${reportYear}.csv`, toCsv([
     ['Date', 'Description', 'Repaid', 'Lent', 'Balance'],
-    ...st.lines.map((l) => [l.date, l.comments, l.type === 'Income' ? (l.amountPence / 100).toFixed(2) : '', l.type === 'Expense' ? (l.amountPence / 100).toFixed(2) : '', (l.runningPence / 100).toFixed(2)]),
+    ...statementRows,
   ]));
+  const exportExcel = () => {
+    download(
+      `statement-${safeAccount}-${reportYear}.xls`,
+      buildExcelWorkbook([{ name: 'Statement', rows: [['Date', 'Description', 'Repaid', 'Lent', 'Balance'], ...statementRows] }]),
+      'application/vnd.ms-excel',
+    );
+    notify(`Excel statement exported for ${account}`);
+  };
+  const printStatement = () => {
+    const html = buildPrintReport({
+      title: 'FinanceHub statement',
+      subtitle: `${account} · ${m === 'All' ? 'All months' : MONTH_LONG[Number(m) - 1]} · ${reportYear === 'All' ? 'All years' : reportYear}`,
+      summary: [
+        ['Opening balance', gbp(st.openingPence)],
+        ['Total repaid', gbp(st.totalRepaidPence)],
+        ['Total lent', gbp(st.totalLentPence)],
+        ['Closing balance', gbp(st.closingPence)],
+      ],
+      head: ['Date', 'Description', 'Repaid', 'Lent', 'Balance'],
+      rows: st.lines.map((l) => [
+        l.date,
+        l.comments,
+        l.type === 'Income' ? gbp(l.amountPence) : '',
+        l.type === 'Expense' ? gbp(l.amountPence) : '',
+        gbp(l.runningPence),
+      ]),
+    });
+    if (!printHtml(html)) notify('The print view could not be opened');
+  };
 
   return (
     <>
       <Section
         title="Statement"
         sub="Opening balance, total repaid/lent and running balance for the selected account"
-        actions={<button className="btn" onClick={exportStatement}>Export CSV</button>}
+        actions={<div className="page-actions">
+          <button className="btn" onClick={exportStatement}>Export CSV</button>
+          <button className="btn" onClick={exportExcel}>Export Excel</button>
+          <button className="btn" onClick={printStatement}>Print / Save PDF</button>
+        </div>}
       >
         <div className="toolbar">
           <select className="select" value={account} onChange={(e) => setAccount(e.target.value)} aria-label="Account">

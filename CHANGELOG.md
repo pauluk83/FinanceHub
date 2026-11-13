@@ -14,6 +14,7 @@ and the build time.
 - Create one device-encrypted automatic restore point per day, keeping the newest seven.
 - Add Playwright browser coverage for transaction edits, CSV staging, month-end locking, restore points and statement totals.
 - Download a redacted support bundle from Data health for troubleshooting without sharing names, amounts or credentials.
+- Export transactions and statements to Excel, and print or save them as PDF.
 
 ## [2026.11.12] — 12 November 2026
 

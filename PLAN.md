@@ -358,7 +358,7 @@ No secret values were read or printed during this review. Severity reflects the 
 - [ ] Accessibility and 125–200% scaling pass.
 - [ ] Code splitting for the renderer bundle.
 - [ ] Crash reporting with opt-in and no financial payloads.
-- [ ] Excel/PDF exports.
+- [x] Excel exports for the filtered transaction log and statements (SpreadsheetML, no runtime spreadsheet dependency) plus **Print / Save PDF** reports for both. PDF uses the browser/Electron print dialog so no report data leaves the device.
 - [ ] Holiday search and filtering.
 - [~] Privacy policy, terms and self-serve deletion delivered. Draft DPIA, retention schedule, DSAR procedure, breach runbook, privacy notice and evidence checklist are in `docs/compliance/`; the deletion SQL must be applied and the drafts reviewed by a professional.
 - [x] Redacted support diagnostics bundle from Data health: app/build, environment, dataset counts, health check identifiers and backup/sync timestamps only — no names, comments, amounts, credentials or raw messages.
