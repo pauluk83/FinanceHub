@@ -13,7 +13,6 @@ import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
 import { backupFileProblem, countCsvRows, csvFileProblem, csvRowProblem } from '../../../core/importLimits';
 import { classifyAccount } from '../../../core/accounts';
 import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
-import { applyWaterPaymentChange, waterPaymentTargets } from '../../../core/water';
 import { createVault, legacySecrets, rotateVault, sealVault, stripLegacySecrets, unlockVault, VAULT_MAX_HINT, VAULT_MIN_PASSPHRASE, type VaultField, type VaultSecrets } from '../vault';
 import { AppLockSection } from './appLock';
 import { planYearRollover, rolloverYear } from '../../../core/yearRollover';
@@ -351,13 +350,15 @@ function nextAprilDate(asOfDate: string): string {
   return `${month >= 4 ? year + 1 : year}-04-01`;
 }
 
-function nextMonthStart(asOfDate: string): string {
-  const year = Number(asOfDate.slice(0, 4)) || new Date().getFullYear();
-  const month = Number(asOfDate.slice(5, 7)) || 1;
-  return month === 12
-    ? `${year + 1}-01-01`
-    : `${year}-${String(month + 1).padStart(2, '0')}-01`;
-}
+type SettingsPane = 'account' | 'budget' | 'bills' | 'data' | 'app';
+
+const SETTINGS_PANES: { id: SettingsPane; label: string; summary: string }[] = [
+  { id: 'account', label: 'Account', summary: 'Session, passkeys, app lock, sync conflicts and the provider vault.' },
+  { id: 'budget', label: 'Budget', summary: 'Year rollover, core dates, accounts, people, access and cards.' },
+  { id: 'bills', label: 'Bills', summary: 'Rent changes and dated overrides for every bill.' },
+  { id: 'data', label: 'Data', summary: 'Backups, duplicate review, onboarding and reset.' },
+  { id: 'app', label: 'App', summary: 'Theme, sidebar layout and legal information.' },
+];
 
 const VAULT_PROVIDERS: { key: string; label: string; fields: { key: VaultField; label: string }[] }[] = [
   { key: 'rent', label: 'Rent', fields: [{ key: 'username', label: 'Username' }, { key: 'password', label: 'Password' }, { key: 'chargeLetterPassword', label: 'Charge letter password' }] },
@@ -633,12 +634,10 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
     payment: typeof ds.providers.rent?.monthlyPaymentPence === 'number' ? (ds.providers.rent.monthlyPaymentPence / 100).toFixed(2) : '',
     from: nextAprilDate(ds.settings.asOfDate),
   }));
-  const [waterChange, setWaterChange] = useState(() => ({
-    payment: typeof ds.providers.water?.monthlyPaymentPence === 'number' ? (ds.providers.water.monthlyPaymentPence / 100).toFixed(2) : '',
-    from: nextMonthStart(ds.settings.asOfDate),
-  }));
   const restoreInput = useRef<HTMLInputElement>(null);
   const [showDuplicates, setShowDuplicates] = useState(false);
+  const [settingsPane, setSettingsPane] = useState<SettingsPane>('account');
+  const activeSettingsPane = SETTINGS_PANES.find((pane) => pane.id === settingsPane) ?? SETTINGS_PANES[0];
   const duplicateScan = duplicateGroups(ds.transactions.filter((t) => t.autoBill !== true));
 
   const primaryAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || '';
@@ -651,11 +650,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
     : [];
   const rentPaymentRows = rentProvider && rentChange.from
     ? rentPaymentTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
-    : [];
-  const waterProvider = ds.providers.water;
-  const waterPaymentDraft = parseMoney(waterChange.payment);
-  const waterPaymentRows = waterProvider && waterChange.from
-    ? waterPaymentTargets(waterProvider, ds.settings.asOfDate, waterChange.from)
     : [];
   const nameExists = (name: string, old?: string) =>
     ds.accounts.some((a) => a.name === name && a.name !== old)
@@ -786,29 +780,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       : 'Rent payment updated — no future payment rows matched');
   };
 
-  const applyWaterPayment = () => {
-    if (!waterProvider) return notify('No Water sheet is loaded');
-    if (!waterChange.from) return notify('Choose the date the new Water payment starts');
-    if (waterPaymentDraft <= 0) return notify('Enter a monthly Water payment above zero');
-    if (!confirm(
-      `Change the monthly Water payment to ${gbp(waterPaymentDraft)} from ${dateUk(waterChange.from)}?\n\n`
-      + `${waterPaymentRows.length} Water statement month${waterPaymentRows.length === 1 ? '' : 's'} will update. `
-      + 'Earlier statement months and zero-payment months stay unchanged.',
-    )) return;
-    update((d) => {
-      applyWaterPaymentChange(d.providers.water, d.settings.asOfDate, waterPaymentDraft, waterChange.from);
-      const waterBill = d.bills.find((bill) => bill.name === 'Water');
-      if (waterBill) {
-        waterBill.baseAmountPence = waterPaymentDraft;
-        waterBill.amountPence = waterPaymentDraft;
-      }
-    });
-    setWaterChange({ ...waterChange, payment: (waterPaymentDraft / 100).toFixed(2) });
-    notify(waterPaymentRows.length
-      ? `Water payment updated — ${waterPaymentRows.length} statement month${waterPaymentRows.length === 1 ? '' : 's'} changed`
-      : 'Water payment updated — future Water bills will use the new amount');
-  };
-
   const addChange = () => {
     if (!change.bill) return notify('Choose a bill');
     update((d) => d.billChanges.push({
@@ -876,6 +847,27 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
 
   return (
     <>
+      <nav className="settings-switcher" aria-label="Settings groups">
+        <div className="settings-switcher-head">
+          <strong>{activeSettingsPane.label}</strong>
+          <span>{activeSettingsPane.summary}</span>
+        </div>
+        <div className="tabs settings-tabs">
+          {SETTINGS_PANES.map((pane) => (
+            <button
+              key={pane.id}
+              type="button"
+              className={`tab ${settingsPane === pane.id ? 'active' : ''}`}
+              aria-pressed={settingsPane === pane.id}
+              onClick={() => setSettingsPane(pane.id)}
+            >
+              {pane.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      <div className="settings-pane" hidden={settingsPane !== 'account'}>
       <Section
         title="Account"
         sub={isLocal
@@ -1008,16 +1000,9 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       </Section>
 
       <CredentialVault ds={ds} update={update} notify={notify} vault={vault} vaultSession={vaultSession} setVault={setVault} setVaultSession={setVaultSession} />
+      </div>
 
-      <Section title="Appearance" sub="Theme preference is stored on this device">
-        <div className="tabs" style={{ borderBottom: 0 }}>
-          <button className={`tab ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
-          <button className={`tab ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
-        </div>
-      </Section>
-
-      <MenuLayoutSection ds={ds} update={update} notify={notify} />
-
+      <div className="settings-pane" hidden={settingsPane !== 'budget'}>
       <YearRolloverSection ds={ds} year={year} update={update} setYear={setYear} notify={notify} />
 
       <Section title="Core settings" sub="Every screen reads from these values">
@@ -1125,7 +1110,9 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
           <button className="btn primary" onClick={addCard}>Add card</button>
         </div>
       </Section>
+      </div>
 
+      <div className="settings-pane" hidden={settingsPane !== 'bills'}>
       {rentProvider && (
         <Section title="Rent" sub="Change the monthly rent or payment from the chosen date; passed history stays intact">
           <div className="inline-form">
@@ -1178,39 +1165,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
         </Section>
       )}
 
-      {waterProvider && (
-        <Section title="Water" sub="Change the monthly payment from a chosen date; earlier statement months stay intact">
-          <div className="inline-form">
-            <Field label="Monthly payment £" hint={`Current ${gbp(waterProvider.monthlyPaymentPence)}`}>
-              <input
-                className="input"
-                aria-label="Water monthly payment"
-                inputMode="decimal"
-                value={waterChange.payment}
-                onChange={(e) => setWaterChange({ ...waterChange, payment: e.target.value })}
-              />
-            </Field>
-            <Field label="Apply from" hint="Earlier and zero-payment months stay untouched">
-              <input
-                className="input"
-                aria-label="Water payment effective date"
-                type="date"
-                value={waterChange.from}
-                onChange={(e) => setWaterChange({ ...waterChange, from: e.target.value })}
-              />
-            </Field>
-            <button className="btn primary" onClick={applyWaterPayment}>Update future Water payment</button>
-          </div>
-          <div className="notice info" style={{ margin: '0 16px 16px' }}>
-            Payment will be <strong>{gbp(waterPaymentDraft)}</strong> from {dateUk(waterChange.from)}.{' '}
-            {waterPaymentRows.length} current-year Water statement month{waterPaymentRows.length === 1 ? '' : 's'} will update.
-            <div className="muted small" style={{ marginTop: 4 }}>
-              The monthly payment card updates now; earlier statement months and zero-payment months are retained. Future Water bills use the new amount from this date.
-            </div>
-          </div>
-        </Section>
-      )}
-
       <Section title="Bill changes" sub="Bill definitions and link sheets live in Bills. Add one-off or dated overrides here.">
         <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Due day', 'Type', 'Note', '']} numHead={[3]}>
           {ds.billChanges.map((c, i) => (
@@ -1241,7 +1195,9 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
           <button className="btn primary" onClick={addChange}>Add change</button>
         </div>
       </Section>
+      </div>
 
+      <div className="settings-pane" hidden={settingsPane !== 'data'}>
       <Section title="Onboarding & reset" sub="Open Guided setup for a new budget or a clean start. Once your budget has data, its sidebar entry is hidden.">
         <div className="toolbar" style={{ borderBottom: 0 }}>
           <button className="btn" onClick={() => go('setup')}>Open Guided setup</button>
@@ -1278,7 +1234,9 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       </Section>
 
       <EncryptedBackupSection ds={ds} update={update} notify={notify} userId={userId} />
+      </div>
 
+      <div className="settings-pane" hidden={settingsPane !== 'app'}>
       <Section title="About & legal" sub="Ownership, copyright, trademark and the documents that govern your use of FinanceHub">
         <div style={{ padding: 16, display: 'grid', gap: 10 }}>
           <div><strong>FinanceHub™</strong> <span className="muted small">· version {LEGAL_VERSION}</span></div>
@@ -1332,6 +1290,16 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
           </>
         )}
       </Section>
+
+      <Section title="Appearance" sub="Theme preference is stored on this device">
+        <div className="tabs" style={{ borderBottom: 0 }}>
+          <button className={`tab ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
+          <button className={`tab ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
+        </div>
+      </Section>
+
+      <MenuLayoutSection ds={ds} update={update} notify={notify} />
+      </div>
     </>
   );
 }

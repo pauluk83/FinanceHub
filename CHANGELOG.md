@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.14] — 14 November 2026
+
+### Changed
+- Removed the Water payment panel from Settings and grouped the remaining settings into Account, Budget, Bills, Data and App tabs
+
 ## [2026.11.13] — 13 November 2026
 
 ### Changed

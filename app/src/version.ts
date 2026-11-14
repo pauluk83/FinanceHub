@@ -7,4 +7,4 @@
 declare const __APP_VERSION__: string | undefined;
 
 export const APP_VERSION =
-  typeof __APP_VERSION__ === 'string' && __APP_VERSION__ ? __APP_VERSION__ : '2026.11.13';
+  typeof __APP_VERSION__ === 'string' && __APP_VERSION__ ? __APP_VERSION__ : '2026.11.14';

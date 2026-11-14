@@ -246,7 +246,7 @@ export const USER_GUIDE: GuideEntry[] = [
     summary: 'Water statements: bills, payments, the monthly plan and the running balance.',
     steps: [
       'Record each bill period with its bill and payment amounts.',
-      'Use Settings → Water payment change when the monthly plan changes; future months follow the new plan.',
+      'When the monthly plan changes, update the future payment rows on the Water page; earlier months stay intact.',
       'Check the balance at the As-of date against the latest statement.',
     ],
     notes: [
@@ -426,7 +426,7 @@ export const USER_GUIDE: GuideEntry[] = [
     title: 'Settings',
     summary: 'The single source of truth: accounts, people, cards, bills, provider logins, sync, backups and the sidebar layout.',
     steps: [
-      'Use the sections to add or edit accounts, people, cards, bills, bill changes, rent and water changes.',
+      'Use the Account, Budget, Bills, Data and App tabs to reach every group without scrolling through one long page.',
       'Open the credential vault to store provider logins, and People sign-ins to create read-only #people access.',
       'In a local-only workspace, App lock sets a 4–8 digit PIN, a 1–30 minute idle window and a Lock button in the top bar. It applies to this device only and starts locked the next time the workspace opens.',
       'Set the budget year, As-of date, anchor date, theme and Menu layout.',

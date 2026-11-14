@@ -317,6 +317,15 @@ tr.locked td { color: var(--muted); }
 .tab.active { background: var(--accent-soft); color: var(--text); border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
 .tab:hover { color: var(--text); }
 
+.settings-switcher { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.settings-switcher-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; padding: 13px 16px 0; }
+.settings-switcher-head strong { font-size: 13px; }
+.settings-switcher-head span { color: var(--muted); font-size: 12px; }
+.settings-tabs { flex-wrap: wrap; border-bottom: 0; padding-top: 8px; }
+.settings-tabs .tab { min-width: 76px; }
+.settings-pane { display: flex; flex-direction: column; gap: 18px; }
+.settings-pane[hidden] { display: none; }
+
 .two-col { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .list { display: flex; flex-direction: column; }
 .list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); }

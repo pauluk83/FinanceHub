@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.13",
-  "buildId": "2d5916cbac50",
-  "builtAt": "2026-11-13",
+  "version": "2026.11.14",
+  "buildId": "ae08bcdb1648",
+  "builtAt": "2026-11-14",
   "releases": [
+    {
+      "version": "2026.11.14",
+      "date": "14 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Removed the Water payment panel from Settings and grouped the remaining settings into Account, Budget, Bills, Data and App tabs"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.13",
       "date": "13 November 2026",
