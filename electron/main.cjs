@@ -530,8 +530,13 @@ function startUpdateHelper(pending) {
   const directory = path.dirname(pending.staged);
   const script = path.join(directory, 'install-update.ps1');
   const log = path.join(directory, 'install.log');
-  fs.writeFileSync(script, [
-    'param([int]$AppPid,[string]$NewAsar,[string]$TargetAsar,[string]$Exe,[string]$Log)',
+  const literal = (value) => `'${String(value).replace(/'/g, "''")}'`;
+  const body = [
+    `$AppPid = ${Number(process.pid)}`,
+    `$NewAsar = ${literal(pending.staged)}`,
+    `$TargetAsar = ${literal(pending.target)}`,
+    `$Exe = ${literal(pending.exe)}`,
+    `$Log = ${literal(log)}`,
     "$ErrorActionPreference = 'Stop'",
     'function Wait-ForExit {',
     '  for ($i = 0; $i -lt 120; $i++) {',
@@ -560,18 +565,15 @@ function startUpdateHelper(pending) {
     '  Start-Process -FilePath $Exe',
     '}',
     '',
-  ].join('\r\n'), 'utf8');
+  ].join('\r\n');
+  fs.writeFileSync(script, body, 'utf8');
+  const encoded = Buffer.from(body, 'utf16le').toString('base64');
 
   const child = spawn('powershell.exe', [
     '-NoProfile',
     '-NonInteractive',
     '-ExecutionPolicy', 'Bypass',
-    '-File', script,
-    '-AppPid', String(process.pid),
-    '-NewAsar', pending.staged,
-    '-TargetAsar', pending.target,
-    '-Exe', pending.exe,
-    '-Log', log,
+    '-EncodedCommand', encoded,
   ], { detached: true, windowsHide: true, stdio: 'ignore' });
   child.on('error', (error) => console.error('Update helper could not start:', error));
   if (!child.pid) throw new Error('The update helper did not start');
