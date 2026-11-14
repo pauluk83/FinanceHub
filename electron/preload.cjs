@@ -31,4 +31,15 @@ contextBridge.exposeInMainWorld('financeHubDesktop', {
       return () => ipcRenderer.removeListener('oauth:callback', listener);
     },
   },
+  updater: {
+    check: (current) => ipcRenderer.invoke('updater:check', current),
+    download: () => ipcRenderer.invoke('updater:download'),
+    cancel: () => ipcRenderer.invoke('updater:cancel'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    onState: (callback) => {
+      const listener = (_event, state) => callback(state);
+      ipcRenderer.on('updater:state', listener);
+      return () => ipcRenderer.removeListener('updater:state', listener);
+    },
+  },
 });

@@ -45,6 +45,12 @@ export function releaseNotes(version, changelogPath = join(ROOT, 'CHANGELOG.md')
     `- \`FinanceHub-Setup-${version}.exe\` — the installer for this release`,
     '- `SHA256SUMS.txt` — SHA-256 checksum for the installer',
     '',
+    '## In-app delta updates',
+    '',
+    '- `update-manifest.json` — version, build id, release notes and block hashes',
+    '- `FinanceHub-app.asar` — the packaged app, fetched by changed byte ranges',
+    '- Updates are unsigned; SHA-256 verification detects corruption but is not a substitute for code signing.',
+    '',
     'The installer is unsigned, so Windows may show an unknown-publisher warning.',
   ].join('\n');
 }
@@ -149,7 +155,12 @@ async function main() {
   if (!existsSync(installer)) throw new Error(`${installer} is missing — run npm run dist:win first.`);
   if (!existsSync(checksums)) throw new Error(`${checksums} is missing — generate the checksum file first.`);
 
-  const result = await publishInstaller({ version, files: [installer, checksums], token });
+  const updateManifest = join(ROOT, 'release', 'update', 'update-manifest.json');
+  const updateAsar = join(ROOT, 'release', 'update', 'FinanceHub-app.asar');
+  if (!existsSync(updateManifest)) throw new Error(`${updateManifest} is missing — run npm run dist:win first.`);
+  if (!existsSync(updateAsar)) throw new Error(`${updateAsar} is missing — run npm run dist:win first.`);
+
+  const result = await publishInstaller({ version, files: [installer, checksums, updateManifest, updateAsar], token });
   console.log(`github release ${result.tag}: ${result.uploaded.map((asset) => `${asset.name} (${(asset.bytes / 1024 / 1024).toFixed(1)} MB)`).join(', ')}`);
 }
 

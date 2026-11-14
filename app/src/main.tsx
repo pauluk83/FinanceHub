@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { AppUpdatePrompt } from './views/appUpdate';
 import { hydrateBrowserStore } from './store';
 import './theme.css';
 
@@ -63,6 +64,7 @@ async function start() {
     <React.StrictMode>
       <AppErrorBoundary>
         <App />
+        <AppUpdatePrompt />
       </AppErrorBoundary>
     </React.StrictMode>,
   );

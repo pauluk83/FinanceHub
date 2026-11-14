@@ -28,5 +28,6 @@ interface Window {
     onBeforeClose(callback: () => void): () => void;
     closeReady(): void;
     oauth: DesktopOAuthBridge;
+    updater?: import('./update').DesktopUpdaterBridge;
   };
 }

@@ -438,6 +438,7 @@ Competitor comparison, the gaps worth closing and the explicit non-goals are in 
 | Credential vault UI | Lets users store provider logins without plaintext | M | Existing vault schema |
 | SQLCipher database encryption | Encrypts the whole local database, not just values | L | Native SQLite build |
 | Auto-update and rollback | Delivers fixes without asking users to reinstall | L | Update feed |
+| On-launch delta updates | Checks the latest GitHub build, shows download size, speed, progress and remaining time, downloads only changed `app.asar` blocks, verifies SHA-256 and restarts to apply | L | Release manifest and `app.asar` assets; Electron updater IPC |
 | Branded icon and installer artwork | Removes the default Electron identity | S | Brand assets |
 | CI for typecheck, tests, build and installer | Prevents regressions on every change | M | Repository runner |
 | Automated UI tests | Covers add/edit/delete, import, restore, month-end and recovery | L | Stable test harness |
@@ -445,6 +446,20 @@ Competitor comparison, the gaps worth closing and the explicit non-goals are in 
 | Privacy policy, terms, account deletion and data export | Makes the product distributable and trustworthy | M | Cloud account flow |
 | Support diagnostics and release notes | Speeds up support without exposing data | S | Redacted diagnostics format |
 | Auto-hide app-generated “App update” entries in the Budget changelog | Keeps budget history limited to money changes and removes legacy App update/Auto updates noise | S | Existing changelog separation and legacy-entry filter |
+
+**On-launch delta updates — design.** The packaged Windows app checks
+`releases/latest/download/update-manifest.json` once the window opens. The manifest
+carries the version, content build id, release notes, installer hash and the SHA-256
+and size of every fixed-size `app.asar` block. The app hashes its installed
+`app.asar`, copies every unchanged block locally, and range-downloads only the changed
+runs from the release's `FinanceHub-app.asar` asset. It verifies the block manifest and
+the complete archive hash before staging the file. The update dialog reports the
+download size, percentage, speed, bytes received, blocks downloaded/reused and time
+remaining; installation closes the app cleanly, swaps `app.asar` through a short-lived
+PowerShell helper and restarts. The updater is unsigned like the installer, so the UI
+must say that SHA-256 verification detects corruption but does not replace code
+signing. A runtime/Electron upgrade remains a full installer update and must never be
+applied by swapping only `app.asar`.
 
 ### B. Import, reconciliation and documents
 

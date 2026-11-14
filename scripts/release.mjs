@@ -137,7 +137,7 @@ function ftpRead(remotePath) {
   );
 }
 
-async function localChecks() {
+async function localChecks({ requireUpdateAssets = false } = {}) {
   let failures = 0;
   const pass = (message) => console.log(`PASS  ${message}`);
   const fail = (message) => {
@@ -201,6 +201,24 @@ async function localChecks() {
     pass(`installer ${installer.split(/[\\/]/).pop()} built (${(bytes.length / 1024 / 1024).toFixed(1)} MB, ${installerSha.slice(0, 12)})`);
   }
 
+  const updateManifestPath = join(ROOT, 'release', 'update', 'update-manifest.json');
+  const updateAsarPath = join(ROOT, 'release', 'update', 'FinanceHub-app.asar');
+  if (!existsSync(updateManifestPath) || !existsSync(updateAsarPath)) {
+    console.log('SKIP  update manifest — run npm run dist:win to build the delta assets');
+  } else {
+    try {
+      const manifest = JSON.parse(readFileSync(updateManifestPath, 'utf8'));
+      const asar = readFileSync(updateAsarPath);
+      const asarSha = createHash('sha256').update(asar).digest('hex');
+      if (manifest.version !== pkg.version) fail(`update manifest version ${manifest.version} does not match package ${pkg.version}`);
+      else if (manifest.asar?.size !== asar.length || manifest.asar?.sha256 !== asarSha) {
+        fail('update manifest does not match the packaged app.asar asset');
+      } else pass(`update manifest matches FinanceHub-app.asar (${(asar.length / 1024 / 1024).toFixed(1)} MB, ${asarSha.slice(0, 12)})`);
+    } catch (error) {
+      fail(`update manifest check failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   // The installer is published by the Release workflow on a `v<version>` tag.
   // Before the tag exists this is a warning, not a failure: building and deploying
   // the web bundle is a normal part of a release commit.
@@ -232,8 +250,16 @@ async function localChecks() {
         const assets = release.assets ?? [];
         const versioned = assets.find((entry) => entry.name === `FinanceHub-Setup-${pkg.version}.exe`);
         const checksums = assets.find((entry) => entry.name === 'SHA256SUMS.txt');
+        const updateManifest = assets.find((entry) => entry.name === 'update-manifest.json');
+        const updateAsar = assets.find((entry) => entry.name === 'FinanceHub-app.asar');
         if (!versioned || !checksums) {
           fail(`GitHub release v${pkg.version} is missing the dated installer or the checksum file`);
+        } else if (!updateManifest || !updateAsar) {
+          if (requireUpdateAssets) {
+            fail(`GitHub release v${pkg.version} is missing the update manifest or app archive`);
+          } else {
+            console.log(`SKIP  delta update assets — push tag v${pkg.version} to publish them`);
+          }
         } else if (versioned.digest?.startsWith('sha256:') && checksums.browser_download_url) {
           // CI builds on a different machine, so compare the release's own checksum
           // file with its installer digest rather than with this local build.
@@ -242,7 +268,13 @@ async function localChecks() {
           if (!published || published !== versioned.digest.slice(7)) {
             fail('the GitHub checksum file does not match the published installer');
           } else {
-            pass(`GitHub release v${pkg.version} installer matches SHA256SUMS.txt (${published.slice(0, 12)})`);
+            const manifestText = await (await fetch(updateManifest.browser_download_url)).text();
+            const publishedManifest = JSON.parse(manifestText);
+            if (publishedManifest.asar?.sha256 !== updateAsar.digest?.slice(7)) {
+              fail('the GitHub update manifest does not match the published app.asar');
+            } else {
+              pass(`GitHub release v${pkg.version} installer and delta assets match their hashes`);
+            }
           }
         } else {
           pass(`GitHub release v${pkg.version} carries ${versioned.name}`);
@@ -349,7 +381,7 @@ async function main(args) {
   const deploy = !args.includes('--no-deploy');
   const clean = args.filter((value) => value !== '--no-deploy');
   if (clean[0] === 'check') {
-    const failures = await localChecks();
+    const failures = await localChecks({ requireUpdateAssets: true });
     process.exit(failures ? 1 : 0);
   }
   if (clean[0] === 'bump') {

@@ -232,3 +232,56 @@ test('account security renders passkey and deletion controls without authenticat
   assert.match(local, /This is a local-only workspace/);
   assert.doesNotMatch(local, /Delete cloud account permanently/);
 });
+
+test('the update dialog shows delta size, speed, progress and install controls', async () => {
+  const { UpdatePanel } = await server.ssrLoadModule('/src/views/appUpdate.tsx');
+  const actions = {
+    onDownload: () => {},
+    onCancel: () => {},
+    onInstall: () => {},
+    onLater: () => {},
+    onRetry: () => {},
+  };
+  const downloading = render(UpdatePanel, {
+    ...actions,
+    state: {
+      phase: 'downloading',
+      version: '2026.11.15',
+      buildId: 'abcdef123456',
+      currentVersion: '2026.11.14',
+      currentBuildId: '111111111111',
+      downloadBytes: 4 * 1024 * 1024,
+      totalBytes: 14 * 1024 * 1024,
+      reusedBytes: 10 * 1024 * 1024,
+      changedBlocks: 16,
+      totalBlocks: 56,
+      downloadedBytes: 2 * 1024 * 1024,
+      speedBps: 2.5 * 1024 * 1024,
+      etaSeconds: 1,
+    },
+  });
+  assert.match(downloading, /Downloading changed blocks only/);
+  assert.match(downloading, /50%/);
+  assert.match(downloading, /2\.5 MB\/s/);
+  assert.match(downloading, /16 changed/);
+  assert.match(downloading, /Cancel download/);
+
+  const ready = render(UpdatePanel, {
+    ...actions,
+    state: {
+      phase: 'ready',
+      version: '2026.11.15',
+      buildId: 'abcdef123456',
+      currentVersion: '2026.11.14',
+      currentBuildId: '111111111111',
+      downloadBytes: 4 * 1024 * 1024,
+      totalBytes: 14 * 1024 * 1024,
+      reusedBytes: 10 * 1024 * 1024,
+      downloadedBytes: 4 * 1024 * 1024,
+      speedBps: 2.5 * 1024 * 1024,
+      verified: true,
+    },
+  });
+  assert.match(ready, /SHA-256 passed/);
+  assert.match(ready, /Restart and install/);
+});

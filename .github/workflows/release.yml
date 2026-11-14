@@ -35,6 +35,8 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $installer = "release/FinanceHub-Setup-$version.exe"
           if (-not (Test-Path $installer)) { throw "Installer not built: $installer" }
+          if (-not (Test-Path 'release/update/update-manifest.json')) { throw 'Delta update manifest was not built' }
+          if (-not (Test-Path 'release/update/FinanceHub-app.asar')) { throw 'Delta update archive was not built' }
           $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
           "$hash  FinanceHub-Setup-$version.exe" | Out-File -Encoding ascii release/SHA256SUMS.txt
           Write-Output "sha256 $hash"

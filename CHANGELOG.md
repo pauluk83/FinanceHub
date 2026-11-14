@@ -11,6 +11,7 @@ and the build time.
 - Removed the Water payment panel from Settings and grouped the remaining settings into Account, Budget, Bills, Data and App tabs
 - Moved the read-only duplicate review into the Data tab so every Settings group matches its label
 - Removed the authenticator-app 2FA setup from Account security; passkeys and cloud account deletion remain
+- Added on-launch delta updates: check GitHub, download only changed app blocks, show size/speed/progress and restart to install
 
 ## [2026.11.13] — 13 November 2026
 

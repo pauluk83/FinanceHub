@@ -46,7 +46,7 @@ function sourceFiles(dir) {
     const full = join(dir, entry);
     const stat = statSync(full);
     if (stat.isDirectory()) found.push(...sourceFiles(full));
-    else if (/\.(ts|tsx)$/.test(entry) && !entry.endsWith('.generated.ts')) found.push(full);
+    else if (/\.(ts|tsx|cjs)$/.test(entry) && !entry.endsWith('.generated.ts')) found.push(full);
   }
   return found;
 }
@@ -57,6 +57,7 @@ export function buildId(root = ROOT) {
   const files = [
     ...sourceFiles(join(root, 'app', 'src')),
     ...sourceFiles(join(root, 'core')),
+    ...sourceFiles(join(root, 'electron')),
     join(root, 'package.json'),
   ].sort();
   for (const file of files) {
