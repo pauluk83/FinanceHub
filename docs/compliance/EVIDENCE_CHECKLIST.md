@@ -23,7 +23,7 @@ budget data or identity documents.
 
 - [ ] Supabase RLS enabled and tested with two accounts.
 - [ ] Service-role key never present in client code or public assets.
-- [ ] TOTP MFA enabled and tested; recovery path documented.
+- [x] TOTP setup removed from Settings; passkeys are the in-app second-factor option. Existing identity-provider factors are outside FinanceHub's UI.
 - [x] Passkey/WebAuthn settings recorded 13 November 2026: display name `FinanceHub`; RP ID `financehub.freedev.app`; origin `https://financehub.freedev.app`. In-app controls shipped for the hosted browser app; a real enrolment/sign-in ceremony remains untested.
 - [x] Account-deletion SQL applied 13 November 2026; `SECURITY DEFINER`, owned by `postgres`, `anon` execute denied and `authenticated` allowed.
 - [ ] Account deletion tested with a throwaway account (never the owner's account).

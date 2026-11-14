@@ -218,15 +218,15 @@ test('the dashboard only warns about duplicates in the month on screen', async (
   assert.match(novemberViewWithDuplicates, /duplicate group/);
 });
 
-test('account security renders local-only guidance and signed-in MFA/deletion controls', async () => {
+test('account security renders passkey and deletion controls without authenticator setup', async () => {
   const { AccountSecuritySection } = await server.ssrLoadModule('/src/views/accountSecurity.tsx');
   const cloud = render(AccountSecuritySection, props({}, { isLocal: false }));
   assert.match(cloud, /Account security/);
-  assert.match(cloud, /MFA not set up/);
-  assert.match(cloud, /Set up authenticator app/);
   assert.match(cloud, /Delete cloud account permanently/);
   assert.match(cloud, /delete_my_account/);
   assert.match(cloud, /Passkeys need the hosted website/);
+  assert.doesNotMatch(cloud, /authenticator app/i);
+  assert.doesNotMatch(cloud, /MFA/);
 
   const local = render(AccountSecuritySection, props({}, { isLocal: true }));
   assert.match(local, /This is a local-only workspace/);

@@ -10,7 +10,7 @@ Contact: **[privacy mailbox to be created]**.
 
 ## What we collect
 
-- Account details: email address, authentication identifiers and MFA factors.
+- Account details: email address, authentication identifiers and passkey registrations.
 - Budget records you enter: accounts, balances, bills, income, cards, debts, savings,
   holidays, transactions, provider details and notes.
 - Optional provider logins you choose to save. These are encrypted on your device with a
@@ -73,7 +73,7 @@ to the Information Commissioner's Office (ICO) at https://ico.org.uk/.
 
 ## Security
 
-We use HTTPS, Supabase row-level security, PKCE authentication, optional TOTP MFA,
+We use HTTPS, Supabase row-level security, PKCE authentication, optional passkeys,
 client-side encryption for saved provider logins, OS-backed secure storage for desktop
 sessions and encrypted backups. No system is completely secure; keep your device and
 passwords protected and keep an independent backup.

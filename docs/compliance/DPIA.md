@@ -16,7 +16,7 @@ change to cloud storage.
 FinanceHub lets one person record accounts, balances, bills, income, cards, debts,
 savings, holidays, transactions, provider details and optional encrypted provider
 logins. A user can keep a workspace only on the device or sign in with Supabase Auth
-(email/password, Google OAuth or TOTP MFA) to sync a cloud copy.
+(email/password, Google OAuth or a passkey) to sync a cloud copy.
 
 Data flows:
 
@@ -49,7 +49,7 @@ mass-market service.
 
 | Risk | Likelihood / impact | Mitigation | Residual |
 | --- | --- | --- | --- |
-| Account takeover exposes the cloud budget | Medium / High | Supabase Auth, PKCE, TOTP MFA available, session revocation, RLS, private deployment | Medium until passkey enrolment/UI and MFA enforcement are tested |
+| Account takeover exposes the cloud budget | Medium / High | Supabase Auth, PKCE, passkeys available, session revocation, RLS, private deployment | Medium until passkey enrolment and enforcement are tested |
 | Cloud database or backup access exposes financial data | Low–Medium / High | RLS, anon key only in client, service-role key server-side, processor controls, encrypted vault | Medium; cloud document is plaintext at rest |
 | Stolen device exposes local budget | Medium / High | OS account, DPAPI/Keychain value store, optional PIN app lock, no plaintext provider secrets | Medium; local budget is readable by the OS user |
 | Provider credentials leak | Low / High | Client-side E2EE vault, legacy fields stripped, passphrase never stored | Low–Medium; forgotten passphrase means no recovery |

@@ -14,7 +14,7 @@ FinanceHub is not a bank, payment institution, lender, broker, credit broker, in
 
 - You must be at least 18 and able to form a binding contract.
 - You are responsible for your account credentials, device security and any activity under your account.
-- Use a strong, unique password. Multi-factor authentication is recommended where your identity provider offers it; in-app MFA is on the roadmap.
+- Use a strong, unique password. A passkey is available in the hosted web app, and multi-factor authentication is recommended where your identity provider offers it.
 - Tell the owner immediately if you believe your account or vault passphrase is compromised.
 
 ## 3. Your data and backups

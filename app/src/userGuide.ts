@@ -433,7 +433,7 @@ export const USER_GUIDE: GuideEntry[] = [
       'Export a JSON backup, restore the imported workbook, or manage sync and local data in Data & backups.',
       'For a protected copy, enter a backup passphrase and export an encrypted backup. One automatic encrypted restore point is created each day, and the seven newest restore points stay on this device.',
       'In Settings → Sync conflicts, review both versions, export a copy, or purge the retained conflict history once nothing needs reviewing. The purge removes local and cloud conflict copies only; every budget record stays intact.',
-      'Add an authenticator app under Account security, or delete the cloud account and its records permanently.',
+      'Add a passkey under Account security, or delete the cloud account and its records permanently.',
     ],
     notes: [
       'Menu layout hides items and moves them between sections; Tools is fixed and can never be hidden or moved.',

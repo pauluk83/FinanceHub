@@ -17,8 +17,8 @@ test('account deletion is owner-bound, security definer and authenticated only',
   assert.match(sql, /grant execute on function public\.delete_my_account\(\) to authenticated/i);
 });
 
-test('the client calls the deletion function and exposes MFA setup', () => {
+test('the client calls the deletion function and exposes permanent deletion', () => {
   assert.match(app, /rpc\('delete_my_account'\)/);
-  assert.match(app, /enrollTotp|verifyTotp/);
+  assert.doesNotMatch(app, /enrollTotp|verifyTotp/);
   assert.match(view, /Delete cloud account permanently/);
 });
