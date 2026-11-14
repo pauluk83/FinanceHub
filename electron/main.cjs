@@ -605,7 +605,6 @@ function installUpdate() {
   const target = installedAsarPath();
   try {
     fs.accessSync(path.dirname(target), fs.constants.W_OK);
-    fs.accessSync(target, fs.constants.W_OK);
   } catch {
     throw new Error('FinanceHub cannot write to its install folder. Reinstall the app in a per-user location, then try again.');
   }
@@ -636,7 +635,11 @@ function registerUpdater() {
   });
   ipcMain.handle('updater:install', (event) => {
     if (!isTrustedSender(event)) throw new Error('Untrusted renderer');
-    return installUpdate();
+    try {
+      return installUpdate();
+    } catch (error) {
+      return { ok: false, error: safeUpdateError(error) };
+    }
   });
 }
 

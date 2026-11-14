@@ -15,6 +15,7 @@ and the build time.
 - Fixed staging of downloaded updates so Electron can write and install the verified app archive
 - Rebuilt the delta update assets after fixing the staging filename
 - Bypass GitHub's release-download cache when checking for and fetching update blocks
+- Fixed the install preflight so the verified archive can be applied from a per-user install folder
 
 ## [2026.11.13] — 13 November 2026
 

@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.14",
-  "buildId": "663bd7df06d1",
+  "buildId": "0d15c56c267c",
   "builtAt": "2026-11-14",
   "releases": [
     {
@@ -21,7 +21,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Added on-launch delta updates: check GitHub, download only changed app blocks, show size/speed/progress and restart to install",
             "Fixed staging of downloaded updates so Electron can write and install the verified app archive",
             "Rebuilt the delta update assets after fixing the staging filename",
-            "Bypass GitHub's release-download cache when checking for and fetching update blocks"
+            "Bypass GitHub's release-download cache when checking for and fetching update blocks",
+            "Fixed the install preflight so the verified archive can be applied from a per-user install folder"
           ]
         }
       ]
