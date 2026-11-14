@@ -14,6 +14,7 @@ and the build time.
 - Added on-launch delta updates: check GitHub, download only changed app blocks, show size/speed/progress and restart to install
 - Fixed staging of downloaded updates so Electron can write and install the verified app archive
 - Rebuilt the delta update assets after fixing the staging filename
+- Bypass GitHub's release-download cache when checking for and fetching update blocks
 
 ## [2026.11.13] — 13 November 2026
 

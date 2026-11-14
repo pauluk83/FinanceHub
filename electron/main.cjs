@@ -351,6 +351,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
   }
 }
 
+/** Same-tag releases replace assets, so bypass GitHub's download CDN cache. */
+function freshDownloadUrl(url) {
+  return `${url}${url.includes('?') ? '&' : '?'}cb=${Date.now()}`;
+}
+
 function updateAvailable(manifest, plan, requiresFullInstaller) {
   return {
     phase: 'available',
@@ -381,7 +386,7 @@ async function checkForUpdate(current) {
   publishUpdate({ phase: 'checking', currentVersion: app.getVersion(), currentBuildId: current.buildId, error: null });
 
   try {
-    const response = await fetchWithTimeout(UPDATE_MANIFEST_URL, { cache: 'no-store' });
+    const response = await fetchWithTimeout(freshDownloadUrl(UPDATE_MANIFEST_URL), { cache: 'no-store' });
     if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
     const text = await response.text();
     if (text.length > 1024 * 1024) throw new Error('The update manifest is too large');
@@ -436,7 +441,7 @@ async function downloadUpdate() {
       manifest,
       plan,
       readRemote: async (start, end) => {
-        const response = await fetch(UPDATE_ARCHIVE_URL, {
+        const response = await fetch(freshDownloadUrl(UPDATE_ARCHIVE_URL), {
           headers: {
             Range: `bytes=${start}-${end}`,
             'Cache-Control': 'no-cache',
