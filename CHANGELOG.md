@@ -12,6 +12,8 @@ and the build time.
 - Moved the read-only duplicate review into the Data tab so every Settings group matches its label
 - Removed the authenticator-app 2FA setup from Account security; passkeys and cloud account deletion remain
 - Added on-launch delta updates: check GitHub, download only changed app blocks, show size/speed/progress and restart to install
+- Fixed staging of downloaded updates so Electron can write and install the verified app archive
+- Rebuilt the delta update assets after fixing the staging filename
 
 ## [2026.11.13] — 13 November 2026
 

@@ -319,6 +319,9 @@ function resetUpdateState() {
 }
 
 function safeUpdateError(error) {
+  if (error && typeof error === 'object' && 'syscall' in error) {
+    return 'The update could not be written to disk. Check free space and folder permissions, then try again.';
+  }
   const text = error instanceof Error ? error.message : String(error);
   return text
     .replace(/[A-Za-z]:\\[^\s]+/g, '[local path]')
@@ -472,7 +475,9 @@ async function downloadUpdate() {
 
     const directory = path.join(app.getPath('userData'), 'updates', manifest.buildId);
     await fs.promises.mkdir(directory, { recursive: true });
-    const staged = path.join(directory, 'app.asar');
+    // Electron's fs shim treats a path ending in `.asar` as an archive. Stage
+    // under a neutral extension; the helper copies it to the real app.asar path.
+    const staged = path.join(directory, 'FinanceHub-update.package');
     await fs.promises.writeFile(staged, archive);
     updateArchivePath = staged;
     return publishUpdate({

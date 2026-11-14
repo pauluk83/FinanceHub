@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.14",
-  "buildId": "fde740dd9813",
+  "buildId": "485f7f05d27d",
   "builtAt": "2026-11-14",
   "releases": [
     {
@@ -18,7 +18,9 @@ export const APP_CHANGELOG: AppChangelog = {
             "Removed the Water payment panel from Settings and grouped the remaining settings into Account, Budget, Bills, Data and App tabs",
             "Moved the read-only duplicate review into the Data tab so every Settings group matches its label",
             "Removed the authenticator-app 2FA setup from Account security; passkeys and cloud account deletion remain",
-            "Added on-launch delta updates: check GitHub, download only changed app blocks, show size/speed/progress and restart to install"
+            "Added on-launch delta updates: check GitHub, download only changed app blocks, show size/speed/progress and restart to install",
+            "Fixed staging of downloaded updates so Electron can write and install the verified app archive",
+            "Rebuilt the delta update assets after fixing the staging filename"
           ]
         }
       ]
