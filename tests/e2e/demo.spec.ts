@@ -82,6 +82,7 @@ test('a bank CSV is staged and only added after confirmation', async ({ page }) 
 test('month end can be locked and unlocked', async ({ page }) => {
   page.on('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: /Settings/ }).click();
+  await page.locator('.settings-tabs').getByRole('button', { name: 'Budget', exact: true }).click();
   await page.getByLabel(/As-of date/).fill('2026-11-30');
 
   await page.getByRole('button', { name: /Month end/ }).click();
@@ -96,6 +97,7 @@ test('month end can be locked and unlocked', async ({ page }) => {
 test('an encrypted restore point can be created and restored', async ({ page }) => {
   page.on('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: /Settings/ }).click();
+  await page.locator('.settings-tabs').getByRole('button', { name: 'Data', exact: true }).click();
   const section = page.locator('section').filter({ hasText: 'Encrypted backups & restore points' });
   await section.getByLabel(/Backup passphrase/).fill('playwright-test-passphrase');
   await section.getByLabel(/Restore point label/).fill('E2E restore');
