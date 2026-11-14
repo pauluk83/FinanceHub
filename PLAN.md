@@ -1,6 +1,6 @@
 # FinanceHub — master plan
 
-Last updated: 2026-11-13
+Last updated: 2026-11-14
 Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.13 tag, source archives and CI-built installer are published; build `2d5916cbac50` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — a live passkey ceremony test, passkeys in the packaged desktop app, packaged-security checks, a throwaway-account deletion test and bank linking after C-4 remain**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
@@ -444,6 +444,7 @@ Competitor comparison, the gaps worth closing and the explicit non-goals are in 
 | Crash reporting | Finds production failures without financial payloads | M | Opt-in consent |
 | Privacy policy, terms, account deletion and data export | Makes the product distributable and trustworthy | M | Cloud account flow |
 | Support diagnostics and release notes | Speeds up support without exposing data | S | Redacted diagnostics format |
+| Auto-hide app-generated “App update” entries in the Budget changelog | Keeps budget history limited to money changes and removes legacy App update/Auto updates noise | S | Existing changelog separation and legacy-entry filter |
 
 ### B. Import, reconciliation and documents
 
