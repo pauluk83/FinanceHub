@@ -1234,26 +1234,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       </Section>
 
       <EncryptedBackupSection ds={ds} update={update} notify={notify} userId={userId} />
-      </div>
-
-      <div className="settings-pane" hidden={settingsPane !== 'app'}>
-      <Section title="About & legal" sub="Ownership, copyright, trademark and the documents that govern your use of FinanceHub">
-        <div style={{ padding: 16, display: 'grid', gap: 10 }}>
-          <div><strong>FinanceHub™</strong> <span className="muted small">· version {LEGAL_VERSION}</span></div>
-          <div className="muted small">Designed, built and owned by Zane Stanton. {LEGAL_COPYRIGHT}</div>
-          <div className="muted small">{LEGAL_TRADEMARK} The name, logo and source code may not be used without permission.</div>
-          <div className="toolbar" style={{ borderBottom: 0, padding: 0 }}>
-            <a className="btn" href="#legal/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
-            <a className="btn" href="#legal/terms" target="_blank" rel="noreferrer">Terms of Service</a>
-            <a className="btn" href="#legal/eula" target="_blank" rel="noreferrer">EULA</a>
-            <a className="btn" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">GitHub repository</a>
-          </div>
-          <div className="muted small">
-            Privacy requests and data erasure: email the address registered to your FinanceHub account with the subject
-            “Privacy request”, or use Data &amp; backups above to export, reset or erase this workspace.
-          </div>
-        </div>
-      </Section>
 
       <Section
         title="Duplicate check"
@@ -1289,6 +1269,26 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
             )}
           </>
         )}
+      </Section>
+      </div>
+
+      <div className="settings-pane" hidden={settingsPane !== 'app'}>
+      <Section title="About & legal" sub="Ownership, copyright, trademark and the documents that govern your use of FinanceHub">
+        <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+          <div><strong>FinanceHub™</strong> <span className="muted small">· version {LEGAL_VERSION}</span></div>
+          <div className="muted small">Designed, built and owned by Zane Stanton. {LEGAL_COPYRIGHT}</div>
+          <div className="muted small">{LEGAL_TRADEMARK} The name, logo and source code may not be used without permission.</div>
+          <div className="toolbar" style={{ borderBottom: 0, padding: 0 }}>
+            <a className="btn" href="#legal/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
+            <a className="btn" href="#legal/terms" target="_blank" rel="noreferrer">Terms of Service</a>
+            <a className="btn" href="#legal/eula" target="_blank" rel="noreferrer">EULA</a>
+            <a className="btn" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">GitHub repository</a>
+          </div>
+          <div className="muted small">
+            Privacy requests and data erasure: email the address registered to your FinanceHub account with the subject
+            “Privacy request”, or use Data &amp; backups above to export, reset or erase this workspace.
+          </div>
+        </div>
       </Section>
 
       <Section title="Appearance" sub="Theme preference is stored on this device">

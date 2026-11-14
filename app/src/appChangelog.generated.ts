@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.14",
-  "buildId": "ae08bcdb1648",
+  "buildId": "af2f5d834c96",
   "builtAt": "2026-11-14",
   "releases": [
     {
@@ -15,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Removed the Water payment panel from Settings and grouped the remaining settings into Account, Budget, Bills, Data and App tabs"
+            "Removed the Water payment panel from Settings and grouped the remaining settings into Account, Budget, Bills, Data and App tabs",
+            "Moved the read-only duplicate review into the Data tab so every Settings group matches its label"
           ]
         }
       ]
