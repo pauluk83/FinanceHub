@@ -3,7 +3,7 @@ const { app, BrowserWindow, Menu, dialog, shell, ipcMain, session } = require('e
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { spawnSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const { createSecureStore } = require('./secure-store.cjs');
 const {
@@ -569,15 +569,23 @@ function startUpdateHelper(pending) {
   fs.writeFileSync(script, body, 'utf8');
   const encoded = Buffer.from(body, 'utf16le').toString('base64');
 
-  const child = spawn('powershell.exe', [
+  const powershell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  const launch = `"${powershell}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ${encoded}`;
+  const created = spawnSync(powershell, [
     '-NoProfile',
     '-NonInteractive',
     '-ExecutionPolicy', 'Bypass',
-    '-EncodedCommand', encoded,
-  ], { detached: true, windowsHide: true, stdio: 'ignore' });
-  child.on('error', (error) => console.error('Update helper could not start:', error));
-  if (!child.pid) throw new Error('The update helper did not start');
-  child.unref();
+    '-Command',
+    [
+      "$ErrorActionPreference = 'Stop'",
+      `$commandLine = '${launch.replace(/'/g, "''")}'`,
+      '$result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $commandLine }',
+      'if ($result.ReturnValue -ne 0) { throw "Process creation returned $($result.ReturnValue)" }',
+    ].join('\r\n'),
+  ], { windowsHide: true, encoding: 'utf8', timeout: 15000 });
+  if (created.status !== 0) {
+    throw new Error((created.stderr || created.error?.message || 'The update helper did not start').trim());
+  }
 }
 
 function performInstallAndQuit() {

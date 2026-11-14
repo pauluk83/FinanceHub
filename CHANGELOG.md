@@ -17,6 +17,7 @@ and the build time.
 - Bypass GitHub's release-download cache when checking for and fetching update blocks
 - Fixed the install preflight so the verified archive can be applied from a per-user install folder
 - Made the update installer helper run reliably when the app is installed under a path with spaces
+- Start the verified update helper through Windows WMI so it survives the app closing
 
 ## [2026.11.13] — 13 November 2026
 

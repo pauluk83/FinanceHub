@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.14",
-  "buildId": "a029ed03a2a9",
+  "buildId": "9b9b459de201",
   "builtAt": "2026-11-14",
   "releases": [
     {
@@ -23,7 +23,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Rebuilt the delta update assets after fixing the staging filename",
             "Bypass GitHub's release-download cache when checking for and fetching update blocks",
             "Fixed the install preflight so the verified archive can be applied from a per-user install folder",
-            "Made the update installer helper run reliably when the app is installed under a path with spaces"
+            "Made the update installer helper run reliably when the app is installed under a path with spaces",
+            "Start the verified update helper through Windows WMI so it survives the app closing"
           ]
         }
       ]
