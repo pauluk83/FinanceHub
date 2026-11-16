@@ -5,6 +5,7 @@
  * contract fails here before it can reach the packaged app.
  */
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, test } from 'node:test';
@@ -284,4 +285,43 @@ test('the update dialog shows delta size, speed, progress and install controls',
   });
   assert.match(ready, /SHA-256 passed/);
   assert.match(ready, /Restart and install/);
+});
+
+test('email verification is required for unconfirmed email accounts only', async () => {
+  const { emailNeedsVerification } = await server.ssrLoadModule('/src/auth.ts');
+
+  assert.equal(emailNeedsVerification({ email_confirmed_at: null, confirmed_at: null, app_metadata: { provider: 'email' } }), true);
+  assert.equal(emailNeedsVerification({ email_confirmed_at: '2026-11-16T00:00:00Z', app_metadata: { provider: 'email' } }), false);
+  assert.equal(emailNeedsVerification({ email_confirmed_at: null, confirmed_at: null, app_metadata: { provider: 'google' } }), false);
+  assert.equal(emailNeedsVerification(null), false);
+});
+
+test('the email verification page blocks sync and offers resend and local use', async () => {
+  const { EmailVerificationPage } = await server.ssrLoadModule('/src/views/login.tsx');
+  const html = render(EmailVerificationPage, { email: 'owner@example.test', onSignOut: () => {}, onUseLocally: () => {} });
+
+  assert.match(html, /Check your inbox/);
+  assert.match(html, /Resend confirmation email/);
+  assert.match(html, /Sign out and use this device only/);
+  assert.match(html, /Cloud sync stays off/);
+});
+
+test('the hosted build exposes account settings without a budget workspace', async () => {
+  const { HostedAccountSettings } = await server.ssrLoadModule('/src/views/hostedAccount.tsx');
+  const html = render(HostedAccountSettings, { email: 'owner@example.test', onSignOut: () => {}, onTryDemo: () => {} });
+
+  assert.match(html, /Hosted account settings/);
+  assert.match(html, /does not load a real budget/);
+  assert.match(html, /Delete cloud account permanently/);
+  assert.match(html, /Take a look around/);
+  assert.doesNotMatch(html, /Continue locally/);
+});
+
+test('the app shell gates the hosted build to demo and account settings', async () => {
+  const app = fs.readFileSync(path.join(ROOT, 'app', 'src', 'App.tsx'), 'utf8');
+
+  assert.match(app, /if \(HOSTED_WEB\) \{/);
+  assert.match(app, /HostedAccountSettings/);
+  assert.match(app, /if \(HOSTED_WEB\) return null;/);
+  assert.match(app, /setPeopleRoute\(!HOSTED_WEB &&/);
 });

@@ -37,10 +37,11 @@ import { NotificationsView } from './views/notifications';
 import { PeoplePortalPage } from './views/peoplePortal';
 import { FeedbackDialog } from './views/feedback';
 import { PORTAL_FEEDBACK_EVENT, readFeedbackForOwner, refreshPortalStatements, type PortalFeedback } from './portal';
-import { authClient, authConfigured, endSession, type Session } from './auth';
+import { authClient, authConfigured, emailNeedsVerification, endSession, type Session } from './auth';
 import { LegalPage } from './views/legal';
 import { legalRouteFromHash, type LegalDocId } from './legal';
-import { AuthLoading, LocalImportPrompt, LoginPage, ModeChooser, RecoveryPage } from './views/login';
+import { AuthLoading, EmailVerificationPage, LocalImportPrompt, LoginPage, ModeChooser, RecoveryPage } from './views/login';
+import { HostedAccountSettings } from './views/hostedAccount';
 import { BlockedStatePage } from './views/recovery';
 import { HOSTED_WEB } from './runtime';
 import { DEMO_USER_ID, demoState } from './demo';
@@ -221,6 +222,7 @@ const LEGACY_LOCAL_KEY = 'financehub.local-mode.v1';
 type StorageMode = 'cloud' | 'local';
 
 function readStorageMode(): StorageMode | null {
+  if (HOSTED_WEB) return null;
   try {
     const saved = localStorage.getItem(STORAGE_MODE_KEY);
     if (saved === 'cloud' || saved === 'local') return saved;
@@ -849,13 +851,13 @@ export default function App() {
   const [demo, setDemo] = useState(false);
   const [localImportResolved, setLocalImportResolved] = useState(false);
   const [localImportError, setLocalImportError] = useState<string | null>(null);
-  const [peopleRoute, setPeopleRoute] = useState(() => window.location.hash.replace(/^#/, '') === 'people');
+  const [peopleRoute, setPeopleRoute] = useState(() => !HOSTED_WEB && window.location.hash.replace(/^#/, '') === 'people');
   const [legalRoute, setLegalRoute] = useState<LegalDocId | null>(legalRouteFromHash);
   const [appChangelogRoute, setAppChangelogRoute] = useState(() => window.location.hash.replace(/^#/, '') === 'app-changelog');
 
   useEffect(() => {
     const onHash = () => {
-      setPeopleRoute(window.location.hash.replace(/^#/, '') === 'people');
+      setPeopleRoute(!HOSTED_WEB && window.location.hash.replace(/^#/, '') === 'people');
       setAppChangelogRoute(window.location.hash.replace(/^#/, '') === 'app-changelog');
       setLegalRoute(legalRouteFromHash());
     };
@@ -864,6 +866,7 @@ export default function App() {
   }, []);
 
   const openPeoplePortal = () => {
+    if (HOSTED_WEB) return;
     if (window.location.hash !== '#people') window.location.hash = '#people';
     setPeopleRoute(true);
   };
@@ -880,6 +883,11 @@ export default function App() {
 
   useEffect(() => {
     try {
+      if (HOSTED_WEB) {
+        localStorage.removeItem(STORAGE_MODE_KEY);
+        localStorage.removeItem(LEGACY_LOCAL_KEY);
+        return;
+      }
       if (storageMode) localStorage.setItem(STORAGE_MODE_KEY, storageMode);
       else localStorage.removeItem(STORAGE_MODE_KEY);
       localStorage.removeItem(LEGACY_LOCAL_KEY);
@@ -1075,6 +1083,44 @@ export default function App() {
         user={{ id: DEMO_USER_ID, email: 'Demo workspace', local: true }}
         onSignOut={() => setDemo(false)}
         onChooseWorkspace={chooseWorkspace}
+      />
+    );
+  }
+  if (HOSTED_WEB) {
+    if (authLoading) return <AuthLoading />;
+    if (!session) {
+      return <LoginPage onTryDemo={() => setDemo(true)} />;
+    }
+    if (recovery) {
+      return (
+        <RecoveryPage
+          onComplete={() => setRecovery(false)}
+          onCancel={() => void handleRecoveryCancel()}
+        />
+      );
+    }
+    if (emailNeedsVerification(session.user)) {
+      return (
+        <EmailVerificationPage
+          email={session.user.email ?? null}
+          onSignOut={() => void handleSignOut()}
+        />
+      );
+    }
+    return (
+      <HostedAccountSettings
+        email={session.user.email ?? null}
+        onSignOut={() => void handleSignOut()}
+        onTryDemo={() => setDemo(true)}
+      />
+    );
+  }
+  if (session && !recovery && emailNeedsVerification(session.user)) {
+    return (
+      <EmailVerificationPage
+        email={session.user.email ?? null}
+        onSignOut={() => void handleSignOut()}
+        onUseLocally={() => void handleLocalSignOut()}
       />
     );
   }

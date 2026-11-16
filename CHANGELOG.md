@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.16] — 16 November 2026
+
+### Changed
+- Hosted web build offers only the synthetic demo and hosted account settings; cloud sync requires a confirmed email
+
 ## [2026.11.14] — 14 November 2026
 
 ### Changed

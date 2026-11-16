@@ -1,11 +1,13 @@
 # FinanceHub — legal and regulatory applicability
 
-Not legal advice. Prepared 7 November 2026 and updated 13 November 2026 for the product
+Not legal advice. Prepared 7 November 2026 and updated 16 November 2026 for the product
 described in `PLAN.md`. Confirm with a UK solicitor before any commercial launch.
 
 Draft working documents for professional review are in `docs/compliance/`:
-DPIA, privacy notice, retention schedule, DSAR procedure, breach runbook and evidence
-checklist. The owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
+DPIA (including the production-readiness addendum), data map, privacy notice, retention
+schedule, DSAR procedure, breach runbook, processor register, risk acceptance register and
+evidence checklist. The
+owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
 
 ## Product facts that decide applicability
 
@@ -15,7 +17,7 @@ checklist. The owner-side Supabase and mailbox actions are in `docs/OWNER_ACTION
 - Cloud sync through Supabase; authentication through Supabase (email/password and
   Google OAuth).
 - Provider logins optionally stored client-side, encrypted with AES-256-GCM.
-- Hosted static web build on InfinityFree; Windows Electron build.
+- Hosted static web build on InfinityFree; public launch is planned as a synthetic demo plus hosted account settings, with no real-budget loading, viewing or sync. Real budgets are in the Windows Electron build.
 - Owner and data controller: Zane Stanton (individual, England).
 
 ## Applicability matrix
@@ -57,12 +59,12 @@ or a screen in the app would not satisfy them.
 
 ## Before public or commercial launch
 
-1. Add a dedicated privacy/support mailbox and publish it in the Privacy Policy and Terms.
+1. Publish the adopted privacy/support mailbox (`financehub+pauluk83@gmail.com`) in the Privacy Policy and Terms; confirm Gmail terms/retention.
 2. Confirm the controller identity and address, and the ICO data-protection fee position.
 3. Sign DPAs with Supabase and the hosting provider; record the international transfer mechanism.
 4. Have a solicitor review the three documents for England and Wales.
 5. Register the FinanceHub trade mark (UKIPO at minimum) before enforcing the name.
 6. Add explicit acceptance of the Terms and Privacy Policy at sign-up, recording version and timestamp.
-7. Test the applied self-serve account-deletion SQL with a throwaway account (`docs/OWNER_ACTIONS.md`); document the 30-day service level for requests that cannot use the app.
+7. Record the 16 Nov 2026 deletion/export attestation (`docs/OWNER_ACTIONS.md`); re-run with a dated build artifact if counsel requires it, and document the 30-day service level for requests that cannot use the app.
 8. Review and publish the draft breach-response runbook and a security contact from `docs/compliance/`.
 9. If bank aggregation, payments or financial advice are ever added, reassess PSD2/FCA/PCI/KYC before shipping.

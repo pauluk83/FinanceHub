@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.14",
-  "buildId": "9b9b459de201",
-  "builtAt": "2026-11-14",
+  "version": "2026.11.16",
+  "buildId": "bdd044bbdfc3",
+  "builtAt": "2026-11-16",
   "releases": [
+    {
+      "version": "2026.11.16",
+      "date": "16 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Hosted web build offers only the synthetic demo and hosted account settings; cloud sync requires a confirmed email"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.14",
       "date": "14 November 2026",

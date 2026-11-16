@@ -1,6 +1,6 @@
 # Data Subject Access and Rights Procedure — DRAFT
 
-**Status:** Draft. Create the privacy mailbox and test this procedure before publishing.
+**Status:** Draft. The privacy mailbox is `financehub+pauluk83@gmail.com`; test this procedure and create the DSAR register before publishing.
 
 ## Intake
 

@@ -217,6 +217,65 @@ export function LocalImportPrompt({
   );
 }
 
+export function EmailVerificationPage({
+  email,
+  onSignOut,
+  onUseLocally,
+}: {
+  email: string | null;
+  onSignOut: () => void;
+  onUseLocally?: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const resend = async () => {
+    if (!authClient || !email) {
+      setNotice('Authentication is not configured for this build.');
+      return;
+    }
+    setBusy(true);
+    const { error } = await authClient.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: authRedirectTo() },
+    });
+    setBusy(false);
+    setNotice(error ? authErrorMessage(error) : `Confirmation email sent to ${email}. Check your spam folder too.`);
+  };
+
+  return (
+    <AuthFrame
+      kicker="Verify your email"
+      title="Check your inbox"
+      subtitle="Confirm your email before cloud sync is enabled. A local workspace does not need sync."
+    >
+      <div className="auth-alert auth-notice" role="status">
+        <strong>Verify {email ?? 'your email address'} to use cloud sync.</strong>
+        <span> Follow the link in the confirmation email, then reload this page.</span>
+      </div>
+      {notice && <div className="auth-alert auth-notice" role="status">{notice}</div>}
+      <div className="auth-form">
+        <button type="button" className="btn primary auth-submit" onClick={() => void resend()} disabled={busy || !email}>
+          {busy ? 'Sending…' : 'Resend confirmation email'}
+        </button>
+        <button type="button" className="btn auth-submit" onClick={() => window.location.reload()}>
+          I’ve confirmed — reload
+        </button>
+        {onUseLocally && (
+          <button type="button" className="btn ghost auth-submit" onClick={onUseLocally}>
+            Sign out and use this device only
+          </button>
+        )}
+        <button type="button" className="btn ghost auth-submit" onClick={onSignOut}>
+          Sign out
+        </button>
+      </div>
+      <p className="auth-security">Cloud sync stays off until the address is confirmed.</p>
+    </AuthFrame>
+  );
+}
+
 export function AuthLoading() {
   return (
     <div className="auth-loading">
@@ -242,11 +301,13 @@ export function LoginPage({ onContinueLocally, onTryDemo, onOpenPeoplePortal }: 
   const passkeyAvailable = passkeysSupported();
   const disabled = !authConfigured || busy !== null;
   const title = mode === 'signIn' ? 'Welcome back' : mode === 'signUp' ? 'Create your account' : 'Reset your password';
-  const subtitle = mode === 'signIn'
-    ? 'Sign in to open your budget.'
-    : mode === 'signUp'
-      ? 'Create a secure account for FinanceHub.'
-      : 'We’ll email you a secure link to choose a new password.';
+  const subtitle = HOSTED_WEB
+    ? 'Sign in for hosted account settings. Real budgets live in the Windows app.'
+    : mode === 'signIn'
+      ? 'Sign in to open your budget.'
+      : mode === 'signUp'
+        ? 'Create a secure account for FinanceHub.'
+        : 'We’ll email you a secure link to choose a new password.';
 
   const changeMode = (next: Mode) => {
     setMode(next);

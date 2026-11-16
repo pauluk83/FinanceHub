@@ -1,0 +1,153 @@
+# Risk Acceptance Proposals — UNSIGNED
+
+**Status:** PROPOSALS ONLY. No risk has been accepted. The owner has not signed either
+proposal. **C3 remains open** and the code-signing item in PR-0/PR-4 remains open.
+
+**Controller / proposed risk owner:** Zane Stanton.
+
+**Scope of the proposal:** UK-only, free public launch of the Windows x64 app and the
+hosted web app as separately decided.
+
+**How to read this document:**
+
+- “Proposal” means a decision the owner could make by signing. It is not an acceptance.
+- Controls below are **candidate controls**. None is asserted to be operating until the
+  evidence named beside it is filed.
+- Residual ratings are provisional, not measured or accepted.
+- No plan, notice, checklist or release document may describe these risks as accepted
+  until the owner signs the relevant entry.
+
+**Review trigger:** any change to the cloud document format, provider, region, distribution
+channel, price, market, hosted-web model or security posture; any high/critical
+penetration-test finding; or 12 months from signature.
+
+---
+
+## RA-1 — Proposal to accept the cloud budget without end-to-end encryption
+
+**Related:** DPIA Addendum A risk R2 and condition C3; data map `D3`–`D8`, `F8`.
+
+**Proposal:** if the owner signs this entry, the synced budget document
+(`settings.state_json`) would remain readable by the service at rest. Wider client-side
+encryption would not be implemented for this launch. The provider-login vault would remain
+separately end-to-end encrypted.
+
+**Risk being considered:** accounts, balances, transactions, comments, people, provider
+details, settings and vault ciphertext are held in the cloud document. A party with
+Supabase database/operator access, or access to a provider backup, could read the budget
+document. The cloud copy is intended to be protected by TLS in transit and RLS in normal
+application access, but it is not end-to-end encrypted.
+
+**Candidate controls — evidence has not been filed:**
+
+| Candidate control | Evidence status |
+| --- | --- |
+| Supabase RLS scoped to `auth.uid()` | Policies are claimed in the migrations; a live two-account isolation record has not been filed. |
+| Anon/publishable key is the only key in the client | Claimed; a current built-bundle check is not recorded here. |
+| Service-role access is limited to the owner | Not verified; requires a Supabase member/API-key review. |
+| TLS protects data in transit | Expected; no current test record is filed here. |
+| Provider encrypts storage at rest | Not evidenced; C1 provider evidence is outstanding. |
+| Cloud account deletion removes cloud rows | SQL is applied and the owner reports a test; the build/date/evidence is not filed. |
+| Privacy notice discloses the lack of end-to-end encryption | Draft only; not published or legally reviewed. |
+| Two-account isolation and an independent penetration test | Owner reports a two-account test; evidence is not filed. No independent penetration test has been performed. |
+| No advertising, analytics, public sharing or Open Banking | Scope statement only; build and dependency verification is pending. |
+
+**Evidence required before signature:**
+
+1. C1 processor evidence: region, sub-processors, DPA, transfer mechanism, backup/log
+   retention and security contact.
+2. A dated two-account RLS isolation record, including the build tested.
+3. Confirmation of who can access the Supabase project and service-role key.
+4. The current privacy-notice disclosure, ready for legal review.
+5. A penetration-test plan or report covering cloud data access; if a high/critical
+   finding exists, this proposal should not be signed.
+
+**Provisional residual if signed:** **Medium–High** (low–medium likelihood, high impact).
+This is a proposal rating, not an accepted one.
+
+**Conditions that would apply if signed:**
+
+1. The owner signs and dates this entry.
+2. The privacy notice keeps the “not end-to-end encrypted” disclosure and is published
+   only after legal review.
+3. C1 identifies where the data is held and who can access it.
+4. Any high or critical penetration-test finding about cloud data access reopens this
+   proposal.
+5. Access to the Supabase project and service-role key is reviewed and limited.
+6. The position is reviewed at least every 12 months or on any trigger above.
+
+**Owner signature (not signed):** __________________________  **Date:** ____________
+
+**Review date:** ____________
+
+---
+
+## RA-2 — Proposal to accept an unsigned Windows installer and updater
+
+**Related:** PR-0 owner decision 4; PR-4 code-signing item; release and update controls.
+
+**Proposal:** if the owner signs this entry, the Windows installer and updater would ship
+**without Authenticode code signing** for this launch. The certificate/signing route would
+not be purchased now.
+
+**Risk being considered:** Windows SmartScreen and browsers may warn that the publisher is
+unknown. Users cannot verify a signed publisher identity. An attacker who can replace the
+download or update channel could distribute a modified build. SHA-256 can prove file
+integrity only if the expected digest is obtained through a trusted channel. This is a
+distribution and user-trust risk, not a budget-data access control.
+
+**Candidate controls — evidence has not been filed:**
+
+| Candidate control | Evidence status |
+| --- | --- |
+| Installer is a GitHub Release asset served over HTTPS | Claimed by the release process; the current release asset and link have not been recorded here. |
+| Each release publishes a dated installer and `SHA256SUMS.txt` | Claimed by the release process; the current digest match has not been recorded here. |
+| Updater validates manifest/archive/block hashes | Code appears to validate these values; no independent release-build test is recorded here. It does not authenticate a publisher. |
+| App links directly to a versioned release, with no stable alias | Plan claim; the live link has not been recorded here. |
+| Download page and release notes warn that the installer is unsigned | Not implemented. |
+| Public repository and release history expose unexpected builds | Repository exists; this does not prevent a tampered download. |
+| Release assets contain no budget data, credentials or tokens | Release-process claim; a current asset scan is not recorded here. |
+
+**Evidence required before signature:**
+
+1. A release-build record showing the dated installer, its SHA-256 and the matching
+   `SHA256SUMS.txt`.
+2. Verification that the live download link resolves to that dated release and not a
+   mutable alias.
+3. A recorded updater test showing hash validation and the unsigned-publisher limitation.
+4. The unsigned-installer warning text for the download page and release notes.
+5. An asset scan confirming no budget data, credentials or tokens are present.
+
+**Provisional residual if signed:** **Medium–High** (medium likelihood of a SmartScreen or
+trust problem, high impact if a download is replaced). This is a proposal rating, not an
+accepted one.
+
+**Conditions that would apply if signed:**
+
+1. The owner signs and dates this entry.
+2. The unsigned status is stated on the download page and in release notes.
+3. Every release has a dated installer and matching `SHA256SUMS.txt`.
+4. The app continues to use the versioned GitHub Release URL, not a stable alias.
+5. Any report of a tampered download or update is treated as a security incident.
+6. The position is revisited before general availability, before charging, before any
+   Microsoft Store distribution, or if the installer is hosted anywhere else.
+7. A future code-signing certificate is treated as a change to this proposal, not as
+   silently closing it.
+
+**Owner signature (not signed):** __________________________  **Date:** ____________
+
+**Review date:** ____________
+
+---
+
+## Proposal status
+
+| ID | Risk | Proposal | Provisional residual | Signature | Status |
+| --- | --- | --- | --- | --- | --- |
+| RA-1 | Cloud budget not end-to-end encrypted | Would accept if signed, with candidate controls | Medium–High | Missing | **Unsigned — C3 open** |
+| RA-2 | Unsigned installer/updater | Would accept if signed, with candidate controls | Medium–High | Missing | **Unsigned — code-signing gate open** |
+
+**C3 closure:** not met. C3 remains open until RA-1 is signed, dated and the evidence above
+is filed. Signing RA-2 closes only the code-signing gate; it does not close C3.
+
+**No acceptance may be inferred from this document, the plan, the notice or any checklist.**

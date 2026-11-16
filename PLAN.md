@@ -32,6 +32,7 @@ Effort (roadmap sections only): **S** small · **M** medium · **L** large · **
 20. Single-file dataset storage
 21. Audit remediation plan — 2026-11-07
 22. Progress scorecard and competitor refresh — 2026-11-08
+23. Production-readiness and legal launch plan — 2026-11-14
 
 ---
 
@@ -465,7 +466,8 @@ applied by swapping only `app.asar`.
 
 | Feature | Value | Effort | Depends on |
 |---|---|---:|---|
-| Secure bank linking | Removes manual CSV exports while keeping bank credentials private | XL | Regulated provider, cloud backend |
+| Open Banking integration and FCA/legal-readiness plan | Produces the approved integration plan, provider decision and legal evidence pack before any real bank connection is built | M | Owner decision, UK financial-services and privacy counsel, DPIA addendum |
+| Secure bank linking | Removes manual CSV exports while keeping bank credentials private | XL | Cleared G1–G5 in §10, regulated provider, cloud backend |
 | Bank reconciliation workflow | Matches imported rows to the ledger and resolves differences | M | CSV staging |
 | Generic CSV mappings for other banks | Stops the importer being Starling-specific | M | Mapping schema |
 | Receipt attachments | Keeps evidence next to transactions | L | Local storage; optional encrypted cloud storage |
@@ -584,6 +586,33 @@ The detailed plan for the **Secure bank linking** panel in the Import screen. It
 ### Goal
 
 Let a signed-in user connect a UK bank account, import transactions and reconcile them without ever giving FinanceHub their bank password.
+
+### Planning workstream — Open Banking and FCA/legal readiness (added 2026-11-14)
+
+This is the plan for producing the approved integration plan. It is deliberately a separate workstream from the engineering design below: no real provider, sandbox credentials, contract or user-facing **Connect bank** control can start until the regulatory model and data-protection addendum are signed off. The mock-provider staging path may be built with synthetic data while the legal work runs, but it must not contact a real provider.
+
+**Deliverable:** an approved Open Banking integration plan plus a legal/regulatory evidence pack that an implementation team and an external reviewer can act on. This workstream does **not** itself grant FCA authorisation, provide legal advice or replace professional sign-off.
+
+| ID | Deliverable | Decisions and contents | Evidence required | Owner | Gate |
+|---|---|---|---|---|---|
+| OB-1 | Regulatory model and permissions memo | Choose authorised AISP, partnership with an authorised provider, or rely on the RAISP exclusion only if counsel confirms it applies. Record FCA permissions, PSR 2017 and SCA-RTS duties, Open Banking Standard/Directory obligations, consent duration and re-consent, Consumer Duty, financial-promotion rules, complaints/FOS route, operational resilience, outsourcing and cloud rules. | Written memo from UK financial-services counsel; FCA Register check; owner decision recorded in §16. | Owner + UK fintech counsel | G1 |
+| OB-2 | Data-protection addendum | Update the DPIA for bank-account and transaction data, consent evidence, token metadata and provider sub-processors. Confirm controller/processor roles, lawful basis, minimisation, retention, deletion, international transfers, data-subject rights, breach handling, PECR and Article 30 records. | Signed DPIA addendum, updated privacy notice, processor list and DPAs, retention/DSAR/breach updates. | Owner + DPO/UK privacy counsel | G2 |
+| OB-3 | Provider shortlist and commercial review | Shortlist FCA-authorised account-information providers; verify permissions and FCA Register status; compare UK bank coverage, sandbox, consent/revocation APIs, webhooks, SLAs, data residency, sub-processors, security certifications, insurance, exit/portability, pricing and contract liability. | Completed due-diligence matrix, provider contract or sandbox agreement, security and financial checks. | Owner + procurement + counsel | G3 |
+| OB-4 | Security architecture and threat-model review | Approve the server-side token broker, secret storage, consent/state/PKCE binding, webhook verification, replay protection, revocation, audit and incident paths. Define penetration-test scope for the broker, callback, RLS and staged-import flow. | Threat model, data-flow diagram, secrets design, pen-test scope and remediation owner. | Engineering + independent security reviewer | G4 |
+| OB-5 | Consent, disclosure and support design | Write the exact consent wording, what is shared, consent duration, re-consent and disconnect flows, complaint and support route, outage fallback, CSV continuity and the claims the product may and may not make. | Approved copy deck, consent screens, support/complaints runbook, claims list. | Product + counsel + support | G4 |
+| OB-6 | Integrated plan and go/no-go pack | Merge OB-1 to OB-5 into the implementation plan: model, provider, architecture, data flows, staging/reconciliation, rollout, costs, support, incident response, evidence index and stop conditions. | Signed go/no-go decision; every open legal question closed or explicitly accepted with an owner. | Owner | G5 |
+
+**Legal and regulatory checklist for counsel.** The FSA was abolished in 2013; the FCA is the relevant UK conduct regulator, so the old “FSA requirements” request is handled here as FCA and Payment Systems Regulator duties. This checklist is a starting point for professional review, not a complete statement of law: counsel must add any other applicable rule for the chosen model and distribution. The review must explicitly cover or record as not applicable: FCA authorisation and permitted activities; PSR 2017 and SCA-RTS; Open Banking Standard and Directory enrolment; strong customer authentication and the 90-day AISP re-consent rule; consent dashboard and revocation; Consumer Duty; financial promotions; complaints and the Financial Ombudsman route; operational resilience and outsourcing; UK GDPR/DPA 2018; PECR; international transfers; records of processing; data-subject rights; breach notification; contract terms and liability; professional indemnity/cyber insurance; accessibility (WCAG 2.2 AA and Equality Act 2010); AML/KYC and safeguarding applicability (expected to be outside a pure AISP read-only model, but this must be confirmed, not assumed); PCI DSS (no card data should enter FinanceHub); and consumer cancellation/refund rights if the feature is charged for.
+
+**Order and stop conditions.**
+
+1. **G1:** owner and counsel sign the regulatory model. No provider signup, contract or sandbox credentials before this.
+2. **G2:** DPIA addendum and privacy notice are approved. No real account data before this.
+3. **G3:** provider due diligence and commercial terms are approved. No production credentials before this.
+4. **G4:** security review, consent copy and support/complaints route are approved. No pilot before this.
+5. **G5:** integrated plan and go/no-go pack are signed. Only then does real-provider integration begin, behind a feature flag, with the mock-provider staging path already proven first.
+
+**Definition of done for this planning workstream:** every item has a named owner, an evidence file, a sign-off date and a gate result; the plan states which regulated activities FinanceHub and its provider perform; the DPIA covers the actual new processing; the provider contract, sub-processors, retention and exit route are recorded; and the owner has a written go/no-go decision. Until then, the app keeps the CSV-only path and makes no Open Banking, FCA-approved or bank-level-security claim.
 
 ### Non-goals
 
@@ -992,10 +1021,17 @@ Scope assumed for the current build:
 
 ### C-4 — FCA and Open Banking gate (only if bank linking ships)
 
-- [ ] Choose the model: become an authorised AISP, or partner with an authorised provider; confirm whether the RAISP exclusion could apply.
-- [ ] If AISP: FCA authorisation, capital and conduct requirements, complaints handling, Open Banking Directory enrolment, strong customer authentication, consent dashboard and revocation flow.
-- [ ] Apply Consumer Duty and financial-promotion rules if the app is offered to retail customers or marketed as a financial service.
-- [ ] Keep "Secure bank linking" as a clearly labelled preview, with no credential collection, until this gate is cleared.
+The planning deliverables that feed this gate are in §10, **Planning workstream — Open Banking and FCA/legal readiness**. Engineering may build the synthetic mock-provider staging path while planning runs, but no real provider, sandbox credential, contract or live account data is allowed until G1–G3 have passed.
+
+- [ ] Choose the model: become an authorised AISP, partner with an authorised provider, or rely on the RAISP exclusion only if counsel confirms it applies. Record the decision and its reasoning.
+- [ ] Confirm the FCA permission position and, if AISP, the capital, conduct, complaints, operational-resilience and outsourcing requirements; complete Open Banking Directory enrolment.
+- [ ] Confirm PSR 2017, SCA-RTS, Open Banking Standard, strong customer authentication, the 90-day AISP re-consent rule, consent dashboard and revocation flow with counsel and the provider.
+- [ ] Apply Consumer Duty, financial-promotion rules, complaints/FOS handling and support obligations if the app is offered to retail customers or marketed as a financial service.
+- [ ] Complete the DPIA addendum, controller/processor mapping, sub-processor list, international-transfer basis, retention/deletion rules and updated privacy notice before any real account data is processed.
+- [ ] Record AML/KYC, safeguarding and PCI DSS applicability as confirmed by counsel rather than assuming they are out of scope; a read-only AISP model should not receive card data or hold customer funds.
+- [ ] Verify the provider's FCA Register entry, permissions, insurance, security certifications, data residency, exit/portability terms and incident notification duties.
+- [ ] Commission the independent security review and penetration test defined in OB-4; remediate findings before pilot.
+- [ ] Keep "Secure bank linking" as a clearly labelled preview, with no credential collection and no real bank connection, until G1–G5 are cleared.
 
 ### C-5 — Security assurance and claim discipline
 
@@ -1038,7 +1074,7 @@ External dependencies that code changes cannot satisfy: legal review, Apple hard
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** run a live passkey enrolment/sign-in test on the hosted app, run the throwaway-account deletion test, and run the packaged-app security checks. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.13`, build `9d20ad542569`, with matching local/live hashes; the GitHub `v2026.11.13` tag and source archives are at `02c7bb0`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
+**Immediate next:** publish the `2026.11.16` hosted bundle (needs `FTP_PASSWORD`), verify the hosted demo/account-settings gate live, run a live passkey enrolment/sign-in test, run the throwaway-account deletion test, and run the packaged-app security checks. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.13`, build `9d20ad542569`, with matching local/live hashes; the GitHub `v2026.11.13` tag and source archives are at `02c7bb0`, and CI built the installer with a matching checksum file. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1099,6 +1135,7 @@ Open items:
 4. **Web deployment** — the GitHub `v2026.11.9` installer assets are refreshed and verified. On 2026-11-09 `ftpupload.net:21` timed out, so the web bundle was uploaded through the signed-in InfinityFree file manager instead. The live page, JS and CSS return 200 and their SHA-256 hashes match the local build. The pre-rotation purge is complete; the site stays private until passkey configuration, packaged checks, browser-storage hardening and legal review are complete.
 5. **Pre-rotation purge access** — the owner selected purge; the production cloud/local backup locations must be made available, or the owner must run the purge.
 6. **iOS** — deferred; reopen only with macOS/Xcode and an Apple Developer account.
+7. **Open Banking planning owner and professional advisers** — name the owner accountable for OB-1 to OB-6, appoint UK financial-services counsel and a privacy adviser, and decide the budget and target date for the planning workstream. No provider shortlist or regulatory model should be treated as decided before that appointment.
 
 ---
 
@@ -1224,6 +1261,7 @@ Open items:
 - 2026-11-13: Removed the wildcard Supabase CSP fallback. A missing or invalid URL now yields `connect-src 'self'` only; a valid URL adds just its exact HTTPS/WSS origin. The hosted bundle is `index-BazeCTgG.js`, tag `fe3ed46`; Release run `43457692671` replaced the GitHub installer with 122,613,481 bytes, SHA-256 `744f266183b198113132aac4565634cb67c0b1ad9e861f6ce82cada700daa68e`. CI run `43457687117` passed typecheck, the private-workbook test skip and the hosted build; `npm test` **281/281** and `tsc` clean.
 - 2026-11-13: Applied `public.delete_my_account` in the Supabase SQL editor; it is `SECURITY DEFINER`, owned by `postgres`, and the grant check showed `anon` execute `false`, `authenticated` execute `true`. Enabled Supabase passkeys with display name `FinanceHub`, RP ID `financehub.freedev.app` and origin `https://financehub.freedev.app`; reloading the page confirmed the saved values. The Site URL is `https://financehub.freedev.app/` and the redirect allow-list includes the web origin, its wildcard path, local Vite and the desktop callback. A throwaway-account deletion test remains.
 - 2026-11-13: Added passkey enrolment, listing, removal and sign-in to Account security and the hosted login page. Release build `2d5916cbac50`, hosted bundle `index-BwDeFEsT.js`, tag `e1ac207`; CI and Release runs succeeded. The GitHub installer is 122,616,892 bytes with SHA-256 `830b447450d936787045fba762fbab2ba26e887f1e616bb89297da72752a8523`, matching `SHA256SUMS.txt`. `npm test` **285/285** and `tsc` clean. The live login page shows the passkey button and build `2d5916cbac50`, and the live JS/CSS SHA-256 hashes match the local bundle. A real passkey ceremony has not been run.
+- 2026-11-16: Gated the public hosted build to the synthetic demo and hosted account settings (C2). In hosted mode `App.tsx` never reads or persists a storage mode, never opens the people portal and routes a signed-in session to `HostedAccountSettings`, an unconfirmed email/password account to `EmailVerificationPage` and everyone else to the demo. `emailNeedsVerification` treats Google accounts and confirmed addresses as ready; the verification page resends the confirmation email and offers device-only use on the Windows build. Added `tests/ui-smoke.test.mjs` coverage for the verification rule, the verification page, the hosted account page and the shell gate. Release `2026.11.16`, build `bdd044bbdfc3`, hosted bundle `index-8zanfTd4.js`, installer 117.0 MB with SHA-256 prefix `e2de53e6171b`, update manifest matching `FinanceHub-app.asar`; `npm test` **294/294**, `tsc` clean, `release:check` passed with the GitHub release and live parity skipped (no tag, no `FTP_PASSWORD`). The deployed site is unchanged, so the live hosted gate is not yet verified.
 
 ## 18. Notes and constraints
 
@@ -1640,3 +1678,122 @@ Since this ranking: item 1 (categories/tags) is delivered, item 2 is partly deli
 - Market consolidation and self-hosted alternatives: <https://www.startdoingwell.com/resource/ynab-alternative> (02/11/2026)
 
 These are third-party and vendor pages, not audited figures; they are cited to show where each claim came from, not as endorsement.
+
+---
+
+## 23. Production-readiness and legal launch plan — 2026-11-14
+
+Status: **planning; not production-ready.** Build `9b9b459de201` is live and the core product works, but production release is gated on the evidence below, not on another feature. This plan does not itself make FinanceHub compliant and is not legal advice. “All legal” means every applicable duty has been identified, assigned, evidenced and signed off by the owner’s professional advisers; it does not mean a self-declaration in this repository.
+
+### 23.1 Definition of production-ready
+
+A release is production-ready only when all of these are true:
+
+- The launch scope and target market are fixed in writing, with every excluded activity recorded.
+- No launch-blocking engineering, security or legal item is open; accepted risks are in a signed risk register.
+- UK counsel and a privacy adviser have reviewed the actual build, data flows and customer journey.
+- The DPIA, privacy notice, terms, retention/DSAR/breach procedures and processor agreements match what ships.
+- The security tests and independent penetration test are closed, with no unresolved high or critical finding.
+- Backup/restore, update rollback and account-deletion drills have passed on the release build.
+- Support, complaints, incident response and vulnerability disclosure are staffed and published.
+- The release artifacts are hashed, reproducible enough to audit, and the code-signing position is either completed or explicitly accepted.
+- The owner has signed a go/no-go decision against the evidence pack.
+
+### 23.2 Launch scope and explicit exclusions
+
+**Target:** direct Windows x64 installer plus the hosted web app (synthetic demo and hosted account settings only), for personal/household budgeting in the UK. No Microsoft Store or iOS release in this plan.
+
+Explicitly excluded from this launch: Open Banking and bank linking (separate G1–G5 gate in §10), card payments, money transmission, holding customer funds, card data, advertising, third-party analytics, public user-generated content, and use by under-18s. If any of these changes, the DPIA and legal review must be reopened before release.
+
+**Owner decisions required before Phase 1 (answers recorded below):**
+
+1. UK-only or worldwide availability. Serving the EEA may add EU GDPR representation and consumer rules; serving other markets adds their own. The simplest production scope is UK-only, enforced by the hosted site and terms.
+2. Free, paid or donation-supported. Selling changes consumer, cancellation, refund, VAT and invoicing duties.
+3. Whether the hosted web app may access real budgets. Its current browser `localStorage` model is a security gap (S-04); either harden it or make the public web build a synthetic demo with hosted account settings only.
+4. Code signing budget and certificate route. The current installer and updater are unsigned; that is an accepted distribution risk only if the owner records it.
+5. SQLCipher or another whole-database encryption route, or a written decision to limit the at-rest claim.
+6. Whether the desktop app must support passkeys; Electron’s `file://` window cannot use WebAuthn, so the production sign-in story must be stated honestly.
+
+**Owner decisions recorded 16 November 2026:**
+
+| # | Decision | Recorded position | Consequence / status |
+| --- | --- | --- | --- |
+| 1 | Launch market | **UK only.** | Enforce UK availability in the site and terms; no EEA representation or EU consumer work for this launch. |
+| 2 | Price | **Free at launch.** | No payment, cancellation, refund or VAT flow in the first production release. Revisit before charging. |
+| 3 | Hosted web model | **Demo + hosted account settings only.** | The public hosted build shows a synthetic demo and allows hosted account settings, passkeys and deletion. It must not sign in to, load, view, edit or sync a real budget. Real budgets remain in the Windows app. Gate built in `2026.11.16` (build `bdd044bbdfc3`); deploy and live check pending (C2). |
+| 4 | Cloud encryption | **Proposed risk acceptance, unsigned.** | Keep `settings.state_json` readable at rest only if RA-1 is signed; disclose that it is not end-to-end encrypted. C3 remains open. |
+| 5 | Windows local database | **Keep DPAPI value store; no SQLCipher.** | Narrow the at-rest wording to “values encrypted; SQLite database not full-disk encrypted” and align the notice. |
+| 6 | Desktop passkeys | **Hosted-only passkeys.** | Windows uses email/password or Google; state this in the notice and support material. Live hosted ceremony still needs a recorded test (C4). |
+| 7 | Email verification | **Required before cloud sync.** | A local workspace remains available without sync. Client gate implemented; Supabase Confirm email setting and live signup/resend test pending (C4). |
+| 8 | Code signing | **No code signing; unsigned proposal.** | Accept the unsigned installer/updater risk only if RA-2 is signed, warn users and retain SHA-256 verification. PR-0/PR-4 remains open. |
+| 9 | C1 processor evidence | **Not yet available.** | Processor register stays open; do not invent region, DPA or transfer facts. Public production remains blocked. |
+| 10 | C4/C5 tests | **Partial — owner attests 16 Nov 2026: two-account sync, deletion and export drills completed.** | No build/date artifact, so not closed. Live passkey, email verification and two-device conflict remain open. |
+
+**C2 hosted gating (implementation pending):** on the public hosted build, offer the
+synthetic demo and hosted account settings only. Hosted sign-in may be used for account
+settings, passkeys and cloud-account deletion; it must not load, save or sync any budget
+document, restore point, vault, portal or feedback record. The live check must confirm
+that a hosted session never opens a real budget and that the demo remains synthetic.
+
+### 23.3 Workstreams and gates
+
+| Gate | Workstream | Must produce | Accountable | Blocking evidence |
+|---|---|---|---|---|
+| PR-0 | Scope, risk and launch decision | Fixed scope, target market, monetisation, excluded activities, risk appetite and named launch owner | Owner | Signed scope note and signed risk register (`docs/compliance/RISK_ACCEPTANCE_REGISTER.md`) |
+| PR-1 | Data protection and privacy | Data map (`docs/compliance/DATA_MAP.md`), processor register (`docs/compliance/PROCESSOR_REGISTER.md`), controller/processor roles, lawful basis per purpose, DPIA plus Addendum A (`docs/compliance/DPIA.md`), records of processing, retention schedule, DSAR and breach runbooks, PECR review, international-transfer basis, sub-processor list and DPAs, updated privacy notice | Owner + privacy adviser | Signed DPIA and privacy pack; completed processor register; ICO fee position; DPAs on file |
+| PR-2 | Consumer, contract and corporate law | Terms of Service, EULA, privacy notice, acceptable-use and refund/cancellation terms, complaints route, trading disclosures, IP/trademark and open-source licence review, insurance review | Owner + UK counsel | Counsel sign-off; terms published and versioned; complaints route tested |
+| PR-3 | Security assurance | Threat model, secure secret management, OAuth/callback tests, exact CSP, RLS two-account isolation, token and session review, dependency audit, SBOM, independent penetration test and remediation | Engineering + independent reviewer | Closed pen-test report; no open high/critical; RLS and auth evidence |
+| PR-4 | Engineering release blockers | Passkey ceremony, packaged-app security checks, deletion/export drill, email-verification decision, backup/restore drill, update/rollback drill, accessibility pass, crash reporting decision, web-storage decision | Engineering | Test records on the release build; rollback and restore evidence |
+| PR-5 | Operations and support | Support contact and policy, status/incident process, breach and DSAR handling, monitoring without financial payloads, release checklist, rollback owner, vendor and sub-processor register | Owner + support | Runbooks exercised; contacts published; on-call/response owner named |
+| PR-6 | Limited production pilot | Invite-only cohort, known-issues list, support feedback loop, incident log, exit criteria | Owner | Pilot report; no unresolved launch blocker |
+| PR-7 | General availability | Final evidence pack, claims list checked against the build, release notes, hashes/SBOM, signed go/no-go | Owner | Signed go/no-go and published release |
+
+### 23.4 Legal applicability checklist
+
+Counsel must mark each item **applicable**, **not applicable with reason**, or **deferred with a written risk acceptance**. This list is a prompt, not a complete statement of law.
+
+- **Data protection:** UK GDPR, Data Protection Act 2018, PECR, controller/processor contracts, lawful basis, DPIA, data minimisation, retention, deletion, access/portability/rectification, breach notification, Article 30 records, international transfers, sub-processor due diligence and the ICO data-protection fee.
+- **Consumer and contract:** Consumer Rights Act 2015, Consumer Contracts Regulations 2013 if sold at a distance, E-Commerce Regulations 2002 for the website, clear pricing and cancellation/refund terms, complaint handling, ADR information if applicable, and unfair-term review of the EULA and Terms.
+- **Corporate and trading:** correct legal entity/trading name and address on the website and invoices, VAT position, record-keeping, insurance (professional indemnity and cyber), and any Companies Act 2006 disclosure duties.
+- **Financial regulation:** a written applicability memo covering FCA authorised activities, PSR 2017, Open Banking/PSD2, Consumer Duty, financial promotions, AML/KYC, safeguarding and PCI DSS. For this launch the expected position is that none apply because there is no bank connection, payment service or card data — but counsel must confirm it rather than the plan assuming it.
+- **Accessibility and equality:** WCAG 2.2 AA target, Equality Act 2010 reasonable adjustments, keyboard/screen-reader/125–200% scaling evidence, and an accessibility statement.
+- **IP and open source:** ownership of the FinanceHub name and logo, trademark position for the ™ claim, copyright notices, and a licence/SBOM review of every runtime dependency.
+- **Market scope:** if the hosted app is available outside the UK, assess EU GDPR, EU consumer law and any local financial-promotion or distance-selling rules; otherwise enforce UK-only availability and say so.
+
+### 23.5 Delivery sequence
+
+1. **Phase 0 — freeze the launch:** owner completes PR-0, appoints UK counsel and a privacy adviser, and opens the risk register.
+2. **Phase 1 — legal foundation:** complete PR-1 and PR-2 before public marketing. Draft documents may exist earlier, but they must be reviewed against the build that will ship.
+3. **Phase 2 — security and engineering closure:** close PR-3 and PR-4, including the independent penetration test and all release-build drills.
+4. **Phase 3 — operations:** complete PR-5 and exercise the breach, DSAR, restore and rollback runbooks.
+5. **Phase 4 — limited pilot:** run PR-6 with invited users, no public claims, and a stop condition for any high-severity incident.
+6. **Phase 5 — general availability:** assemble PR-7, verify every claim against evidence, obtain the signed go/no-go, then publish.
+
+### 23.6 Current launch-blocking checklist
+
+- [x] Working Windows build, hosted build, delta updater and GitHub release assets.
+- [x] Live build deployed and hash-verified: `9b9b459de201` / `index-C6dobgy-.js`.
+- [~] Hosted passkeys delivered; live passkey ceremony still needs a recorded test.
+- [ ] Packaged-app navigation, CSP, external-link blocking, secure storage and OAuth callback checks.
+- [~] Partial — owner attests 16 Nov 2026 that deletion and export drills completed; no dated build artifact. Encrypted backup/restore observation still open.
+- [~] Partial — owner attests 16 Nov 2026 that two-account RLS isolation passed; no dated build artifact. Two-device conflict still open.
+- [~] Partial — client email-verification gate implemented; Supabase Confirm email setting and live signup/resend test pending.
+- [x] Hosted web demo + hosted account-settings gate built in `2026.11.16` (`bdd044bbdfc3`) with source and shell tests; deploy and live check pending (`FTP_PASSWORD` unavailable).
+- [ ] Exact-origin CSP and forged/replayed OAuth callback tests.
+- [ ] Independent penetration test and remediation record.
+- [~] No code signing (decision 16 Nov 2026); unsigned-installer proposal RA-2 awaiting signature.
+- [~] Cloud plaintext-at-rest proposal RA-1 unsigned; C3 open.
+- [~] Keep DPAPI and narrow the at-rest wording (decision 16 Nov 2026); privacy text alignment pending.
+- [~] DPIA Addendum A, data map and processor register drafted; professional review, processor evidence and sign-off remain.
+- [ ] Privacy notice, retention/DSAR/breach pack and processor DPAs signed.
+- [ ] ICO fee position recorded.
+- [ ] Terms/EULA/consumer refund and complaints route reviewed and published.
+- [ ] Accessibility evidence at 125–200% scaling.
+- [ ] Backup/restore and update-rollback drills on the release build.
+- [ ] Support, incident, vulnerability-disclosure and status contacts published.
+- [ ] SBOM, hashes and claims list attached to the release.
+- [ ] Signed owner go/no-go.
+
+### 23.7 Go/no-go rule
+
+Ship only when every PR-0 to PR-7 gate has passed, every exception is recorded in the risk register with an owner and expiry, and no unresolved high or critical security finding remains. If legal advice and product ambition conflict, the legal advice wins until the owner formally narrows the product or accepts the risk in writing. “Production ready” is an evidence claim, not a version number.

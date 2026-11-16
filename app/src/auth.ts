@@ -1,4 +1,4 @@
-import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type Session, type SupabaseClient, type User } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
@@ -76,6 +76,13 @@ export async function signInWithProvider(provider: AuthProvider): Promise<void> 
 
   const { error } = await authClient.auth.signInWithOAuth({ provider, options });
   if (error) throw error;
+}
+
+/** Cloud sync is held back until an email/password account has confirmed its address. */
+export function emailNeedsVerification(user: User | null): boolean {
+  if (!user) return false;
+  if (user.email_confirmed_at || user.confirmed_at) return false;
+  return user.app_metadata?.provider !== 'google';
 }
 
 /** WebAuthn needs a secure hosted origin; the packaged Electron window loads a local file. */

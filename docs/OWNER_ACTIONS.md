@@ -41,11 +41,7 @@ join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and p.proname = 'delete_my_account';
 ```
 
-4. **Still pending — throwaway-account test.** In a private window, create a throwaway account with no real data, sign in, and use
-   **Delete cloud account permanently**. Confirm:
-   - the app signs out;
-   - signing in again creates a fresh account;
-   - the old `auth.users` row and its cascaded public rows are gone.
+4. **Owner-attested 16 Nov 2026 — throwaway-account, deletion and export drills.** The owner attests that two-account sync, account deletion and export drills completed with no real data. No dated build artifact was filed; re-run with the release build/date and screenshots if counsel requires independent evidence. The deletion checks remain: the app signs out, signing in again creates a fresh account, and the old `auth.users` row and cascaded public rows are gone.
 5. Never run this function with the service-role key, and never expose a service-role key
    in the web bundle.
 
@@ -86,7 +82,7 @@ actual authenticator.
 
 ## 4. Privacy and processor actions
 
-1. Create a dedicated privacy/support mailbox (for example `privacy@` and `support@`).
+1. Adopt the existing privacy/support mailbox `financehub+pauluk83@gmail.com` (Gmail). Restrict access, confirm retention, and replace it with dedicated addresses if it becomes a shared support route.
 2. Put the real contact address into the published Privacy Policy and Terms after legal
    review; the draft in `docs/compliance/` contains a placeholder.
 3. Confirm the ICO registration and data-protection fee position for the controller.
@@ -94,9 +90,14 @@ actual authenticator.
 5. Record the UK international-transfer mechanism (SCC or UK IDTA) for each processor.
 6. Ask a UK solicitor to review the Privacy Policy, Terms, EULA and the drafts in
    `docs/compliance/`.
+7. In **Supabase → Authentication → Providers → Email**, enable **Confirm email** and keep
+   the Site URL/redirect list current. Test signup, confirmation, resend and sign-in; record
+   the result. The app now blocks cloud sync until an email/password account reports a
+   confirmed address.
 
 ## 5. Evidence to keep
 
-Keep dated screenshots or exports for: the purge result, the deletion test, the passkey
-settings page, the DPA acceptance, the ICO position, the retention schedule review and
-the breach-contact test. See `docs/compliance/EVIDENCE_CHECKLIST.md`.
+Keep dated screenshots or exports for: the purge result, any dated repeat of the deletion/export test, the passkey
+settings page, the email-confirmation/resend test, the DPA acceptance, the ICO position,
+the retention schedule review and the breach-contact test. See
+`docs/compliance/EVIDENCE_CHECKLIST.md`.
