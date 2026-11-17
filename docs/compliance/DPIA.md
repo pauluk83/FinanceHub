@@ -36,8 +36,10 @@ Data flows:
 
 The processing is necessary to provide the budgeting service the user requests. The
 data is limited to what the user enters, plus authentication identifiers. Provider
-credentials are optional and are encrypted client-side. The app does not connect to
-banks, initiate payments, store card numbers or provide financial advice.
+credentials are optional and are encrypted client-side. The app does not provide
+Open Banking/AISP connections, initiate payments, store card numbers or provide financial
+advice. The optional owner-only Starling personal feed in A.10 uses Starling's own
+personal API and is not Open Banking.
 
 The main proportionality concern is that the cloud budget document is not end-to-end
 encrypted: it is protected by Supabase access controls and transport encryption, but a
@@ -68,8 +70,9 @@ solicitor or DPIA adviser, confirm the lawful basis and retention schedule, add 
 privacy contact and test the DSAR and breach procedures.
 
 **Decision:** Continue the current private deployment with the mitigations above. Do not
-add bank linking, payments, analytics or a public sign-up until the residual risks and
-processor arrangements are reviewed.
+add Open Banking/AISP bank linking, payments, analytics or a public sign-up until the
+residual risks and processor arrangements are reviewed. The owner-only Starling personal
+feed is assessed separately in A.10 and is not Open Banking.
 
 ---
 
@@ -93,8 +96,11 @@ The production scope is the Windows x64 app for UK personal and household budget
 plus a hosted web app limited to a synthetic demo and hosted account settings (passkeys
 and deletion). The hosted site will not load, view or sync a real budget. Open Banking,
 payment initiation, card acquiring, money transmission, card data, advertising, third-party
-analytics, public user-generated content and use by under-18s are excluded. Bank linking remains behind the separate G1–G5 gate in `PLAN.md`
-§10 and must not start from this DPIA.
+analytics, public user-generated content and use by under-18s are excluded. The one
+bank-data exception is the **owner-only Starling personal feed** in A.10: it uses
+Starling's own personal API, not Open Banking/AISP, and is not offered to anyone else.
+Open Banking for other banks remains behind the separate G1–G5 gate in `PLAN.md` §10 and
+must not start from this DPIA.
 
 The assessment covers the data flows in `DATA_MAP.md`: local Windows storage, the current
 hosted-web `localStorage` flow (to be removed for real budgets at launch), Supabase
@@ -252,6 +258,46 @@ hold until C1–C8 are closed and the sign-off below is completed.
 | Privacy adviser / DPO |  |  |  |  |
 | UK counsel |  |  |  |  |
 | Security reviewer |  |  |  |  |
+
+## A.10 Owner-only Starling personal feed — 17 November 2026
+
+**Scope:** Windows desktop only; the owner's own GBP Starling account; read-only account
+and settled-transaction data. No payments, card data, screen scraping, background sync or
+third-party users. This is Starling's personal access token API, not Open Banking/AISP.
+
+**Data and flow:** the owner creates a Starling personal access token with `account:read`
+and `transaction:read`. The token is stored in Electron `safeStorage` (Windows DPAPI) under
+`bank.starling.personal-token`, outside the budget, backups and cloud sync. The main process
+calls Starling over HTTPS; the renderer receives only reduced account/transaction fields.
+Only rows the owner ticks in the review grid enter the budget. The fetched response is not
+persisted separately, and forgetting the token removes the local copy. Starling remains an
+independent controller for the bank account; no DPA is available for a consumer personal
+access token.
+
+**Risks and mitigations:**
+
+| Risk | Likelihood / impact | Mitigation | Residual |
+| --- | --- | --- | --- |
+| Token theft from the device | Medium / High — the token can read the linked account | DPAPI at rest; token never in the budget, backup, cloud or renderer; read-only scopes; forget/revoke route; no token logging | Medium; accepted for owner-only use on a trusted Windows profile |
+| Over-collection or retention of bank data | Low / Medium | Fetch only the selected account and open period; filter to settled items; no background sync; append only after review; no separate response store | Low |
+| Wrong account or duplicate import | Medium / Low | Explicit account selection; GBP check; review grid; one-day/amount duplicate detection; out-of-window block | Low–Medium; owner reviews before appending |
+| Token exposed through IPC or logs | Low / High | Narrow preload bridge; trusted-sender check; token only in main process; errors omit the token | Low; an independent IPC/desktop review is still needed |
+| Starling terms or API change | Medium / Medium | Owner-only use; no public claim; monitor developer terms; token can be revoked; feature can be removed without touching budget data | Medium; not approved for third parties |
+| Scope creep into Open Banking | Medium / High | UI and plan label the feed as Starling personal API, not Open Banking; G1–G5 remain open; no other banks or AISP credentials | Controlled while owner-only |
+
+**Necessity and proportionality:** the feed is optional, read-only and limited to the
+owner's own account. It avoids storing bank credentials and avoids a cloud token broker.
+The residual token risk is accepted only for private owner use; it is not a public-launch
+control.
+
+**Conditions:** keep it desktop-only and owner-only; do not describe it as Open Banking,
+FCA-approved or bank-level security; keep the token out of the budget/cloud/backups; test
+the IPC and packaged build before any public claim; revoke the token in Starling when no
+longer needed; revisit this addendum before enabling it for any other person or adding
+other banks.
+
+**Decision:** permitted for the owner's private deployment. Public production, third-party
+bank linking and Open Banking remain unapproved.
 
 **Review trigger:** any new processor, region, bank-linking, payment, analytics, attachment,
 sharing or storage change; any personal-data breach; or 12 months from sign-off, whichever

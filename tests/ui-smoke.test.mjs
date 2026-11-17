@@ -355,6 +355,18 @@ test('the hosted build opens the real budget for a signed-in user', async () => 
   assert.match(app, /onContinueLocally=\{HOSTED_WEB \? undefined/);
 });
 
+test('the import screen presents the Starling personal feed separately from Open Banking', async () => {
+  const { ImportView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const ds = dataset();
+  const html = render(ImportView, props(ds));
+
+  assert.match(html, /Starling personal feed/);
+  assert.match(html, /not an Open Banking\/AISP connection/);
+  assert.match(html, /available only in the Windows desktop app/);
+  assert.match(html, /Open Banking \(other banks\)/);
+  assert.match(html, /CSV import remains available everywhere/);
+});
+
 test('a hosted sign-out clears the cached budget only once it is synced', async () => {
   const { hostedKeysToClear } = await server.ssrLoadModule('/src/store.ts');
   const keys = [

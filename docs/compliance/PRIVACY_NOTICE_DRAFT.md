@@ -28,8 +28,10 @@ in with a confirmed email, and also offers a synthetic demo you can explore with
 account. Browser storage on the hosted site is not encrypted by FinanceHub.
 
 FinanceHub is intended for adults aged 18 or over. It is not a bank, lender, financial
-adviser or payment service. It does not connect to your bank, move money, store card
-numbers or provide financial advice.
+adviser or payment service. It does not provide Open Banking aggregation, move money,
+store card numbers or provide financial advice. On Windows, an optional personal feed can
+read your own Starling account with a Starling personal access token; it is not Open
+Banking and does not give FinanceHub access to your bank password.
 
 ---
 
@@ -57,6 +59,24 @@ do not load a real budget.
 - Provider details, account references, contract figures and portal links.
 - Month-end locks, changelog entries, audit history and settings.
 - Names and balances for people in your budget, including people who never use the app.
+
+### Starling personal feed (Windows only, optional)
+
+If you choose to connect your own Starling account, FinanceHub asks for a Starling
+**personal access token**, not your online-banking password, PIN or one-time code. The
+token is stored in the Windows OS-encrypted local store and is not placed in the budget,
+cloud sync or backups. It is used only by the desktop app to read the Starling account you
+select. FinanceHub does not return the saved token to the app screen and does not sell or
+share the data.
+
+The feed is read-only. It retrieves account names, account identifiers, currency and
+settled transactions for the selected account. Pending and reversed items are not offered.
+The transactions enter the normal review grid and are added to your budget only when you
+confirm them. You can forget the token in FinanceHub, and you should also revoke it in the
+Starling developer portal when you no longer need it.
+
+This feed is not Open Banking/AISP, is not a payment service and is not offered to other
+people. Starling's own terms and privacy notice also apply to its API.
 
 ### Optional provider logins
 
@@ -116,8 +136,9 @@ You control where exported files go and who can access them.
 
 ## 3. What we do not collect
 
-- Bank account credentials or Open Banking connections. FinanceHub does not currently
-  connect to banks.
+- Bank passwords, PINs or one-time codes, or Open Banking/AISP connections. The optional
+  Starling personal feed uses a Starling personal access token, not your bank password;
+  the token is stored only on your Windows device and is not sent to the hosted service.
 - Card numbers, payment credentials or money-transmission data.
 - Advertising profiles, third-party analytics or crash-reporting payloads.
 - Your Google password.
@@ -166,6 +187,7 @@ we specify, under their terms and any data-processing agreement.
 | **Google** | Google identity, email address and OAuth consent data, only if you choose Google sign-in | Sign-in |
 | **InfinityFree** | Static website requests and access logs; no budget data should be deployed there | Hosting the web app |
 | **GitHub / Microsoft** | IP address, user agent and request metadata when checking for or downloading an update; no budget or account data | Release downloads and app updates |
+| **Starling Bank** | Your Starling personal access token and the account/transaction request; Starling returns your account and transaction data | Only if you enable the desktop Starling personal feed |
 | **Email delivery provider used by Supabase** | Email address and verification/reset message metadata | Account verification and password-reset email; provider to be confirmed |
 | **Privacy/support mailbox provider** | Whatever you send to the published contact address | Responding to support and rights requests; existing Gmail mailbox `financehub+pauluk83@gmail.com` |
 | **Professional advisers, security reviewers and penetration testers** | Documents and evidence needed for their engagement, under confidentiality | Legal, privacy and security assurance |
@@ -199,6 +221,8 @@ Do not publish this notice until those fields and the processor register are com
 | Budget and settings | Windows device’s encrypted value store only; the hosted demo uses synthetic data and never loads a real budget | Only from the Windows app if you sign in and choose cloud sync |
 | Account and session | Supabase Auth; device secure store on Windows; browser storage on the hosted account pages | Yes, for authentication and account settings; no real budget is loaded on the hosted site |
 | Provider vault ciphertext | Inside the budget document | Yes, ciphertext only |
+| Starling personal access token | Windows DPAPI-backed secure store only | No |
+| Fetched Starling account/transactions | Desktop memory and the review grid; only appended rows enter the budget | Only if the resulting budget is synced |
 | People portal records | Browser storage on the owner’s device | No |
 | Feedback | Browser storage on the owner’s device | No |
 | Restore points | Device storage, encrypted | No |
@@ -230,6 +254,8 @@ end-to-end encrypted. This means a party with database/operator access could rea
 | Feedback | Until you delete it or clear site data; at most 100 messages per owner |
 | Restore points | The newest seven; one automatic point per day |
 | Sync conflicts | Local queue capped at 25 records and two full snapshot pairs within 1.5 MB; cloud metadata until purged or the account is deleted |
+| Starling personal token | Until you forget it in FinanceHub or remove the app data; revoke it separately in Starling |
+| Fetched Starling data | Only the rows you append enter the budget and follow the budget retention rule; the fetched response is not stored separately |
 | Support bundle | Until the support request is resolved; delete downloads and mailbox copies afterwards |
 | Processor logs and backups | Per the provider’s documented retention, recorded in the processor register |
 

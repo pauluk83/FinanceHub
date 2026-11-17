@@ -7,13 +7,19 @@ Draft working documents for professional review are in `docs/compliance/`:
 DPIA (including the production-readiness addendum), data map, privacy notice, retention
 schedule, DSAR procedure, breach runbook, processor register, risk acceptance register and
 evidence checklist. The
-owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
+owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`. A desktop-only
+Starling personal feed was added for the owner on 17 November 2026; it is not Open Banking
+and does not close the Open Banking/legal gate.
 
 ## Product facts that decide applicability
 
 - Personal budgeting and record-keeping app; one user per workspace.
-- No bank connections, no Open Banking, no payment initiation, no card acquiring,
-  no money transmission, no stored card numbers.
+- No Open Banking/AISP connection, no payment initiation, no card acquiring, no money
+  transmission and no stored card numbers.
+- Optional Windows-only **Starling personal feed**: the owner's own Starling account is
+  read with a Starling personal access token. This is Starling's own API, not Open Banking;
+  the token is stored only in the OS-encrypted local store, and transactions are appended
+  only after review. It is not offered to other people.
 - Cloud sync through Supabase; authentication through Supabase (email/password and
   Google OAuth).
 - Provider logins optionally stored client-side, encrypted with AES-256-GCM.
@@ -31,8 +37,8 @@ owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
 | CCPA/CPRA | Not currently | No California-targeted business or thresholds | Reassess before US launch |
 | GLBA | No | Not a US financial institution | Reassess only if US financial services are offered |
 | PCI DSS | No | No card data and no payments | Keep it that way; if payments are added, use a tokenized processor (for example Stripe) to reduce scope |
-| PSD2 / Open Banking | No | No account aggregation or payment initiation | Would apply if bank connections are added; needs FCA authorisation or agent status and SCA |
-| FCA authorisation | No | No regulated activity: no advice, payments, credit or investments | Avoid advice or payment features, or obtain permissions first |
+| PSD2 / Open Banking | No | No Open Banking/AISP aggregation or payment initiation | The Starling personal feed uses Starling's own API, not PSD2 AIS; other-bank Open Banking still needs FCA authorisation/agent status and SCA |
+| FCA authorisation | No | No regulated activity: no advice, payments, credit or investments | Do not describe the Starling personal feed as Open Banking or offer it to third parties without revisiting the FCA position |
 | FinCEN MSB / state money transmitter licences | No | No money transmission | Reassess if account funding or payments are added |
 | KYC / AML | No | No customer funds and no transmission | Reassess with payments; do not add account funding without a compliance programme |
 | MFA | Passkeys only (hosted web app) | Supabase supports passkeys | TOTP setup was removed from Settings; Supabase passkeys are enabled with RP ID `financehub.freedev.app` and the passkey controls are built. The packaged Electron window loads `file://` and cannot use WebAuthn, and a real passkey ceremony is still untested |
@@ -52,10 +58,11 @@ owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
 
 ## Deliberately not implemented
 
-KYC/AML, transaction monitoring, FCA authorisation, PCI DSS controls, Open Banking
-and money transmission are not applicable to a read-only personal budgeting tool and
-were not added. Each would require regulated status, contracts and audits; a checkbox
-or a screen in the app would not satisfy them.
+KYC/AML, transaction monitoring, FCA authorisation, PCI DSS controls, Open Banking/AISP
+and money transmission are not applicable to the current owner-only budgeting tool and
+were not added. The Starling personal feed is a bank's own personal API, not an AISP
+service. True Open Banking for other banks would require regulated status, contracts and
+audits; a checkbox or a screen in the app would not satisfy them.
 
 ## Before public or commercial launch
 
@@ -67,4 +74,4 @@ or a screen in the app would not satisfy them.
 6. Add explicit acceptance of the Terms and Privacy Policy at sign-up, recording version and timestamp.
 7. Record the 16 Nov 2026 deletion/export attestation (`docs/OWNER_ACTIONS.md`); re-run with a dated build artifact if counsel requires it, and document the 30-day service level for requests that cannot use the app.
 8. Review and publish the draft breach-response runbook and a security contact from `docs/compliance/`.
-9. If bank aggregation, payments or financial advice are ever added, reassess PSD2/FCA/PCI/KYC before shipping.
+9. If Open Banking aggregation, third-party bank linking, payments or financial advice are added, reassess PSD2/FCA/PCI/KYC before shipping. Keep the Starling personal feed owner-only and labelled as Starling's personal API.

@@ -53,7 +53,7 @@ application access, but it is not end-to-end encrypted.
 | Cloud account deletion removes cloud rows | SQL is applied and the owner reports a test; the build/date/evidence is not filed. |
 | Privacy notice discloses the lack of end-to-end encryption | Draft only; not published or legally reviewed. |
 | Two-account isolation and an independent penetration test | Owner reports a two-account test; evidence is not filed. No independent penetration test has been performed. |
-| No advertising, analytics, public sharing or Open Banking | Scope statement only; build and dependency verification is pending. |
+| No advertising, analytics, public sharing or Open Banking/AISP | Scope statement; the one exception is the owner-only desktop Starling personal feed, which is not Open Banking and is recorded in the DPIA A.10 and data map. Build and dependency verification is pending. |
 
 **Evidence required before signature:**
 

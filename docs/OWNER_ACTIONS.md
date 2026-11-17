@@ -142,7 +142,26 @@ real bank data is used. No provider has been contacted or selected.
 7. Keep the **Secure bank linking** panel labelled **Planned** and make no Open Banking,
    FCA-approved or bank-level-security claim until the C-4 gate is cleared.
 
-## 6. Evidence to keep
+## 6. Starling personal feed (owner only)
+
+This is the working desktop bank feed. It is **not** Open Banking and is not offered to
+anyone else.
+
+1. Open https://developer.starlingbank.com/personal in a browser and sign in with the
+   Starling developer account linked to your own Starling account.
+2. Create a personal access token with at least `account:read` and `transaction:read`.
+   Treat it like a password; do not paste it into chat, a file or a screenshot.
+3. In FinanceHub, open **Import → Starling personal feed**, paste the token and choose
+   **Save token**. It is stored in the Windows DPAPI-backed secure store, not in the budget,
+   a backup or cloud sync.
+4. Choose **Refresh accounts**, select the GBP account and choose **Fetch settled transactions**.
+   Review the rows in the grid; nothing is added until you press **Add to log**.
+5. To disconnect, choose **Forget token** in FinanceHub and revoke the token in the Starling
+   developer portal. Forgetting the local copy alone does not invalidate it at Starling.
+6. Keep this feature owner-only. Do not call it Open Banking, do not give the token to
+   another person and do not add another bank without revisiting the DPIA and C-4 gate.
+
+## 7. Evidence to keep
 
 Keep dated screenshots or exports for: the purge result, any dated repeat of the deletion/export test, the passkey
 settings page, the email-confirmation/resend test, the Supabase DPA/TIA references, the

@@ -12,6 +12,7 @@ import { decodeBackupDataset } from '../backup';
 import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
 import { backupFileProblem, countCsvRows, csvFileProblem, csvRowProblem } from '../../../core/importLimits';
 import { classifyAccount } from '../../../core/accounts';
+import { normaliseStarlingAccounts, starlingDateRangeProblem, starlingImportRows, type StarlingAccount } from '../../../core/starling';
 import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { createVault, legacySecrets, rotateVault, sealVault, stripLegacySecrets, unlockVault, VAULT_MAX_HINT, VAULT_MIN_PASSPHRASE, type VaultField, type VaultSecrets } from '../vault';
 import { AppLockSection } from './appLock';
@@ -177,10 +178,163 @@ export function ImportView({ ds, update, notify }: ViewProps) {
   const [account, setAccount] = useState(
     ds.accounts.find((a) => a.name === (ds.settings.primaryAccount || ds.accounts[0]?.name))?.name ?? ds.accounts[0]?.name ?? '',
   );
+  const starlingBridge = typeof window !== 'undefined' ? window.financeHubDesktop?.bank?.starling : undefined;
+  const [bankToken, setBankToken] = useState('');
+  const [bankHasToken, setBankHasToken] = useState(false);
+  const [bankSecure, setBankSecure] = useState(true);
+  const [bankAccounts, setBankAccounts] = useState<StarlingAccount[]>([]);
+  const [bankAccountUid, setBankAccountUid] = useState('');
+  const [bankBusy, setBankBusy] = useState(false);
+  const [bankError, setBankError] = useState('');
 
   const duplicateCount = staging.filter((r) => r.duplicateWith).length;
   const outsideCount = staging.filter((r) => r.outOfWindow).length;
   const ready = staging.filter((r) => r.add && !r.outOfWindow);
+
+  const stageCandidates = (candidates: Array<Omit<StageRow, 'duplicateWith' | 'add'>>, source: string) => {
+    const existing = ds.transactions.filter((t) => t.autoBill !== true);
+    const flags = detectDuplicates(existing, candidates);
+    setStaging(candidates.map((candidate, index) => ({
+      ...candidate,
+      duplicateWith: flags[index],
+      add: flags[index] === null && !candidate.outOfWindow,
+    })));
+    setFileName(source);
+  };
+
+  useEffect(() => {
+    if (!starlingBridge) return;
+    let cancelled = false;
+    void starlingBridge.status().then((result) => {
+      if (cancelled) return;
+      if (!result.ok) {
+        setBankError(result.error ?? 'The Starling token status could not be read.');
+        return;
+      }
+      setBankHasToken(Boolean(result.value?.hasToken));
+      setBankSecure(Boolean(result.value?.secureStorage));
+    }).catch(() => {
+      if (!cancelled) setBankError('The Starling token status could not be read.');
+    });
+    return () => { cancelled = true; };
+  }, [starlingBridge]);
+
+  const loadStarlingAccounts = async () => {
+    if (!starlingBridge) return [];
+    setBankError('');
+    const result = await starlingBridge.accounts();
+    if (!result.ok) {
+      setBankError(result.error ?? 'Starling accounts could not be loaded.');
+      return [];
+    }
+    const accounts = normaliseStarlingAccounts(result.value);
+    setBankAccounts(accounts);
+    setBankAccountUid((current) => accounts.some((entry) => entry.accountUid === current)
+      ? current
+      : (accounts.find((entry) => entry.currency === 'GBP')?.accountUid ?? accounts[0]?.accountUid ?? ''));
+    if (accounts.length === 0) setBankError('Starling returned no usable accounts for this token.');
+    return accounts;
+  };
+
+  const saveStarlingToken = async () => {
+    if (!starlingBridge) return;
+    const token = bankToken.trim();
+    if (!token) {
+      setBankError('Paste a Starling personal access token first.');
+      return;
+    }
+    setBankBusy(true);
+    setBankError('');
+    try {
+      const saved = await starlingBridge.saveToken(token);
+      setBankToken('');
+      if (!saved.ok) {
+        setBankError(saved.error ?? 'The Starling token could not be saved.');
+        return;
+      }
+      setBankHasToken(Boolean(saved.value?.hasToken));
+      setBankSecure(Boolean(saved.value?.secureStorage));
+      notify('Starling token saved in this device’s encrypted store');
+      await loadStarlingAccounts();
+    } catch {
+      setBankToken('');
+      setBankError('The Starling token could not be saved.');
+    } finally {
+      setBankBusy(false);
+    }
+  };
+
+  const forgetStarlingToken = async () => {
+    if (!starlingBridge) return;
+    if (!confirm('Forget the Starling token on this device? This removes FinanceHub’s stored token. Revoke it separately in the Starling developer portal if you want to invalidate it.')) return;
+    setBankBusy(true);
+    setBankError('');
+    try {
+      const result = await starlingBridge.forget();
+      if (!result.ok) {
+        setBankError(result.error ?? 'The Starling token could not be removed.');
+        return;
+      }
+      setBankHasToken(false);
+      setBankAccounts([]);
+      setBankAccountUid('');
+      notify('Starling token forgotten');
+    } catch {
+      setBankError('The Starling token could not be removed.');
+    } finally {
+      setBankBusy(false);
+    }
+  };
+
+  const fetchStarling = async () => {
+    if (!starlingBridge || !bankHasToken) return;
+    const selected = bankAccounts.find((entry) => entry.accountUid === bankAccountUid);
+    if (!selected) {
+      setBankError('Choose a Starling account first.');
+      return;
+    }
+    if (selected.currency && selected.currency !== 'GBP') {
+      setBankError('This budget is in GBP. Choose a GBP Starling account.');
+      return;
+    }
+    const rangeProblem = starlingDateRangeProblem(ds.settings.lockCutoff, ds.settings.asOfDate);
+    if (rangeProblem) {
+      setBankError(rangeProblem);
+      return;
+    }
+    setBankBusy(true);
+    setBankError('');
+    try {
+      const result = await starlingBridge.transactions({
+        accountUid: selected.accountUid,
+        categoryUid: selected.defaultCategoryUid,
+        min: ds.settings.lockCutoff,
+        max: ds.settings.asOfDate,
+      });
+      if (!result.ok) {
+        setBankError(result.error ?? 'Starling transactions could not be loaded.');
+        return;
+      }
+      const rows = starlingImportRows(result.value);
+      const candidates = rows.map((row) => ({
+        id: `starling_${row.id}`,
+        date: row.date,
+        description: row.description,
+        amountPence: row.amountPence,
+        type: row.type,
+        outOfWindow: row.date < ds.settings.lockCutoff || row.date > ds.settings.asOfDate,
+      }));
+      stageCandidates(candidates, `Starling — ${selected.name}`);
+      setError('');
+      notify(rows.length === 0
+        ? 'No settled Starling transactions in the open period'
+        : `${rows.length} settled Starling transaction${rows.length === 1 ? '' : 's'} loaded — review before adding`);
+    } catch {
+      setBankError('Starling transactions could not be loaded.');
+    } finally {
+      setBankBusy(false);
+    }
+  };
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
@@ -211,8 +365,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
       setError('Could not find Date and Amount columns. Expected a bank CSV with a header row.');
       return;
     }
-    const existing = ds.transactions.filter((t) => t.autoBill !== true);
-    const candidates: Array<Omit<StageRow, 'id' | 'duplicateWith' | 'add'> & { id: string }> = [];
+    const candidates: Array<Omit<StageRow, 'duplicateWith' | 'add'>> = [];
     for (let i = 1; i < grid.length; i++) {
       const cells = grid[i];
       const date = toIso(cells[dateIdx]);
@@ -229,13 +382,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
         outOfWindow: date < ds.settings.lockCutoff || date > ds.settings.asOfDate,
       });
     }
-    const flags = detectDuplicates(existing, candidates);
-    const staged: StageRow[] = candidates.map((candidate, index) => ({
-      ...candidate,
-      duplicateWith: flags[index],
-      add: flags[index] === null && !candidate.outOfWindow,
-    }));
-    setStaging(staged);
+    stageCandidates(candidates, file.name);
   };
 
   const toggle = (id: string) => setStaging((rows) => rows.map((r) => (r.id === id && !r.outOfWindow ? { ...r, add: !r.add } : r)));
@@ -313,13 +460,107 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             </div>
           </>
         ) : (
-          <Empty>Load a CSV to build the review grid. Nothing is imported until you confirm.</Empty>
+          <Empty>Load a CSV or fetch the Starling feed to build the review grid. Nothing is imported until you confirm.</Empty>
         )}
       </Section>
 
       <Section
-        title="Secure bank linking"
-        sub="Planned connection through a regulated Open Banking provider — CSV import remains available now"
+        title="Starling personal feed"
+        sub="Desktop-only read-only import from your own Starling account — not Open Banking"
+        actions={<Badge tone={bankHasToken ? 'green' : 'blue'}>{bankHasToken ? 'Token saved' : 'Setup'}</Badge>}
+      >
+        <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+          <div className="notice info">
+            <strong>This is Starling’s own personal API, not an Open Banking/AISP connection.</strong>{' '}
+            It reads only the Starling account you link with a personal access token. The token is stored in this
+            device’s OS-encrypted store, not in the budget, a backup or cloud sync. Rows are read-only and enter the
+            review grid above; nothing is posted automatically.
+          </div>
+
+          {!starlingBridge && (
+            <div className="notice warn">
+              The Starling personal feed is available only in the Windows desktop app. The hosted web build keeps CSV import.
+            </div>
+          )}
+
+          {starlingBridge && !bankSecure && (
+            <div className="notice danger">
+              Windows secure storage is unavailable, so FinanceHub will not save a bank token. Check the Windows user profile and try again.
+            </div>
+          )}
+
+          {starlingBridge && !bankHasToken && (
+            <>
+              <div className="form-grid">
+                <Field
+                  label="Starling personal access token"
+                  hint="Create it in the Starling developer portal with account:read and transaction:read. It is like a password — do not share it."
+                >
+                  <input
+                    className="input"
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={bankToken}
+                    onChange={(event) => setBankToken(event.target.value)}
+                    placeholder="Paste the token"
+                  />
+                </Field>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button className="btn primary" onClick={() => void saveStarlingToken()} disabled={bankBusy || !bankToken.trim()}>
+                  {bankBusy ? 'Saving…' : 'Save token'}
+                </button>
+                <a className="btn ghost" href="https://developer.starlingbank.com/personal" target="_blank" rel="noreferrer">
+                  Open Starling developer portal ↗
+                </a>
+              </div>
+              <div className="muted small">
+                FinanceHub does not ask for your Starling password, PIN or one-time code. Revoke the token in the Starling developer portal when you no longer need it.
+              </div>
+            </>
+          )}
+
+          {starlingBridge && bankHasToken && (
+            <>
+              <div className="toolbar" style={{ padding: 0, border: 0 }}>
+                <select
+                  className="select"
+                  aria-label="Starling account"
+                  value={bankAccountUid}
+                  onChange={(event) => setBankAccountUid(event.target.value)}
+                  disabled={bankBusy}
+                >
+                  <option value="">{bankAccounts.length ? 'Choose a Starling account' : 'No accounts loaded'}</option>
+                  {bankAccounts.map((entry) => (
+                    <option key={entry.accountUid} value={entry.accountUid}>
+                      {entry.name}{entry.currency ? ` · ${entry.currency}` : ''}{entry.accountType ? ` · ${entry.accountType}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <button className="btn" onClick={() => void loadStarlingAccounts()} disabled={bankBusy}>
+                  {bankBusy ? 'Working…' : 'Refresh accounts'}
+                </button>
+                <button className="btn primary" onClick={() => void fetchStarling()} disabled={bankBusy || !bankAccountUid}>
+                  Fetch settled transactions
+                </button>
+                <button className="btn ghost" onClick={() => void forgetStarlingToken()} disabled={bankBusy}>
+                  Forget token
+                </button>
+              </div>
+              <div className="muted small">
+                Fetching uses the open period {dateUk(ds.settings.lockCutoff)} → {dateUk(ds.settings.asOfDate)} and imports into the account selected above. Only settled items are offered; pending and reversed items are excluded.
+              </div>
+            </>
+          )}
+
+          {bankError && <div className="notice danger">{bankError}</div>}
+        </div>
+      </Section>
+
+      <Section
+        title="Open Banking (other banks)"
+        sub="Planned connection through a regulated AISP — the Starling personal feed above is the only live bank path"
         actions={<Badge tone="blue">Planned</Badge>}
       >
         <div style={{ padding: 16, display: 'grid', gap: 12 }}>
@@ -334,7 +575,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             <li><strong style={{ color: 'var(--text)' }}>Disconnect at any time.</strong> Revoking the connection removes provider access and stored tokens.</li>
           </ol>
           <p className="muted small" style={{ margin: 0 }}>
-            The full provider, token, consent, revocation and test plan is in the product roadmap. Bank linking will be cloud-only until a secure desktop token broker exists; local-only mode keeps CSV import.
+            Open Banking for other banks remains planned and needs a licensed provider and a separate consent flow. The Starling personal feed above is desktop-only; CSV import remains available everywhere.
           </p>
         </div>
       </Section>

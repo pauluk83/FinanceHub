@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-16
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17 with a provider shortlist and a model for counsel to test; G1 has not passed and no provider account or bank data exists. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.16 tag, source archives and CI-built installer are published; build `05c9e9cb3591` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17 with a provider shortlist and a model for counsel to test; G1 has not passed and no Open Banking provider account exists. A desktop-only owner Starling personal feed was implemented separately (not Open Banking) and awaits a real-token test. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.16 tag, source archives and CI-built installer are published; build `05c9e9cb3591` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -613,6 +613,44 @@ This is the plan for producing the approved integration plan. It is deliberately
 5. **G5:** integrated plan and go/no-go pack are signed. Only then does real-provider integration begin, behind a feature flag, with the mock-provider staging path already proven first.
 
 **Definition of done for this planning workstream:** every item has a named owner, an evidence file, a sign-off date and a gate result; the plan states which regulated activities FinanceHub and its provider perform; the DPIA covers the actual new processing; the provider contract, sub-processors, retention and exit route are recorded; and the owner has a written go/no-go decision. Until then, the app keeps the CSV-only path and makes no Open Banking, FCA-approved or bank-level-security claim.
+
+#### Personal Starling feed — implemented 2026-11-17
+
+This is a **personal-use bank feed, not Open Banking** and it does not clear the G1–G5
+gate above. The owner asked for a working feed for their own Starling account without
+waiting for the AISP/agent workstream. It uses Starling's own public API and a personal
+access token, which Starling permits for the token owner's own account.
+
+- **Scope:** Windows desktop only; UK GBP Starling accounts; read-only account and
+  transaction data; no payments, no card data, no screen scraping and no stored bank
+  password, PIN or one-time code.
+- **Consent model:** the owner creates a Starling personal access token with
+  `account:read` and `transaction:read`. FinanceHub never asks for Starling credentials.
+  Revoking the token is done in the Starling developer portal; the app can forget its
+  local copy but does not call a revocation endpoint.
+- **Storage:** the token is held in the existing Electron `safeStorage` store (Windows
+  DPAPI) under `bank.starling.personal-token`, outside the budget document, backups and
+  cloud sync. The renderer never receives the stored token back. Account IDs and
+  transactions cross IPC only after the main process has reduced the API response to the
+  fields the review grid needs.
+- **Fetching:** accounts and `transactions-between` are called from the Electron main
+  process. The open period is the budget's `lockCutoff` to `asOfDate`; Starling's
+  non-paginated endpoint is limited to one year. Only `SETTLED` items are offered, so a
+  pending item cannot be imported twice. Transactions use the UK calendar date.
+- **Posting:** rows enter the existing duplicate/out-of-window review grid and are appended
+  only when the owner ticks them and presses **Add to log**. Nothing is auto-posted.
+- **Code:** `core/starling.ts` (normalisation and date-window rules), `electron/main.cjs`
+  (token store and API calls), `electron/preload.cjs` (narrow IPC bridge),
+  `app/src/views/tools.tsx` (the **Starling personal feed** panel) and
+  `tests/starling.test.ts`.
+- **Limits:** one Starling account per Starling developer account; personal-token rate
+  limits are 5 requests/second and 1,000 requests/day; only Starling is supported; no
+  background sync. A real-token fetch was not run because no Starling token was supplied;
+  the normalisation and date rules are unit-tested, and the renderer/typecheck pass.
+- **Claims:** the app labels this separately from **Open Banking (other banks)**. It must
+  not be marketed as Open Banking, FCA-approved, bank-level security or available to
+  third parties. Before exposing it beyond the owner, revisit the DPIA, privacy notice,
+  Starling terms and the C-4 gate.
 
 ### Non-goals
 

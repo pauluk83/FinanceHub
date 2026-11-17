@@ -2,7 +2,7 @@
 
 FinanceHub is a personal budgeting application. This policy explains what personal data it handles, why, where it is stored and how you can access or erase it.
 
-Last updated: 7 November 2026 · Version 1.0
+Last updated: 17 November 2026 · Version 1.1
 
 ## 1. Who is responsible
 
@@ -15,9 +15,9 @@ FinanceHub is designed, built and operated by Zane Stanton, an individual based 
 - Provider credentials: usernames and passwords you choose to save in the credential vault. They are encrypted in your browser with AES-256-GCM using a key derived from your passphrase (PBKDF2-SHA-256). The passphrase is not stored or transmitted.
 - People sign-ins: a username, a PBKDF2-SHA-256 password hash and a statement snapshot, stored only in the browser or device where you create them.
 - Local workspace data: stored in this browser's local storage and never uploaded unless you choose account sync.
-- Technical data: standard server logs from Supabase and the static hosting provider (IP address, user agent, request time) used for security and availability.
+- Starling personal feed (Windows only, optional): if you create a Starling personal access token, FinanceHub processes the token, the selected Starling account identifiers and the account/transaction data returned by Starling. The token is stored in the Windows encrypted local store, not in your budget, backups or cloud sync. Pending and reversed transactions are not offered; reviewed rows enter your budget only when you confirm them.
 
-FinanceHub does not connect to banks, does not process card numbers and does not receive payment card data.
+FinanceHub does not provide Open Banking/AISP connections, does not process card numbers and does not receive payment card data. The optional Starling feed uses Starling's own personal API, not Open Banking.
 
 ## 3. Why it is processed (lawful bases)
 
@@ -25,12 +25,13 @@ FinanceHub does not connect to banks, does not process card numbers and does not
 - To secure the service, prevent abuse and fix faults: legitimate interests (Article 6(1)(f)).
 - To send sign-in, confirmation and password-reset emails: contract and, where required, consent.
 - Optional provider credentials and People sign-ins: consent, given by choosing to create them.
+- Optional Starling personal feed: consent, given by choosing to save a Starling token and fetch transactions. You can withdraw it by forgetting the token and revoking it in Starling.
 
 FinanceHub does not sell personal data, does not use it for advertising and does not build profiles for marketing.
 
 ## 4. Financial data
 
-Budget data is sensitive in practice even where it is not a special category. It is used only to calculate and display your budget, produce statements and backups, and sync between your devices. It is not shared with lenders, advertisers or credit reference agencies. Demo mode uses synthetic data and is never uploaded.
+Budget data is sensitive in practice even where it is not a special category. It is used only to calculate and display your budget, produce statements and backups, and sync between your devices. Starling account and transaction data is read only when you request it and is used only for the review/import you ask for. It is not shared with lenders, advertisers or credit reference agencies. Demo mode uses synthetic data and is never uploaded.
 
 ## 5. Storage, processors and transfers
 
@@ -38,6 +39,7 @@ Budget data is sensitive in practice even where it is not a special category. It
 - A static hosting provider serves the web build.
 - Google may process sign-in if you choose "Continue with Google".
 - Desktop data is stored in the app's local storage on your computer; local mode never leaves the device.
+- Starling processes the personal access token and returns account/transaction data when you use the optional desktop feed. FinanceHub stores the token only in the Windows encrypted local store; it is not sent to Supabase or the hosted web app.
 
 These providers may process data outside the UK or EEA under their standard contractual clauses. The owner chooses providers with appropriate safeguards but cannot control their internal operations.
 
@@ -48,12 +50,13 @@ These providers may process data outside the UK or EEA under their standard cont
 - Provider credentials are encrypted client-side; the vault ciphertext is useless without your passphrase.
 - People sign-ins store only a password hash and a statement snapshot.
 - Backups you export are plain JSON and are your responsibility.
+- The optional Starling token is held in Windows DPAPI-backed secure storage and is never placed in the budget, backups or cloud sync. Anyone who can use your Windows profile may be able to use the token; keep the device locked and revoke the token in Starling if it is compromised.
 
 No system is completely secure. Report a suspected compromise immediately.
 
 ## 7. Retention
 
-Budget data is kept until you delete the workspace or ask for erasure. Month-end snapshots and changelog history are part of the budget. Sign-in sessions expire under Supabase policy. Provider vault data remains until you delete the vault or the workspace. Local-only data remains until you clear it or your browser storage is removed. Server logs are retained by the providers under their own policies.
+Budget data is kept until you delete the workspace or ask for erasure. Month-end snapshots and changelog history are part of the budget. Sign-in sessions expire under Supabase policy. Provider vault data remains until you delete the vault or the workspace. Local-only data remains until you clear it or your browser storage is removed. The Starling token remains until you forget it in FinanceHub or remove the app data; revoke it separately in Starling. Server logs are retained by the providers under their own policies.
 
 ## 8. Your rights and how to use them
 
@@ -62,7 +65,7 @@ You have the right to access, correct, erase, restrict or object to processing, 
 - Access and portability: Settings → Data & backups → Export full backup (JSON) and Export transactions (CSV).
 - Correction: edit any record in the app; the changelog records the change.
 - Erasure: Settings → Data & backups → Reset to imported workbook removes the current budget; use "Delete vault" to remove stored provider logins; clear this site's data in your browser to remove local-only data. For account data and cloud backups, send an erasure request from the account email and the owner will delete the cloud document and auth record within 30 days, except records required by law.
-- Consent withdrawal: delete the vault or People sign-ins, or stop using the optional feature.
+- Consent withdrawal: delete the vault or People sign-ins, forget the Starling token, or stop using the optional feature.
 - Complaints: you may complain to the UK Information Commissioner's Office (ico.org.uk). Please contact the owner first so the issue can be fixed.
 
 Requests are answered within one month. Identity may need to be verified from the account email.

@@ -31,6 +31,15 @@ contextBridge.exposeInMainWorld('financeHubDesktop', {
       return () => ipcRenderer.removeListener('oauth:callback', listener);
     },
   },
+  bank: {
+    starling: {
+      status: () => ipcRenderer.invoke('bank:starling:status'),
+      saveToken: (token) => ipcRenderer.invoke('bank:starling:save-token', token),
+      forget: () => ipcRenderer.invoke('bank:starling:forget'),
+      accounts: () => ipcRenderer.invoke('bank:starling:accounts'),
+      transactions: (params) => ipcRenderer.invoke('bank:starling:transactions', params),
+    },
+  },
   updater: {
     check: (current) => ipcRenderer.invoke('updater:check', current),
     download: () => ipcRenderer.invoke('updater:download'),

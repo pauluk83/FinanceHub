@@ -76,7 +76,7 @@ const SUBTITLES: Record<string, string> = {
   o2: 'O2 contract history',
   virgin: 'Virgin Media contract history',
   statements: 'Filtered account statement with running balance',
-  import: 'Bank CSV → review → append (never auto-post)',
+  import: 'Bank CSV or Starling feed → review → append (never auto-post)',
   health: 'Read-only integrity checks across accounts, imports, providers, bills, locks, sync and backups',
   alerts: 'In-app bill and balance alerts, with read state kept in the budget',
   settings: 'The single source of truth for every screen',

@@ -32,6 +32,8 @@ let installStarted = false;
 const OAUTH_PORT = 53682;
 const OAUTH_CALLBACK = `http://127.0.0.1:${OAUTH_PORT}/auth/callback`;
 const STORE_PORT = 53683;
+const STARLING_API = 'https://api.starlingbank.com/api/v2';
+const STARLING_TOKEN_KEY = 'bank.starling.personal-token';
 const UPDATE_MANIFEST_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/update-manifest.json';
 const UPDATE_ARCHIVE_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/FinanceHub-app.asar';
 const SERVE_ONLY = process.argv.includes('--serve');
@@ -149,6 +151,143 @@ function registerOAuthCallback() {
   oauthServer.listen(OAUTH_PORT, '127.0.0.1', () => {
     console.log(`OAuth callback listening at ${OAUTH_CALLBACK}`);
   });
+}
+
+function starlingToken() {
+  if (!secureStore) throw new Error('Secure local storage is unavailable');
+  const token = secureStore.get(STARLING_TOKEN_KEY);
+  if (!token) throw new Error('Save a Starling personal access token first');
+  return token;
+}
+
+function validStarlingToken(token) {
+  return typeof token === 'string' && /^\S{20,4096}$/.test(token.trim());
+}
+
+function starlingDate(value) {
+  const text = typeof value === 'string' ? value : '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+}
+
+function starlingDateRangeProblem(min, max) {
+  const start = starlingDate(min);
+  const end = starlingDate(max);
+  if (!start || !end) return 'Choose a valid start and end date.';
+  if (end < start) return 'The end date must not be before the start date.';
+  const days = Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000);
+  if (days > 365) return 'Starling allows at most one year of transactions per request.';
+  return null;
+}
+
+async function starlingRequest(path) {
+  const token = starlingToken();
+  const response = await fetchWithTimeout(`${STARLING_API}${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'User-Agent': `FinanceHub/${app.getVersion()}`,
+    },
+  }, 20000);
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Starling rejected the personal access token. Create a new token and try again.');
+    if (response.status === 403) throw new Error('Starling did not grant this token the account:read and transaction:read scopes.');
+    if (response.status === 429) throw new Error('Starling is rate-limiting this app. Wait a moment and try again.');
+    if (response.status === 400) throw new Error('Starling rejected the date range or account. Check the account and the open period.');
+    const detail = payload && typeof payload === 'object' && typeof payload.error_description === 'string'
+      ? ` ${payload.error_description.slice(0, 160)}`
+      : '';
+    throw new Error(`Starling returned HTTP ${response.status}.${detail}`);
+  }
+  return payload;
+}
+
+function registerStarlingBank() {
+  const reply = async (event, action) => {
+    if (!isTrustedSender(event)) return { ok: false, error: 'Untrusted renderer' };
+    try {
+      return { ok: true, value: await action() };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'The Starling request failed',
+      };
+    }
+  };
+
+  ipcMain.handle('bank:starling:status', (event) => reply(event, () => ({
+    hasToken: Boolean(secureStore?.get(STARLING_TOKEN_KEY)),
+    secureStorage: Boolean(secureStore),
+  })));
+
+  ipcMain.handle('bank:starling:save-token', (event, token) => reply(event, () => {
+    if (!secureStore) throw new Error('Secure local storage is unavailable');
+    if (!validStarlingToken(token)) throw new Error('Paste a valid Starling personal access token');
+    secureStore.set(STARLING_TOKEN_KEY, token.trim());
+    return { hasToken: true, secureStorage: true };
+  }));
+
+  ipcMain.handle('bank:starling:forget', (event) => reply(event, () => {
+    if (!secureStore) throw new Error('Secure local storage is unavailable');
+    secureStore.remove(STARLING_TOKEN_KEY);
+    return { hasToken: false, secureStorage: true };
+  }));
+
+  ipcMain.handle('bank:starling:accounts', (event) => reply(event, async () => {
+    const payload = await starlingRequest('/accounts');
+    const accounts = Array.isArray(payload?.accounts) ? payload.accounts : [];
+    return accounts
+      .map((account) => ({
+        accountUid: account?.accountUid,
+        defaultCategoryUid: account?.defaultCategory ?? account?.defaultCategoryUid,
+        name: account?.name,
+        accountType: account?.accountType,
+        currency: account?.currency,
+        createdAt: account?.createdAt,
+      }))
+      .filter((account) => typeof account.accountUid === 'string'
+        && typeof account.defaultCategoryUid === 'string'
+        && typeof account.name === 'string');
+  }));
+
+  ipcMain.handle('bank:starling:transactions', (event, params) => reply(event, async () => {
+    const accountUid = typeof params?.accountUid === 'string' ? params.accountUid : '';
+    const categoryUid = typeof params?.categoryUid === 'string' ? params.categoryUid : '';
+    const min = starlingDate(params?.min);
+    const max = starlingDate(params?.max);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accountUid)
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(categoryUid)) {
+      throw new Error('Choose a valid Starling account first');
+    }
+    const rangeProblem = starlingDateRangeProblem(min, max);
+    if (rangeProblem) throw new Error(rangeProblem);
+    const query = new URLSearchParams({
+      minTransactionTimestamp: `${min}T00:00:00.000Z`,
+      maxTransactionTimestamp: `${max}T23:59:59.999Z`,
+    });
+    const payload = await starlingRequest(
+      `/feed/account/${encodeURIComponent(accountUid)}/category/${encodeURIComponent(categoryUid)}/transactions-between?${query.toString()}`,
+    );
+    const feedItems = Array.isArray(payload?.feedItems) ? payload.feedItems : [];
+    return feedItems.map((item) => ({
+      feedItemUid: item?.feedItemUid,
+      status: item?.status,
+      direction: item?.direction,
+      amount: item?.amount && typeof item.amount === 'object' ? {
+        currency: item.amount.currency,
+        minorUnits: item.amount.minorUnits ?? item.amount.minorUnit,
+      } : null,
+      transactionTime: item?.transactionTime,
+      counterPartyName: item?.counterPartyName,
+      reference: item?.reference,
+      transactionType: item?.transactionType,
+    }));
+  }));
 }
 
 function registerSecureStorage() {
@@ -784,6 +923,7 @@ if (!hasSingleInstanceLock) {
 
     installWebContentsGuards();
     registerSecureStorage();
+    registerStarlingBank();
     registerUpdater();
     registerWindowClose();
     registerOAuthCallback();

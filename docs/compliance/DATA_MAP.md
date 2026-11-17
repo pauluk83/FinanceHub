@@ -27,11 +27,13 @@ it, how long it is kept and which processor or transfer applies. It covers:
 - Google OAuth when the user chooses it;
 - InfinityFree static hosting;
 - GitHub Releases for installer and update downloads;
-- local exports, restore points, the people portal and feedback.
+- local exports, restore points, the people portal and feedback;
+- the optional Windows-only Starling personal feed, which uses a Starling personal access
+token for the owner's own account.
 
-It does **not** cover Open Banking, payments, card acquiring, analytics, advertising or
-crash reporting. None of those are in the current build; adding any of them requires a
-new data map and DPIA review.
+It does **not** cover Open Banking/AISP, payments, card acquiring, analytics, advertising
+or crash reporting. The Starling personal feed is not Open Banking; adding a real AISP
+provider or offering bank linking to other people requires a new data map and DPIA review.
 
 ---
 
@@ -50,6 +52,7 @@ new data map and DPIA review.
 | GitHub / Microsoft | Infrastructure recipient | Serves release assets and update manifests; receives network metadata, not budget data. |
 | Email delivery provider used by Supabase | Processor | Provider and terms to confirm for verification and password-reset email. |
 | Privacy/support mailbox provider | Processor (Gmail/Google) | Mailbox `financehub+pauluk83@gmail.com` adopted; terms/retention to confirm. |
+| Starling Bank | Account provider / independent controller for the bank account | Receives the personal access token and returns account and transaction data only when the owner enables the desktop feed. FinanceHub does not store the bank password, PIN or one-time code. |
 | Legal advisers, privacy adviser and penetration tester | Professional recipients | Only under confidentiality; evidence to be retained. |
 | ICO, courts, law enforcement | Independent recipients | Only where required or permitted by law. |
 
@@ -84,6 +87,7 @@ new data map and DPIA review.
 | D13 | Support diagnostics | App version/build, platform, user agent, language, online flag, dataset counts, health check IDs/severity, conflict count, backup timestamps | Yes; user agent and device context can be personal | App when the user chooses to export | Troubleshooting | Legitimate interests / consent to share | User downloads the file; support mailbox if sent | Support mailbox, if the user sends it | Delete after resolution |
 | D14 | Hosting and authentication logs | IP address, timestamp, request path, email/auth events, errors | Yes | Supabase, InfinityFree, GitHub | Security, abuse prevention, debugging, billing | Legitimate interests; legal obligation where applicable | Processor logs | Processors and their sub-processors | Processor-defined; confirm and record |
 | D15 | Demo data | Synthetic names, transactions and budgets | No real data if the demo remains synthetic | Bundled seed | Let people explore the app | Not personal data | Browser/device only; never synced | None | Until browser/app data is cleared |
+| D16 | Starling personal-feed data | Personal access token, account UID, default category UID, account name/type/currency, settled transaction date, amount, direction, counterparty, reference and feed ID | Yes; financial data and a bearer token | Owner creates the token; Starling API returns the account data | Read-only import into the review grid | Consent / contract to confirm; owner-only personal use | Token in Windows DPAPI-backed secure store; fetched data in desktop memory; appended rows in the normal budget | Starling (API); no FinanceHub server | Token until forgotten or app data removed; fetched response not stored separately; appended rows follow the budget retention rule |
 
 **Special-category data:** FinanceHub does not ask for health, religion, ethnicity, sexual
 orientation, biometric or criminal-offence data. Free-text comments, merchant names,
@@ -114,6 +118,7 @@ into tickets unless necessary.
 | F15 | App → GitHub Releases | Version/build, request for manifest/asar; GitHub receives IP/user-agent and request metadata | Launch update check and update download | HTTPS; no budget, credentials or account identifiers sent | GitHub; no app data beyond request metadata | GitHub logs under its terms |
 | F16 | User → `delete_my_account` | Auth user ID | User confirms cloud deletion | Authenticated RPC; `SECURITY DEFINER`; cascade from `auth.users` | Owner only; service-role operators in principle | Removes cloud auth and public rows; local copies/exports unaffected |
 | F17 | Processors → logs | IP, auth events, requests, errors | Normal operation | Processor logging | Processor; owner where dashboards expose logs | Processor-defined; no retention job in app |
+| F18 | Desktop main process → Starling API | Personal access token, account/category UID, date range; Starling returns account and transaction JSON | Owner enables the feed and presses refresh/fetch | HTTPS to `api.starlingbank.com`; token read from DPAPI-backed store and never returned to the renderer | Desktop main process; Starling | Token until forgotten; fetched response not persisted separately; only reviewed rows enter the budget |
 
 ### 4.1 Cloud tables in scope
 
@@ -259,7 +264,8 @@ sub-processors are confirmed.
 
 Re-run this map and the DPIA addendum before adding:
 
-- Open Banking, bank feeds, payments or card data;
+- Open Banking/AISP, an additional bank feed or provider, payments or card data (the
+owner-only Starling personal feed is already recorded here);
 - analytics, crash reporting, advertising or any new SDK that sees app data;
 - receipt attachments, OCR or cloud file storage;
 - household sharing, additional users per workspace or public profiles;

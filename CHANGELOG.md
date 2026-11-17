@@ -12,6 +12,8 @@ and the build time.
 - Restore real budgets in the hosted web app
 - Clear the cached budget when signing out of the hosted web app
 - Add dashboard bill and income countdowns
+- Added a desktop-only Starling personal feed that imports settled transactions into the existing review grid. It is not Open Banking, uses a personal access token stored in the Windows encrypted store, and never posts automatically.
+- Updated the Import guide for the Starling personal feed.
 
 ## [2026.11.16] — 16 November 2026
 
