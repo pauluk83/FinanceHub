@@ -20,6 +20,7 @@ and the build time.
 - Imports now accept rows dated up to today and move the As-of date forward when the added row is newer
 - Open Banking through Enable Banking: link any UK bank, fetch booked transactions into the review grid, with the application key kept in the Windows encrypted store
 - Move Enable Banking request signing into a tested module so the RS256 JWT path is covered by the suite
+- Show the Starling and Enable Banking feeds only in the Windows app; the hosted web build now offers CSV import alone
 
 ## [2026.11.16] — 16 November 2026
 

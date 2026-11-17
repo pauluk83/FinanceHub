@@ -676,10 +676,11 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             </div>
           </>
         ) : (
-          <Empty>Load a CSV or fetch the Starling feed to build the review grid. Nothing is imported until you confirm.</Empty>
+          <Empty>Load a bank CSV export to build the review grid. Nothing is imported until you confirm.</Empty>
         )}
       </Section>
 
+      {starlingBridge && (
       <Section
         title="Starling personal feed"
         sub="Desktop-only read-only import from your own Starling account — not Open Banking"
@@ -693,13 +694,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             review grid above; nothing is posted automatically.
           </div>
 
-          {!starlingBridge && (
-            <div className="notice warn">
-              The Starling personal feed is available only in the Windows desktop app. The hosted web build keeps CSV import.
-            </div>
-          )}
-
-          {starlingBridge && !bankSecure && (
+          {!bankSecure && (
             <div className="notice danger">
               Windows secure storage is unavailable, so FinanceHub will not save a bank token. Check the Windows user profile and try again.
             </div>
@@ -773,7 +768,9 @@ export function ImportView({ ds, update, notify }: ViewProps) {
           {bankError && <div className="notice danger">{bankError}</div>}
         </div>
       </Section>
+      )}
 
+      {openBankingBridge && (
       <Section
         title="Open Banking (other banks)"
         sub="Enable Banking — an authorised AISP. You approve access in your browser; nothing posts automatically"
@@ -785,13 +782,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             Consent and strong customer authentication happen with your bank. Enable Banking is the authorised account-information provider and returns only the accounts you link; FinanceHub reads them and keeps the data in the review grid.
           </div>
 
-          {!openBankingBridge && (
-            <div className="notice warn">
-              Open Banking is available only in the Windows desktop app. The hosted web build keeps CSV import.
-            </div>
-          )}
-
-          {openBankingBridge && !ebStatus.secureStorage && (
+          {!ebStatus.secureStorage && (
             <div className="notice danger">
               Windows secure storage is unavailable, so FinanceHub will not save the Enable Banking key. Check the Windows user profile and try again.
             </div>
@@ -885,6 +876,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
           {ebError && <div className="notice danger">{ebError}</div>}
         </div>
       </Section>
+      )}
     </>
   );
 }
