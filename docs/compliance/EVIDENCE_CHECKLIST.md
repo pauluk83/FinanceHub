@@ -28,7 +28,7 @@ budget data or identity documents.
 - [~] Partial — client email-verification gate implemented; Supabase Confirm email is currently enabled, but custom SMTP is disabled and the default service is non-production (2 messages/hour). Live signup/resend test remains open.
 - [ ] Service-role key never present in client code or public assets.
 - [x] TOTP setup removed from Settings; passkeys are the in-app second-factor option. Existing identity-provider factors are outside FinanceHub's UI.
-- [~] Partial — passkey settings were recorded 13 November 2026 against the old host, then re-pointed to RP ID `financehub-uk.pages.dev` and origin `https://financehub-uk.pages.dev` on 17 November 2026. Existing passkeys cannot be used on the new origin, so they need re-enrolment; a real enrolment/sign-in ceremony remains untested.
+- [~] Partial — passkey settings re-pointed and saved on 17 November 2026 (Supabase confirmed "Passkey settings updated successfully"): display name `FinanceHub`, RP ID `financehub-uk.pages.dev`, origin `https://financehub-uk.pages.dev`. Site URL and redirect allow-list were re-pointed the same day. Existing passkeys cannot be used on the new origin, so they need re-enrolment; a real enrolment/sign-in ceremony remains untested.
 - [x] Account-deletion SQL applied 13 November 2026; `SECURITY DEFINER`, owned by `postgres`, `anon` execute denied and `authenticated` allowed.
 - [~] Partial — owner attests 16 Nov 2026 that account deletion and data-export drills completed; no dated build artifact, so this is not closed. Live passkey, email verification and two-device conflict tests remain open.
 - [x] Pre-rotation conflict history purged and old backups removed (owner confirmed 13 November 2026).

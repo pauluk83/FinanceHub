@@ -74,11 +74,12 @@ actual authenticator.
    - For local development only, add the Vite/localhost origin shown in your Supabase
      project settings if you test passkeys there.
 4. Save. Keep the RP ID stable: changing it makes every existing passkey unusable.
-5. Set the project's Site URL to `https://financehub-uk.pages.dev/` and add
-   `https://financehub-uk.pages.dev/`, `https://financehub-uk.pages.dev/**`,
-   `https://financehub-uk.pages.dev/bank-callback.html`, `http://localhost:5173/**` and
-   the desktop callback to the redirect allow-list. Remove the `financehub.freedev.app`
-   entries once the old host is gone; the account there is suspended.
+5. **Done 17 November 2026.** Site URL is `https://financehub-uk.pages.dev/`. The redirect
+   allow-list holds `https://financehub-uk.pages.dev/`,
+   `https://financehub-uk.pages.dev/**`, `http://localhost:5173/**` and the desktop
+   callback `http://127.0.0.1:53682/auth/callback`; the two `financehub.freedev.app`
+   entries were removed. The `/**` rule covers `/bank-callback` and the 308 from
+   `/bank-callback.html`.
 6. Recorded in `docs/compliance/EVIDENCE_CHECKLIST.md`. Do not enable passkeys as a
    required factor until enrolment and sign-in have been tested and account recovery is confirmed.
 
