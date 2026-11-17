@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.16",
-  "buildId": "bdd044bbdfc3",
-  "builtAt": "2026-11-16",
+  "version": "2026.11.17",
+  "buildId": "195682713b7a",
+  "builtAt": "2026-11-17",
   "releases": [
+    {
+      "version": "2026.11.17",
+      "date": "17 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Keep the sidebar buttons named for screen readers when the labels are hidden"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.16",
       "date": "16 November 2026",
