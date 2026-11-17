@@ -82,22 +82,37 @@ actual authenticator.
 
 ## 4. Privacy and processor actions
 
-1. Adopt the existing privacy/support mailbox `financehub+pauluk83@gmail.com` (Gmail). Restrict access, confirm retention, and replace it with dedicated addresses if it becomes a shared support route.
+1. Adopt the existing privacy/support mailbox `financehub+pauluk83@gmail.com` (Gmail). Restrict access, confirm retention, and replace it with dedicated addresses if it becomes a shared support route. **Consumer Gmail has no DPA**; either move the mailbox to a provider that offers one or record a signed risk acceptance. Do not publish it as a formal security route until this is resolved.
 2. Put the real contact address into the published Privacy Policy and Terms after legal
    review; the draft in `docs/compliance/` contains a placeholder.
 3. Confirm the ICO registration and data-protection fee position for the controller.
-4. Accept or execute the Supabase DPA and the hosting provider's data-processing terms.
-5. Record the UK international-transfer mechanism (SCC or UK IDTA) for each processor.
-6. Ask a UK solicitor to review the Privacy Policy, Terms, EULA and the drafts in
-   `docs/compliance/`.
-7. In **Supabase → Authentication → Providers → Email**, enable **Confirm email** and keep
-   the Site URL/redirect list current. Test signup, confirmation, resend and sign-in; record
-   the result. The app now blocks cloud sync until an email/password account reports a
-   confirmed address.
+4. Supabase DPA: no separate signature is needed. Version 1 (1 August 2026) is incorporated
+   into the Terms and covers the EU SCCs and UK Addendum. Download the TIA from the
+   organisation's Legal Documents page and file it privately with the DPA reference.
+5. Transfers: Supabase (UK Addendum/SCCs), GitHub (UK Addendum/DPF) and Google
+   (Controller-Controller Terms/UK Controller SCCs) are recorded. **InfinityFree and
+   consumer Gmail have no transfer mechanism**; move them or record a signed risk
+   acceptance with a transfer assessment.
+6. InfinityFree: it provides no DPA. Obtain written processor terms or move the static site
+   to a provider that offers a DPA. If it stays, revalidate iFastNet's 2018 third-party
+   processor list and record the hosting location.
+7. Supabase backups: the Free plan has **no automatic database backups** and only 1-day
+   logs. Upgrade to Pro (7-day daily backups and 7-day logs) or schedule regular manual
+   exports to an off-site location, and record the decision.
+8. Supabase Auth email: custom SMTP is currently **disabled**, so delivery uses the
+   non-production default service (2 messages/hour). Configure a named production SMTP
+   provider, then test signup, confirmation, resend and sign-in and record the result.
+   **Confirm email is currently enabled** in the dashboard, despite the earlier recorded
+   decision that it was deliberately off; confirm which state is intended.
+9. Google OAuth: branding is populated (app name, home page, privacy policy, Terms and
+   authorised domains), but the app is still unverified and shows a 1-of-100 user cap.
+   Complete Google verification before relying on public Google sign-in.
+10. Ask a UK solicitor to review the Privacy Policy, Terms, EULA and the drafts in
+    `docs/compliance/`.
 
 ## 5. Evidence to keep
 
 Keep dated screenshots or exports for: the purge result, any dated repeat of the deletion/export test, the passkey
-settings page, the email-confirmation/resend test, the DPA acceptance, the ICO position,
-the retention schedule review and the breach-contact test. See
-`docs/compliance/EVIDENCE_CHECKLIST.md`.
+settings page, the email-confirmation/resend test, the Supabase DPA/TIA references, the
+backup decision, the Google verification record, the ICO position, the retention schedule
+review and the breach-contact test. See `docs/compliance/EVIDENCE_CHECKLIST.md`.

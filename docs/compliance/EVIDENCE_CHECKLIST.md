@@ -11,21 +11,21 @@ budget data or identity documents.
 - [ ] DPIA and Addendum A reviewed and signed with a review date.
 - [ ] Data map (`DATA_MAP.md`) validated; processors, region, sub-processors and retention recorded.
 - [ ] Retention schedule approved and reviewed annually.
-- [ ] Risk acceptance register (`RISK_ACCEPTANCE_REGISTER.md`) signed for cloud-at-rest and unsigned installer.
+- [x] Risk acceptance register (`RISK_ACCEPTANCE_REGISTER.md`) signed 17 Nov 2026: RA-1 (cloud plaintext), RA-2 (unsigned installer/updater) and RA-3 (hosted browser storage).
 
 ## Processors and transfers
 
-- [ ] Processor register (`PROCESSOR_REGISTER.md`) completed: region, sub-processors, DPA, transfer mechanism, retention and security contact for every provider.
-- [ ] Supabase DPA accepted or executed; security contact recorded.
-- [ ] InfinityFree hosting terms and DPA position recorded.
-- [ ] Google OAuth terms and data-processing position recorded.
-- [ ] International transfer mechanism (SCC or UK IDTA) recorded for each processor.
-- [ ] Processor register includes backup retention windows.
+- [~] Partial — provider facts gathered 17 Nov 2026. Supabase region `eu-west-1`, DPA v1/SCCs/UK Addendum/TIA, subprocessor list 12 Oct 2026, contacts and no Free-plan backups recorded. GitHub DPA recorded. Google Controller-Controller Terms recorded. InfinityFree and consumer Gmail have no DPA; C1 remains open.
+- [x] Supabase DPA is incorporated into the Terms (v1, 1 Aug 2026) and no separate signature is required; TIA available; security contact recorded. **Free plan has no automatic backups.**
+- [~] Partial — InfinityFree terms last revised 2024-10-25; no DPA, no transfer mechanism and a stale 2018 subprocessor list. Hosting IP geolocated to Gosforth, England.
+- [~] Partial — Google Controller-Controller Terms and UK Controller SCCs recorded; Google Sign-In is not a customer-DPA service. OAuth app is unverified with a 1/100 user cap.
+- [~] Partial — Supabase, GitHub and Google have recorded transfer bases. InfinityFree and consumer Gmail have no transfer mechanism.
+- [~] Partial — Supabase Free: no backups and 1-day logs (Pro: 7 days); GitHub/Google/InfinityFree publish no fixed processor retention window for this use.
 
 ## Security controls
 
 - [~] Partial — owner attests 16 Nov 2026 that two-account sync isolation passed; no dated build artifact, so this is not closed. Two-device conflict still open.
-- [~] Partial — client email-verification gate implemented; Supabase Confirm email setting and live signup/resend test pending.
+- [~] Partial — client email-verification gate implemented; Supabase Confirm email is currently enabled, but custom SMTP is disabled and the default service is non-production (2 messages/hour). Live signup/resend test remains open.
 - [ ] Service-role key never present in client code or public assets.
 - [x] TOTP setup removed from Settings; passkeys are the in-app second-factor option. Existing identity-provider factors are outside FinanceHub's UI.
 - [x] Passkey/WebAuthn settings recorded 13 November 2026: display name `FinanceHub`; RP ID `financehub.freedev.app`; origin `https://financehub.freedev.app`. In-app controls shipped for the hosted browser app; a real enrolment/sign-in ceremony remains untested.
@@ -47,4 +47,4 @@ budget data or identity documents.
 - [ ] Build id and installer checksum recorded for each release.
 - [ ] CI and Release workflow results recorded.
 - [ ] Live site version/build checked after deployment.
-- [~] Unsigned installer/updater position recorded; `RISK_ACCEPTANCE_REGISTER.md` signature pending.
+- [x] Unsigned installer/updater position recorded; RA-2 signed 17 Nov 2026.

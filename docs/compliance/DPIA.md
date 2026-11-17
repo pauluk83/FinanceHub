@@ -198,22 +198,26 @@ Public production is conditional on all of the following evidence:
 
 1. **C1 — Data map validated:** Supabase region, sub-processors, email provider, hosting
    logs and processor backup windows are recorded in `PROCESSOR_REGISTER.md`; every “to
-   confirm” item is closed and the register is signed.
+   confirm” item is closed and the register is signed. Evidence was gathered on 17 November
+   2026, but InfinityFree and consumer Gmail have no DPA, the Supabase Free plan has no
+   automatic backups and uses only the non-production default SMTP, and the register is not
+   signed. C1 remains open.
 2. **C2 — Hosted-web storage (superseded 2026-11-17):** the demo-only restriction was
    withdrawn by the owner, so the hosted build now loads and syncs a real budget for a
    signed-in, confirmed account. Browser storage is plaintext, which is accepted in RA-3
    of `RISK_ACCEPTANCE_REGISTER.md`; the notice must disclose it, and a trusted-device
    instruction applies. C2 is no longer a blocker but its residual risk stays recorded.
-3. **C3 — Cloud encryption decision:** the owner is considering an unsigned proposal to
-   keep the wider budget document plaintext at rest under a risk acceptance, rather than
-   encrypting it. The notice must disclose that it is not end-to-end encrypted. C3 remains
-   open until the owner signs RA-1 in `RISK_ACCEPTANCE_REGISTER.md`.
+3. **C3 — Cloud encryption decision:** the owner accepted RA-1 on 17 November 2026, so
+   `settings.state_json` may stay readable at rest for this launch. C3 is accepted, not
+   eliminated; the “not end-to-end encrypted” disclosure must stay published, and C1 plus
+   the independent penetration test remain open.
 4. **C4 — Authentication and isolation:** hosted-only passkeys, a client email-verification
    gate before cloud sync, and live passkey/two-account RLS/two-device sync evidence. The
-   owner attests on 16 Nov 2026 that two-account sync, deletion and export drills passed;
-   no dated build artifact is filed. The client verification gate is implemented; Supabase
-   Confirm email configuration and the live signup/resend test, passkey ceremony and
-   two-device conflict test remain open.
+   owner confirmed the hosted passkey ceremony on 17 November 2026 and attests on 16
+   November that two-account sync, deletion and export drills passed; no dated build
+   artifact is filed. The client verification gate is implemented and Supabase Confirm
+   email is currently enabled, but custom SMTP is disabled, so the live signup/resend test
+   remains open. Two-device conflict remains owner-attested without instrumentation.
 5. **C5 — Deletion and export:** the owner attests on 16 Nov 2026 that deletion and export
    drills passed; dated build evidence, encrypted backup/restore observation and UI/notice
    wording for local copies and exports remain open.
