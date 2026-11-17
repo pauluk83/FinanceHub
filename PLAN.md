@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-16
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.16 tag, source archives and CI-built installer are published; build `05c9e9cb3591` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17 with a provider shortlist and a model for counsel to test; G1 has not passed and no provider account or bank data exists. The owner confirms exposed provider passwords are rotated; the GitHub v2026.11.16 tag, source archives and CI-built installer are published; build `05c9e9cb3591` is deployed at `https://financehub.freedev.app/`, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -635,6 +635,55 @@ Select an **FCA-authorised Open Banking account-information provider** after a c
 - Server-side token exchange; no secret in the renderer.
 
 Provider selection remains open. No provider should be integrated until the commercial and regulatory review is complete, and the FCA gate in §14 (C-4) is cleared.
+
+#### Provider desk research — 2026-11-17
+
+This is desk research for OB-1/OB-3, not legal advice or a provider selection. No provider
+account has been created, no contract has been signed and no bank data has been accessed.
+
+**Recommended model for counsel to test:** FinanceHub partners with an FCA-authorised
+account-information provider and is appointed as its **registered agent**, rather than
+seeking direct RAISP registration. This keeps bank connectivity, SCA and the Open Banking
+Directory relationship with the provider, while FinanceHub owns the product, consent copy,
+data protection and support experience. The provider must register FinanceHub as its agent
+with the FCA and supervise it; FinanceHub must still meet its own UK GDPR, consumer and
+security obligations. Counsel must confirm that this is the correct classification for the
+actual data flows, because presenting or using account information can itself be AIS.
+
+| Candidate | Verified position | Fit and caution |
+|---|---|---|
+| **Finexer** | FCA-authorised Payment Institution, FRN **925695**, for AIS and PIS; UK-only; advertises a free self-serve sandbox and an agent-licence route for platforms without their own FCA permission. | **First due-diligence candidate.** The agent model matches FinanceHub's size and UK-only scope. It is a smaller provider, so security certifications, financial standing, SLAs, sub-processors, data residency, insurance, incident terms and exit/portability need evidence before G3. |
+| **TrueLayer** | FCA-authorised AISP/PISP; free sandbox; strong UK coverage and Data API documentation. | Good sandbox and engineering experience, but production is limited to registered businesses with commercial scale and is **not available to personal, hobby or single-user projects**. Only viable if FinanceHub becomes a qualifying business. |
+| **Yapily** | FCA-authorised AISP/PISP; white-label infrastructure; free sandbox; sales-led production. | Strong white-label option; requires a commercial contract and provider onboarding. |
+| **Plaid** | FCA-authorised AISP/PISP; free sandbox; production is sales-led and usage-priced. | Broad UK/US coverage; less attractive for a free UK-only launch without a contract. |
+| **Tink (Visa)** | UK-authorised AISP/PISP; enterprise contract model. | Broad European coverage and enrichment, but enterprise pricing and onboarding. |
+| **GoCardless Bank Account Data** | Previously an AIS option; **closed to new signups**. | Not viable for a new integration. |
+| **Enable Banking** | Self-serve and indie-friendly, but registered in Finland; its UK authorisation/passporting position was not verified. | Do not shortlist for UK production until counsel confirms its UK permission and transfer position. |
+
+**Sources checked:** [FCA RAISP conditions](https://www.fca.org.uk/firms/apply-emoney-payment-institution/raisp),
+[Finexer on the FCA Register](https://register.fca.org.uk/s/firm?id=0014G00002VWYQYQA5),
+[Finexer](https://www.finexer.com/), [Finexer end-user terms](https://www.finexer.com/legal/end-user-terms),
+[TrueLayer production-access policy](https://support.truelayer.com/hc/en-us/articles/51026317780881-Can-I-get-production-access-for-a-personal-project-I-built-in-Sandbox),
+[TrueLayer Data API sandbox](https://docs.truelayer.com/docs/quickstart-retrieve-bank-data),
+[Enable Banking in the Open Banking provider register](https://www.openbanking.org.uk/regulated-providers/enable-banking-oy),
+and the [2026 UK provider comparison](https://openbankingtracker.com/open-banking-apis-uk). Provider
+pricing and production terms still require written confirmation.
+
+**Current gate status: G1 not passed.** The owner's recorded decision 11 says no external
+legal review is planned for the current CSV-only launch. Open Banking cannot start under
+that decision: OB-1 needs UK financial-services counsel and OB-2 needs privacy counsel.
+The owner must reverse or narrow decision 11 before any provider account, sandbox
+credential, contract or real bank data is used.
+
+**Questions for counsel.** Confirm whether FinanceHub is a technical service provider, an
+agent of the AISP, or itself providing AIS; the agent registration, oversight, insurance,
+complaints/FOS and Consumer Duty consequences; the consent wording and lawful basis for
+account and transaction data (including joint accounts and third-party payers); the
+90-day re-consent and revocation flow; provider/sub-processor transfers and retention;
+incident notification and audit rights; and the claims FinanceHub may make. If counsel
+prefers direct registration, the RAISP route requires AIS-only scope and professional
+indemnity insurance or a comparable guarantee, plus the FCA's management, security,
+incident, continuity and wind-down evidence.
 
 ### Architecture
 
@@ -1734,7 +1783,7 @@ Explicitly excluded from this launch: Open Banking and bank linking (separate G1
 | 8 | Code signing | **No code signing — RA-2 signed 2026-11-17.** | Unsigned installer and updater accepted, with the unknown-publisher warning published on the changelog page and SHA-256 verification retained. Revisit before general availability, before charging, or if the installer is hosted anywhere else. |
 | 9 | C1 processor evidence | **Partly gathered 17 November 2026.** | Supabase: `eu-west-1`, DPA v1 (SCCs/UK Addendum/TIA), subprocessor list 12 Oct 2026, **no Free-plan backups**, 1-day logs, default SMTP only. GitHub: DPA (UK Addendum/DPF). Google: Controller-Controller Terms; OAuth app unverified. InfinityFree and consumer Gmail: **no DPA**. Register remains open; public production stays blocked. |
 | 10 | C4/C5 tests | **Owner-attested, no instrumented artifact.** | The owner confirms two-account isolation, two-device conflict/realtime behaviour, deletion and export drills, a backup restore on `2026.11.16`, a successful delta update and the live passkey ceremony (2026-11-16/17). Recorded as attestation, not as instrumentation. The Supabase email-confirmation state is unresolved; see decision 7. |
-| 11 | Legal review | **None planned.** | The owner recorded on 2026-11-17 that no UK counsel or privacy adviser will review this launch. The app must not claim legal compliance or “production ready”; PR-2 and PR-7 stay open and the §23.7 go/no-go rule still applies. |
+| 11 | Legal review | **None planned for the current CSV-only launch.** | The owner recorded on 2026-11-17 that no UK counsel or privacy adviser will review this launch. Open Banking cannot proceed under this decision: OB-1 needs UK financial-services counsel and OB-2 needs privacy counsel. The owner must reverse or narrow this decision before G1. The app must not claim legal compliance or “production ready”; PR-2 and PR-7 stay open and the §23.7 go/no-go rule still applies. |
 | 12 | Support contacts | **Pending owner input.** | PR-5 needs published support, security-disclosure and incident addresses; the owner will supply them and none are recorded yet. |
 
 **C2 hosted gating — withdrawn 2026-11-17.** The demo-only hosted model was reversed by the

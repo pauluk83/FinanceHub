@@ -110,7 +110,39 @@ actual authenticator.
 10. Ask a UK solicitor to review the Privacy Policy, Terms, EULA and the drafts in
     `docs/compliance/`.
 
-## 5. Evidence to keep
+## 5. Open Banking — before any provider signup
+
+Open Banking is a regulated account-information service, not a normal API integration.
+The plan's G1 gate must pass before a provider account, sandbox credential, contract or
+real bank data is used. No provider has been contacted or selected.
+
+1. Decide the scope: **read-only account and transaction import**, with no payment
+   initiation, no card data and no stored bank credentials. The existing CSV import stays
+   available as the fallback.
+2. Decide whether this is for your own use only or for public users. Public use requires
+   a business/legal entity and a principal-agent or direct-registration route; provider
+   production access is generally business-only.
+3. Reverse or narrow decision 11 in `PLAN.md`. It currently records **no external legal
+   review**, but OB-1 requires UK financial-services counsel and OB-2 requires privacy
+   counsel. Open Banking cannot start while decision 11 stands.
+4. Appoint UK fintech counsel to write the OB-1 memo. The plan recommends testing the
+   **registered agent of an FCA-authorised AISP** model first, with direct RAISP
+   registration as the alternative. Ask counsel to confirm the classification, agent
+   registration, professional indemnity insurance, complaints/FOS, Consumer Duty and
+   consent requirements.
+5. Treat **Finexer** as the first due-diligence candidate, not a selection. Its FCA
+   authorisation is FRN 925695 for AIS/PIS; its advertised model includes an agent route
+   and a self-serve sandbox. Obtain its security certifications, sub-processors, data
+   residency, SLA, insurance, incident terms, exit plan and production pricing before G3.
+   TrueLayer, Yapily, Plaid and Tink are alternatives; TrueLayer production is not
+   available to personal/hobby projects.
+6. Only after G1 and G2 pass: create the sandbox account, approve the DPIA addendum and
+   privacy notice, and build against mock data. Do not connect a real bank account until
+   G3 and G4 pass and the independent security review is complete.
+7. Keep the **Secure bank linking** panel labelled **Planned** and make no Open Banking,
+   FCA-approved or bank-level-security claim until the C-4 gate is cleared.
+
+## 6. Evidence to keep
 
 Keep dated screenshots or exports for: the purge result, any dated repeat of the deletion/export test, the passkey
 settings page, the email-confirmation/resend test, the Supabase DPA/TIA references, the
