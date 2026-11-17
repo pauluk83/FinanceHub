@@ -39,6 +39,20 @@ contextBridge.exposeInMainWorld('financeHubDesktop', {
       accounts: () => ipcRenderer.invoke('bank:starling:accounts'),
       transactions: (params) => ipcRenderer.invoke('bank:starling:transactions', params),
     },
+    openBanking: {
+      status: () => ipcRenderer.invoke('bank:enablebanking:status'),
+      saveCredentials: (params) => ipcRenderer.invoke('bank:enablebanking:save-credentials', params),
+      forget: () => ipcRenderer.invoke('bank:enablebanking:forget'),
+      aspsps: () => ipcRenderer.invoke('bank:enablebanking:aspsps'),
+      link: (params) => ipcRenderer.invoke('bank:enablebanking:link', params),
+      accounts: () => ipcRenderer.invoke('bank:enablebanking:accounts'),
+      transactions: (params) => ipcRenderer.invoke('bank:enablebanking:transactions', params),
+      onLinked: (callback) => {
+        const listener = (_event, payload) => callback(payload);
+        ipcRenderer.on('bank:enablebanking:linked', listener);
+        return () => ipcRenderer.removeListener('bank:enablebanking:linked', listener);
+      },
+    },
   },
   updater: {
     check: (current) => ipcRenderer.invoke('updater:check', current),

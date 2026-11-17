@@ -29,11 +29,14 @@ it, how long it is kept and which processor or transfer applies. It covers:
 - GitHub Releases for installer and update downloads;
 - local exports, restore points, the people portal and feedback;
 - the optional Windows-only Starling personal feed, which uses a Starling personal access
-token for the owner's own account.
+token for the owner's own account;
+- the optional Windows-only Open Banking feed through **Enable Banking** (an authorised
+  AISP), restricted to accounts the owner links in the provider's consent flow.
 
-It does **not** cover Open Banking/AISP, payments, card acquiring, analytics, advertising
-or crash reporting. The Starling personal feed is not Open Banking; adding a real AISP
-provider or offering bank linking to other people requires a new data map and DPIA review.
+It does **not** cover payments, card acquiring, analytics, advertising or crash reporting.
+The Starling personal feed is not Open Banking. The Enable Banking feed is Open Banking as
+a client of an authorised provider, limited to the owner's own linked accounts; offering it
+to other people or adding payments requires a new data map, DPIA and provider contract.
 
 ---
 
@@ -53,6 +56,7 @@ provider or offering bank linking to other people requires a new data map and DP
 | Email delivery provider used by Supabase | Processor | Provider and terms to confirm for verification and password-reset email. |
 | Privacy/support mailbox provider | Processor (Gmail/Google) | Mailbox `financehub+pauluk83@gmail.com` adopted; terms/retention to confirm. |
 | Starling Bank | Account provider / independent controller for the bank account | Receives the personal access token and returns account and transaction data only when the owner enables the desktop feed. FinanceHub does not store the bank password, PIN or one-time code. |
+| Enable Banking (FIN-FSA-authorised AISP) | Independent controller/processor for Open Banking consent; account-information provider | Runs the consent and SCA flow with the bank, links the owner's chosen accounts and returns their data. Receives the application ID, signed JWT and linked-account requests; never receives the budget. Restricted production mode limits results to accounts the owner linked. |
 | Legal advisers, privacy adviser and penetration tester | Professional recipients | Only under confidentiality; evidence to be retained. |
 | ICO, courts, law enforcement | Independent recipients | Only where required or permitted by law. |
 
@@ -88,6 +92,7 @@ provider or offering bank linking to other people requires a new data map and DP
 | D14 | Hosting and authentication logs | IP address, timestamp, request path, email/auth events, errors | Yes | Supabase, InfinityFree, GitHub | Security, abuse prevention, debugging, billing | Legitimate interests; legal obligation where applicable | Processor logs | Processors and their sub-processors | Processor-defined; confirm and record |
 | D15 | Demo data | Synthetic names, transactions and budgets | No real data if the demo remains synthetic | Bundled seed | Let people explore the app | Not personal data | Browser/device only; never synced | None | Until browser/app data is cleared |
 | D16 | Starling personal-feed data | Personal access token, account UID, default category UID, account name/type/currency, settled transaction date, amount, direction, counterparty, reference and feed ID | Yes; financial data and a bearer token | Owner creates the token; Starling API returns the account data | Read-only import into the review grid | Consent / contract to confirm; owner-only personal use | Token in Windows DPAPI-backed secure store; fetched data in desktop memory; appended rows in the normal budget | Starling (API); no FinanceHub server | Token until forgotten or app data removed; fetched response not stored separately; appended rows follow the budget retention rule |
+| D17 | Open Banking data (Enable Banking) | Application ID and RSA private key, session ID, linked-account UIDs, ASPSP name/country, consent expiry, booked transaction date, amount, currency, direction, counterparty, remittance text and transaction ID | Yes; financial data plus an application key and consent session | Owner registers the application, links accounts in Enable Banking and fetches on demand | Read-only import into the review grid | Consent (owner links each account); contract with the provider to confirm for extended use | Application ID and private key in Windows DPAPI-backed secure store; session list in the same store; fetched data in desktop memory; appended rows in the normal budget | Enable Banking (API); the owner's bank (SCA); no FinanceHub server | Key and sessions until forgotten or app data removed; consent until the provider's expiry; fetched response not stored separately; appended rows follow the budget retention rule |
 
 **Special-category data:** FinanceHub does not ask for health, religion, ethnicity, sexual
 orientation, biometric or criminal-offence data. Free-text comments, merchant names,
@@ -119,6 +124,7 @@ into tickets unless necessary.
 | F16 | User → `delete_my_account` | Auth user ID | User confirms cloud deletion | Authenticated RPC; `SECURITY DEFINER`; cascade from `auth.users` | Owner only; service-role operators in principle | Removes cloud auth and public rows; local copies/exports unaffected |
 | F17 | Processors → logs | IP, auth events, requests, errors | Normal operation | Processor logging | Processor; owner where dashboards expose logs | Processor-defined; no retention job in app |
 | F18 | Desktop main process → Starling API | Personal access token, account/category UID, date range; Starling returns account and transaction JSON | Owner enables the feed and presses refresh/fetch | HTTPS to `api.starlingbank.com`; token read from DPAPI-backed store and never returned to the renderer | Desktop main process; Starling | Token until forgotten; fetched response not persisted separately; only reviewed rows enter the budget |
+| F19 | User browser → Enable Banking consent → desktop loopback → Enable Banking API | Application ID, signed RS256 JWT, ASPSP name/country, state, consent code, session ID, account UIDs, date range; provider returns account and transaction JSON | Owner saves the connection, links a bank, or fetches transactions | HTTPS to the bank's consent page and `api.enablebanking.com`; the HTTPS bounce page at `financehub.freedev.app/bank-callback.html` forwards `code`/`state` to `127.0.0.1:53684`; key stays in the main process | Desktop main process; Enable Banking; the owner's bank | Key and sessions until forgotten; consent until `valid_until`; fetched response not persisted separately; only reviewed rows enter the budget |
 
 ### 4.1 Cloud tables in scope
 

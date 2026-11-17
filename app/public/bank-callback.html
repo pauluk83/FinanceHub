@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>FinanceHub bank connection</title>
+    <style>
+      body { margin: 0; background: #0a101c; color: #e6edf7; font: 16px/1.5 Segoe UI, system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; }
+      main { max-width: 32rem; padding: 2rem; border: 1px solid #2b3f60; border-radius: 14px; background: #101a2b; }
+      h1 { margin: 0 0 .6rem; font-size: 1.35rem; }
+      p { margin: 0 0 .8rem; color: #8fa3bf; }
+      a { color: #7fb6ff; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="title">Returning to FinanceHub…</h1>
+      <p id="message">If the desktop app does not continue on its own, open it and try the bank link again.</p>
+      <p><a id="continue" href="#">Continue in FinanceHub</a></p>
+    </main>
+    <script>
+      (function () {
+        // The bank returns the consent result to this hosted page because the
+        // provider requires an HTTPS redirect. Only these four parameters are
+        // forwarded, and only to the desktop app's fixed loopback listener.
+        var allowed = ['code', 'state', 'error', 'error_description'];
+        var query = new URLSearchParams();
+        var incoming = new URLSearchParams(window.location.search);
+        for (var i = 0; i < allowed.length; i++) {
+          if (incoming.has(allowed[i])) query.set(allowed[i], incoming.get(allowed[i]));
+        }
+        var target = 'http://127.0.0.1:53684/enablebanking/callback' + (query.toString() ? '?' + query.toString() : '');
+        document.getElementById('continue').setAttribute('href', target);
+        if (incoming.get('error')) {
+          document.getElementById('title').textContent = 'Bank connection cancelled';
+          document.getElementById('message').textContent = 'The bank did not approve the connection. Close this tab and try again from FinanceHub.';
+          return;
+        }
+        window.location.replace(target);
+      })();
+    </script>
+  </body>
+</html>

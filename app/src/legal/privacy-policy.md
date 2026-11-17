@@ -16,8 +16,9 @@ FinanceHub is designed, built and operated by Zane Stanton, an individual based 
 - People sign-ins: a username, a PBKDF2-SHA-256 password hash and a statement snapshot, stored only in the browser or device where you create them.
 - Local workspace data: stored in this browser's local storage and never uploaded unless you choose account sync.
 - Starling personal feed (Windows only, optional): if you create a Starling personal access token, FinanceHub processes the token, the selected Starling account identifiers and the account/transaction data returned by Starling. The token is stored in the Windows encrypted local store, not in your budget, backups or cloud sync. Pending and reversed transactions are not offered; reviewed rows enter your budget only when you confirm them.
+- Open Banking feed (Windows only, optional): if you connect a bank through Enable Banking, FinanceHub processes the application ID, the application's private key, the accounts you link, and the account and transaction data the provider returns. The key is stored in the Windows encrypted local store and never sent to Supabase or the hosted web app. Enable Banking is the authorised account-information provider and performs the consent and strong customer authentication with your bank; FinanceHub never sees your bank credentials. Only booked items are offered and reviewed rows enter your budget only when you confirm them.
 
-FinanceHub does not provide Open Banking/AISP connections, does not process card numbers and does not receive payment card data. The optional Starling feed uses Starling's own personal API, not Open Banking.
+FinanceHub is not itself an account-information service provider and does not process card numbers or receive payment card data. Both optional bank feeds are desktop-only: the Starling feed uses Starling's own personal API, and the Open Banking feed uses Enable Banking under its restricted production mode, which returns only accounts you have linked yourself.
 
 ## 3. Why it is processed (lawful bases)
 
@@ -26,12 +27,13 @@ FinanceHub does not provide Open Banking/AISP connections, does not process card
 - To send sign-in, confirmation and password-reset emails: contract and, where required, consent.
 - Optional provider credentials and People sign-ins: consent, given by choosing to create them.
 - Optional Starling personal feed: consent, given by choosing to save a Starling token and fetch transactions. You can withdraw it by forgetting the token and revoking it in Starling.
+- Optional Open Banking feed: consent, given by linking an account in Enable Banking and fetching its transactions. You can withdraw it by forgetting the connection in FinanceHub and revoking the consent in Enable Banking.
 
 FinanceHub does not sell personal data, does not use it for advertising and does not build profiles for marketing.
 
 ## 4. Financial data
 
-Budget data is sensitive in practice even where it is not a special category. It is used only to calculate and display your budget, produce statements and backups, and sync between your devices. Starling account and transaction data is read only when you request it and is used only for the review/import you ask for. It is not shared with lenders, advertisers or credit reference agencies. Demo mode uses synthetic data and is never uploaded.
+Budget data is sensitive in practice even where it is not a special category. It is used only to calculate and display your budget, produce statements and backups, and sync between your devices. Starling and Open Banking account and transaction data is read only when you request it and is used only for the review/import you ask for. It is not shared with lenders, advertisers or credit reference agencies. Demo mode uses synthetic data and is never uploaded.
 
 ## 5. Storage, processors and transfers
 
@@ -40,6 +42,7 @@ Budget data is sensitive in practice even where it is not a special category. It
 - Google may process sign-in if you choose "Continue with Google".
 - Desktop data is stored in the app's local storage on your computer; local mode never leaves the device.
 - Starling processes the personal access token and returns account/transaction data when you use the optional desktop feed. FinanceHub stores the token only in the Windows encrypted local store; it is not sent to Supabase or the hosted web app.
+- Enable Banking (an authorised account-information provider regulated by the Finnish FIN-FSA) acts as the Open Banking provider: it performs consent and strong customer authentication with your bank and returns the account and transaction data for the accounts you link. FinanceHub stores the application ID and private key only in the Windows encrypted local store.
 
 These providers may process data outside the UK or EEA under their standard contractual clauses. The owner chooses providers with appropriate safeguards but cannot control their internal operations.
 

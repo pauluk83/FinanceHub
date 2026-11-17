@@ -302,3 +302,42 @@ bank linking and Open Banking remain unapproved.
 **Review trigger:** any new processor, region, bank-linking, payment, analytics, attachment,
 sharing or storage change; any personal-data breach; or 12 months from sign-off, whichever
 is sooner.
+
+## A.11 Enable Banking Open Banking feed (owner only) — 17 November 2026
+
+**Scope:** Windows desktop only; the owner's own accounts at UK banks; read-only booked
+transactions. Enable Banking is an account-information service provider authorised by the
+Finnish FIN-FSA. FinanceHub is its API client in **restricted production** mode, which
+returns only the accounts the owner links. No payments, card data, screen scraping,
+background sync or third-party users.
+
+**Data and flow:** the owner registers a free production application in the Enable Banking
+control panel. The application ID and RSA private key are stored in Electron `safeStorage`
+(Windows DPAPI) under `bank.enablebanking.app-id` / `bank.enablebanking.private-key`,
+outside the budget, backups and cloud sync. Each API request carries a short-lived RS256
+JWT signed in the main process. Linking opens the bank's own consent and SCA flow in the
+browser; the HTTPS bounce page at `financehub.freedev.app/bank-callback.html` forwards only
+`code`/`state` to `127.0.0.1:53684`, where the main process exchanges the code for a
+session and stores the session list in DPAPI. The renderer receives only reduced account
+and transaction fields. Only rows the owner ticks in the review grid enter the budget; the
+fetched response is not persisted separately.
+
+**Risks and mitigations:**
+
+| Risk | Likelihood / impact | Mitigation | Residual |
+| --- | --- | --- | --- |
+| Private key theft from the device | Low / High — the key can create sessions for linked accounts | DPAPI at rest; key only in the main process; short-lived JWTs; restricted mode limits accounts; forget/re-key route; no key logging | Medium; accepted for owner-only use on a trusted Windows profile |
+| Consent interception or callback replay | Low / High | Random `state` checked before the code exchange; loopback listener bound to 127.0.0.1 with a Host check; only `code`/`state` forwarded by the bounce page | Low; an independent IPC/desktop review is still needed |
+| Over-collection or retention of bank data | Low / Medium | Only linked accounts; date range limited to the import window; booked items only; no background sync; append only after review; no separate response store | Low |
+| Wrong account or duplicate import | Medium / Low | Explicit account selection; GBP check; review grid; duplicate detection; out-of-window rule | Low–Medium; owner reviews before appending |
+| Provider dependency or consent expiry | Medium / Medium | Consent expiry shown; reconnect flow; sessions can be forgotten locally; feature removable without touching budget data | Medium; owner-only |
+| Scope creep to other users or payments | Medium / High | Restricted production mode, owner-only labelling, no FCA-approved claim, G1–G5 still open for public use | Controlled while owner-only |
+
+**Necessity and proportionality:** the feed is optional, read-only, limited to accounts the
+owner links and avoids storing bank credentials. The provider holds the AISP authorisation
+and performs consent and SCA; FinanceHub only reads the linked data.
+
+**Conditions:** keep it desktop-only and owner-only; do not describe it as FCA-approved or
+bank-level security; keep the key and sessions out of the budget, cloud and backups; revoke
+consents in Enable Banking when no longer needed; revisit this addendum and the provider
+contract before enabling it for any other person.

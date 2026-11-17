@@ -110,37 +110,34 @@ actual authenticator.
 10. Ask a UK solicitor to review the Privacy Policy, Terms, EULA and the drafts in
     `docs/compliance/`.
 
-## 5. Open Banking — before any provider signup
+## 5. Open Banking — Enable Banking (owner only)
 
-Open Banking is a regulated account-information service, not a normal API integration.
-The plan's G1 gate must pass before a provider account, sandbox credential, contract or
-real bank data is used. No provider has been contacted or selected.
+Open Banking is a regulated account-information service. FinanceHub uses **Enable Banking**
+(a Finnish AISP authorised by the FIN-FSA) in its free **restricted production** mode, which
+returns only accounts the owner links. FinanceHub holds no AISP authorisation, does not
+initiate payments and does not offer bank linking to other people. Public or third-party use
+still needs the provider contract, KYB and the G1–G5 gate.
 
-1. Decide the scope: **read-only account and transaction import**, with no payment
-   initiation, no card data and no stored bank credentials. The existing CSV import stays
-   available as the fallback.
-2. Decide whether this is for your own use only or for public users. Public use requires
-   a business/legal entity and a principal-agent or direct-registration route; provider
-   production access is generally business-only.
-3. Reverse or narrow decision 11 in `PLAN.md`. It currently records **no external legal
-   review**, but OB-1 requires UK financial-services counsel and OB-2 requires privacy
-   counsel. Open Banking cannot start while decision 11 stands.
-4. Appoint UK fintech counsel to write the OB-1 memo. The plan recommends testing the
-   **registered agent of an FCA-authorised AISP** model first, with direct RAISP
-   registration as the alternative. Ask counsel to confirm the classification, agent
-   registration, professional indemnity insurance, complaints/FOS, Consumer Duty and
-   consent requirements.
-5. Treat **Finexer** as the first due-diligence candidate, not a selection. Its FCA
-   authorisation is FRN 925695 for AIS/PIS; its advertised model includes an agent route
-   and a self-serve sandbox. Obtain its security certifications, sub-processors, data
-   residency, SLA, insurance, incident terms, exit plan and production pricing before G3.
-   TrueLayer, Yapily, Plaid and Tink are alternatives; TrueLayer production is not
-   available to personal/hobby projects.
-6. Only after G1 and G2 pass: create the sandbox account, approve the DPIA addendum and
-   privacy notice, and build against mock data. Do not connect a real bank account until
-   G3 and G4 pass and the independent security review is complete.
-7. Keep the **Secure bank linking** panel labelled **Planned** and make no Open Banking,
-   FCA-approved or bank-level-security claim until the C-4 gate is cleared.
+1. Create a free account at https://enablebanking.com and open the Control Panel.
+2. **API applications → new application**, environment **Production**, keep “generate the
+   private key in the browser”, and add the redirect URL
+   `https://financehub.freedev.app/bank-callback.html` exactly. Copy the application ID and
+   keep the downloaded `<application-id>.pem` private — never in the repo, chat or a screenshot.
+3. Activate the application with **Activate by linking accounts** and complete the bank's
+   consent for each account you want. Only linked accounts are returned by the API.
+4. In FinanceHub open **Import → Open Banking (other banks)**, paste the application ID and
+   private key, then choose **Save connection**. Both are stored only in the Windows
+   DPAPI-backed secure store, never in the budget, backups or cloud sync.
+5. Choose **Load banks**, pick a bank and choose **Connect in browser**. Finish the bank's
+   consent; the panel updates when the browser returns to FinanceHub. Repeat per bank.
+6. Choose the linked account and **Fetch booked transactions**, then review and add rows in
+   the grid. Nothing is posted automatically.
+7. Consent expires on the date shown; connect the bank again when it lapses. Enable Banking
+   shows and revokes active consents at https://enablebanking.com/data-sharing-consents/.
+8. **Forget connection** removes the key and linked-account list from FinanceHub. Revoke the
+   consent separately in Enable Banking if you want to invalidate it.
+9. Keep this feature owner-only and make no **FCA-approved** or **bank-level security** claim.
+   Do not extend it to anyone else without completing G1–G5.
 
 ## 6. Starling personal feed (owner only)
 
@@ -159,7 +156,7 @@ anyone else.
 5. To disconnect, choose **Forget token** in FinanceHub and revoke the token in the Starling
    developer portal. Forgetting the local copy alone does not invalidate it at Starling.
 6. Keep this feature owner-only. Do not call it Open Banking, do not give the token to
-   another person and do not add another bank without revisiting the DPIA and C-4 gate.
+   another person, and use the separate Enable Banking feed above for other banks.
 
 ## 7. Evidence to keep
 

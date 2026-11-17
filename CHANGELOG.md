@@ -18,6 +18,7 @@ and the build time.
 - Starling feed fetches settled transactions through today, so rows newer than the As-of date are visible in the review grid
 - Import hints name the actual As-of date and point to Settings → Budget when rows fall outside it
 - Imports now accept rows dated up to today and move the As-of date forward when the added row is newer
+- Open Banking through Enable Banking: link any UK bank, fetch booked transactions into the review grid, with the application key kept in the Windows encrypted store
 
 ## [2026.11.16] — 16 November 2026
 

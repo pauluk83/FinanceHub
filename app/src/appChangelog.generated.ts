@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.17",
-  "buildId": "59dcd537d6a8",
+  "buildId": "d653b0498ebd",
   "builtAt": "2026-11-17",
   "releases": [
     {
@@ -24,7 +24,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Restored sign-in in Windows builds by bundling the public Supabase client configuration.",
             "Starling feed fetches settled transactions through today, so rows newer than the As-of date are visible in the review grid",
             "Import hints name the actual As-of date and point to Settings → Budget when rows fall outside it",
-            "Imports now accept rows dated up to today and move the As-of date forward when the added row is newer"
+            "Imports now accept rows dated up to today and move the As-of date forward when the added row is newer",
+            "Open Banking through Enable Banking: link any UK bank, fetch booked transactions into the review grid, with the application key kept in the Windows encrypted store"
           ]
         }
       ]

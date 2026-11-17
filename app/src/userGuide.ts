@@ -383,6 +383,7 @@ export const USER_GUIDE: GuideEntry[] = [
     steps: [
       'Choose a CSV and confirm the columns and account.',
       'On Windows, you can instead save a Starling personal access token and fetch settled transactions from the lock cutoff through today.',
+      'On Windows you can also connect other banks through Enable Banking: save the application ID and private key, link each account with the bank in your browser, then fetch booked transactions.',
       'Review duplicate warnings and rejected rows, and fix the file before continuing.',
       'Confirm to append the rows, then reconcile the account against its statement.',
     ],
@@ -390,6 +391,7 @@ export const USER_GUIDE: GuideEntry[] = [
       'Imports never post into locked months and never silently overwrite existing rows.',
       'File size and row limits are shown before an import starts.',
       'The Starling feed is Starling’s own personal API, not Open Banking. Its token stays in the Windows encrypted store; pending items are excluded and you can forget or revoke the token. Rows dated up to today can be added even when the As-of date lags behind; adding one moves the As-of date forward, up to today.',
+      'The Open Banking feed uses Enable Banking, an authorised provider, and only returns accounts you link yourself. Consent and bank authentication happen in your browser; the key stays in the Windows encrypted store and nothing is posted until you review it.',
     ],
   },
   {

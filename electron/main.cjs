@@ -1,6 +1,7 @@
 'use strict';
 const { app, BrowserWindow, Menu, dialog, shell, ipcMain, session } = require('electron');
 const http = require('http');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
@@ -34,6 +35,16 @@ const OAUTH_CALLBACK = `http://127.0.0.1:${OAUTH_PORT}/auth/callback`;
 const STORE_PORT = 53683;
 const STARLING_API = 'https://api.starlingbank.com/api/v2';
 const STARLING_TOKEN_KEY = 'bank.starling.personal-token';
+const EB_API = 'https://api.enablebanking.com';
+const EB_APP_ID_KEY = 'bank.enablebanking.app-id';
+const EB_KEY_KEY = 'bank.enablebanking.private-key';
+const EB_SESSIONS_KEY = 'bank.enablebanking.sessions';
+const EB_CALLBACK_PORT = 53684;
+const EB_CALLBACK_PATH = '/enablebanking/callback';
+const EB_CALLBACK_LOCAL = `http://127.0.0.1:${EB_CALLBACK_PORT}${EB_CALLBACK_PATH}`;
+// Enable Banking requires HTTPS production redirects, so the hosted bounce page
+// forwards the consent result to this loopback listener.
+const EB_REDIRECT_URL = 'https://financehub.freedev.app/bank-callback.html';
 const UPDATE_MANIFEST_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/update-manifest.json';
 const UPDATE_ARCHIVE_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/FinanceHub-app.asar';
 const SERVE_ONLY = process.argv.includes('--serve');
@@ -286,6 +297,295 @@ function registerStarlingBank() {
       counterPartyName: item?.counterPartyName,
       reference: item?.reference,
       transactionType: item?.transactionType,
+    }));
+  }));
+}
+
+/* --------------------------------------- Enable Banking (Open Banking AIS) */
+
+let ebCallbackServer = null;
+let ebPendingLink = null;
+let ebCallbackServerFailure = '';
+
+function ebCredentials() {
+  if (!secureStore) throw new Error('Secure local storage is unavailable');
+  return {
+    appId: secureStore.get(EB_APP_ID_KEY) || '',
+    privateKey: secureStore.get(EB_KEY_KEY) || '',
+  };
+}
+
+function ebStoredSessions() {
+  if (!secureStore) return [];
+  try {
+    const raw = secureStore.get(EB_SESSIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry === 'object') : [];
+  } catch {
+    return [];
+  }
+}
+
+function ebSaveSessions(sessions) {
+  if (!secureStore) throw new Error('Secure local storage is unavailable');
+  secureStore.set(EB_SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+/** RS256 JWT signed with the application's private key (kid = application ID). */
+function ebJwt() {
+  const { appId, privateKey } = ebCredentials();
+  if (!appId || !privateKey) throw new Error('Save the Enable Banking application ID and private key first');
+  const issued = Math.floor(Date.now() / 1000);
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const signingInput = `${encode({ typ: 'JWT', alg: 'RS256', kid: appId })}`
+    + `.${encode({ iss: 'enablebanking.com', aud: 'api.enablebanking.com', iat: issued, exp: issued + 3600 })}`;
+  const signature = crypto.sign('RSA-SHA256', Buffer.from(signingInput), privateKey).toString('base64url');
+  return `${signingInput}.${signature}`;
+}
+
+async function ebRequest(pathname, init = {}) {
+  const response = await fetchWithTimeout(`${EB_API}${pathname}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${ebJwt()}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  }, 25000);
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Enable Banking rejected the application ID or private key. Save them again.');
+    }
+    if (response.status === 429) throw new Error('Enable Banking is rate-limiting this app. Wait a moment and try again.');
+    if (response.status === 400) {
+      const detail = typeof payload?.message === 'string' ? ` ${payload.message.slice(0, 160)}` : '';
+      throw new Error(`Enable Banking rejected the request.${detail}`);
+    }
+    const detail = typeof payload?.message === 'string' ? ` ${payload.message.slice(0, 160)}` : '';
+    throw new Error(`Enable Banking returned HTTP ${response.status}.${detail}`);
+  }
+  return payload;
+}
+
+function ebValidAppId(value) {
+  return typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
+}
+
+function ebValidPrivateKey(value) {
+  if (typeof value !== 'string') return false;
+  const key = value.trim();
+  if (key.length < 200 || key.length > 12000) return false;
+  if (!/^-----BEGIN (RSA )?PRIVATE KEY-----/.test(key) || !/-----END (RSA )?PRIVATE KEY-----$/.test(key)) return false;
+  try {
+    crypto.createPrivateKey(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ebEnsureCallbackServer() {
+  if (ebCallbackServer) return;
+  ebCallbackServer = http.createServer(async (req, res) => {
+    const host = req.headers.host ?? '';
+    if (host !== `127.0.0.1:${EB_CALLBACK_PORT}` && host !== `localhost:${EB_CALLBACK_PORT}`) {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Forbidden');
+      return;
+    }
+    if (req.method !== 'GET' || (req.url ?? '').split('?')[0] !== EB_CALLBACK_PATH) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+
+    const url = new URL(req.url ?? '/', EB_CALLBACK_LOCAL);
+    const code = url.searchParams.get('code') ?? '';
+    const state = url.searchParams.get('state') ?? '';
+    const providerError = url.searchParams.get('error_description') || url.searchParams.get('error') || '';
+    let title = 'Bank connection failed';
+    let message = providerError || 'The bank did not return an authorisation code.';
+    let ok = false;
+    try {
+      if (!ebPendingLink) throw new Error('Start the bank connection from FinanceHub again.');
+      if (!state || state !== ebPendingLink.state) {
+        throw new Error('The bank returned an unexpected consent state. Start the connection again.');
+      }
+      if (providerError) throw new Error(providerError);
+      if (!code) throw new Error(message);
+
+      const session = await ebRequest('/sessions', { method: 'POST', body: JSON.stringify({ code }) });
+      const accounts = (Array.isArray(session?.accounts) ? session.accounts : [])
+        .map((entry) => ({
+          uid: typeof entry?.uid === 'string' ? entry.uid : '',
+          name: typeof entry?.name === 'string' ? entry.name : (typeof entry?.product === 'string' ? entry.product : 'Linked account'),
+          currency: typeof entry?.currency === 'string' ? entry.currency.toUpperCase() : '',
+        }))
+        .filter((entry) => entry.uid);
+      const record = {
+        sessionId: typeof session?.session_id === 'string' ? session.session_id : '',
+        aspspName: ebPendingLink.name,
+        aspspCountry: ebPendingLink.country,
+        validUntil: typeof session?.access?.valid_until === 'string' ? session.access.valid_until : '',
+        accounts,
+        linkedAt: new Date().toISOString(),
+      };
+      if (!record.sessionId) throw new Error('Enable Banking did not return a session for that bank.');
+      ebSaveSessions([...ebStoredSessions().filter((entry) => entry.sessionId !== record.sessionId), record]);
+      ok = true;
+      title = 'Bank connected';
+      message = 'You can close this tab and return to FinanceHub.';
+    } catch (error) {
+      message = error instanceof Error ? error.message : 'The bank connection failed.';
+    }
+    ebPendingLink = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('bank:enablebanking:linked', { ok, error: ok ? null : message });
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+      'Referrer-Policy': 'no-referrer',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.end(oauthPage(title, message));
+  });
+  ebCallbackServer.on('error', (error) => {
+    console.error('Enable Banking callback listener unavailable:', error);
+    ebCallbackServerFailure = 'The local bank callback port is unavailable. Close any other copy of FinanceHub and try again.';
+    ebCallbackServer = null;
+  });
+  ebCallbackServer.listen(EB_CALLBACK_PORT, '127.0.0.1', () => {
+    ebCallbackServerFailure = '';
+    console.log(`Bank callback listening at ${EB_CALLBACK_LOCAL}`);
+  });
+}
+
+function registerEnableBanking() {
+  const reply = async (event, action) => {
+    if (!isTrustedSender(event)) return { ok: false, error: 'Untrusted renderer' };
+    try {
+      return { ok: true, value: await action() };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'The Enable Banking request failed' };
+    }
+  };
+
+  ipcMain.handle('bank:enablebanking:status', (event) => reply(event, () => {
+    const { appId, privateKey } = { appId: secureStore?.get(EB_APP_ID_KEY) || '', privateKey: secureStore?.get(EB_KEY_KEY) || '' };
+    return {
+      hasCredentials: Boolean(appId && privateKey),
+      secureStorage: Boolean(secureStore),
+      sessions: ebStoredSessions(),
+    };
+  }));
+
+  ipcMain.handle('bank:enablebanking:save-credentials', (event, params) => reply(event, () => {
+    if (!secureStore) throw new Error('Secure local storage is unavailable');
+    const appId = typeof params?.appId === 'string' ? params.appId.trim() : '';
+    const privateKey = typeof params?.privateKey === 'string' ? params.privateKey.trim() : '';
+    if (!ebValidAppId(appId)) throw new Error('Paste the Enable Banking application ID (a UUID)');
+    if (!ebValidPrivateKey(privateKey)) throw new Error('Paste the private key (.pem) that Enable Banking generated');
+    secureStore.set(EB_APP_ID_KEY, appId);
+    secureStore.set(EB_KEY_KEY, privateKey);
+    return { hasCredentials: true, secureStorage: true };
+  }));
+
+  ipcMain.handle('bank:enablebanking:forget', (event) => reply(event, () => {
+    if (!secureStore) throw new Error('Secure local storage is unavailable');
+    for (const key of [EB_APP_ID_KEY, EB_KEY_KEY, EB_SESSIONS_KEY]) secureStore.remove(key);
+    ebPendingLink = null;
+    return { hasCredentials: false, secureStorage: true, sessions: [] };
+  }));
+
+  ipcMain.handle('bank:enablebanking:aspsps', (event) => reply(event, async () => {
+    const payload = await ebRequest('/aspsps?country=GB');
+    return Array.isArray(payload?.aspsps) ? payload.aspsps : [];
+  }));
+
+  ipcMain.handle('bank:enablebanking:link', (event, params) => reply(event, async () => {
+    const name = typeof params?.name === 'string' ? params.name.trim() : '';
+    const country = typeof params?.country === 'string' ? params.country.trim().toUpperCase() : 'GB';
+    if (!name || name.length > 120) throw new Error('Choose a bank to connect');
+    if (!/^[A-Z]{2}$/.test(country)) throw new Error('Choose a valid bank country');
+    ebEnsureCallbackServer();
+    if (ebCallbackServerFailure) throw new Error(ebCallbackServerFailure);
+    const state = crypto.randomUUID();
+    const payload = await ebRequest('/auth', {
+      method: 'POST',
+      body: JSON.stringify({
+        access: { valid_until: new Date(Date.now() + 90 * 86400000).toISOString() },
+        aspsp: { name, country },
+        state,
+        redirect_url: EB_REDIRECT_URL,
+        psu_type: 'personal',
+      }),
+    });
+    const consentUrl = typeof payload?.url === 'string' ? payload.url : '';
+    let parsed = null;
+    try {
+      parsed = new URL(consentUrl);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed || parsed.protocol !== 'https:' || !/(^|\.)enablebanking\.com$/i.test(parsed.hostname)) {
+      throw new Error('Enable Banking did not return a valid consent URL');
+    }
+    ebPendingLink = { state, name, country };
+    void shell.openExternal(parsed.toString());
+    return { opened: true };
+  }));
+
+  ipcMain.handle('bank:enablebanking:accounts', (event) => reply(event, () => ebStoredSessions()));
+
+  ipcMain.handle('bank:enablebanking:transactions', (event, params) => reply(event, async () => {
+    const accountUid = typeof params?.accountUid === 'string' ? params.accountUid : '';
+    const min = starlingDate(params?.min);
+    const max = starlingDate(params?.max);
+    if (!accountUid) throw new Error('Choose a linked bank account');
+    const rangeProblem = starlingDateRangeProblem(min, max);
+    if (rangeProblem) throw new Error(rangeProblem);
+    const sessions = ebStoredSessions();
+    const owns = sessions.some((session) => Array.isArray(session.accounts)
+      && session.accounts.some((account) => account?.uid === accountUid));
+    if (!owns) throw new Error('That account is not linked to this connection');
+
+    const base = `/accounts/${encodeURIComponent(accountUid)}/transactions`
+      + `?date_from=${encodeURIComponent(min)}&date_to=${encodeURIComponent(max)}&transaction_status=BOOKED`;
+    const items = [];
+    let pathname = base;
+    for (let page = 0; page < 10; page += 1) {
+      const payload = await ebRequest(pathname);
+      if (Array.isArray(payload?.transactions)) items.push(...payload.transactions);
+      const next = typeof payload?.continuation_key === 'string' ? payload.continuation_key : '';
+      if (!next) break;
+      pathname = `${base}&continuation_key=${encodeURIComponent(next)}`;
+    }
+    return items.map((item) => ({
+      transaction_id: item?.transaction_id,
+      entry_reference: item?.entry_reference,
+      status: item?.status,
+      booking_date: item?.booking_date,
+      value_date: item?.value_date,
+      transaction_amount: item?.transaction_amount && typeof item.transaction_amount === 'object'
+        ? { currency: item.transaction_amount.currency, amount: item.transaction_amount.amount }
+        : null,
+      credit_debit_indicator: item?.credit_debit_indicator,
+      creditor: item?.creditor && typeof item.creditor === 'object' ? { name: item.creditor.name } : null,
+      debtor: item?.debtor && typeof item.debtor === 'object' ? { name: item.debtor.name } : null,
+      remittance_information: Array.isArray(item?.remittance_information)
+        ? item.remittance_information.filter((line) => typeof line === 'string')
+        : undefined,
+      transaction_code: item?.transaction_code,
     }));
   }));
 }
@@ -924,6 +1224,7 @@ if (!hasSingleInstanceLock) {
     installWebContentsGuards();
     registerSecureStorage();
     registerStarlingBank();
+    registerEnableBanking();
     registerUpdater();
     registerWindowClose();
     registerOAuthCallback();
@@ -951,6 +1252,8 @@ app.on('will-quit', () => {
   installTimer = null;
   oauthServer?.close();
   oauthServer = null;
+  ebCallbackServer?.close();
+  ebCallbackServer = null;
   storeServer?.close();
   storeServer = null;
   secureStore?.close();

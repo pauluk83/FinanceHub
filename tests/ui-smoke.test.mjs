@@ -364,7 +364,9 @@ test('the import screen presents the Starling personal feed separately from Open
   assert.match(html, /not an Open Banking\/AISP connection/);
   assert.match(html, /available only in the Windows desktop app/);
   assert.match(html, /Open Banking \(other banks\)/);
-  assert.match(html, /CSV import remains available everywhere/);
+  assert.match(html, /Enable Banking/);
+  assert.match(html, /authorised account-information provider/);
+  assert.match(html, /keeps CSV import/);
 });
 
 test('a hosted sign-out clears the cached budget only once it is synced', async () => {

@@ -78,6 +78,26 @@ Starling developer portal when you no longer need it.
 This feed is not Open Banking/AISP, is not a payment service and is not offered to other
 people. Starling's own terms and privacy notice also apply to its API.
 
+### Open Banking feed through Enable Banking (Windows only, optional)
+
+If you choose to connect another bank, FinanceHub uses **Enable Banking**, an account
+information service provider authorised by the Finnish FIN-FSA. You register a free
+application with Enable Banking, paste its application ID and private key into FinanceHub,
+and then approve each account in the bank's own consent and strong customer authentication
+flow in your browser. FinanceHub never asks for your online-banking password, PIN or
+one-time code.
+
+The application ID and private key are stored in the Windows OS-encrypted local store and
+are not placed in the budget, cloud sync or backups. Enable Banking returns only the
+accounts you linked. The feed is read-only and offers only booked transactions for the date
+range you fetch; pending items are excluded and rows enter your budget only when you
+confirm them in the review grid. Consent lasts until the expiry date shown in the app, after
+which you connect the bank again.
+
+FinanceHub is not itself an account-information service provider, does not initiate
+payments, and does not offer this feed to other people. Enable Banking's own terms and
+privacy notice also apply.
+
 ### Optional provider logins
 
 If you choose to save logins for provider websites, the username, password, charge-letter
@@ -188,6 +208,7 @@ we specify, under their terms and any data-processing agreement.
 | **InfinityFree** | Static website requests and access logs; no budget data should be deployed there | Hosting the web app |
 | **GitHub / Microsoft** | IP address, user agent and request metadata when checking for or downloading an update; no budget or account data | Release downloads and app updates |
 | **Starling Bank** | Your Starling personal access token and the account/transaction request; Starling returns your account and transaction data | Only if you enable the desktop Starling personal feed |
+| **Enable Banking** (FIN-FSA-authorised AISP) | Your application ID, signed requests, the accounts you link and the transaction requests; it returns your account and transaction data | Only if you enable the desktop Open Banking feed |
 | **Email delivery provider used by Supabase** | Email address and verification/reset message metadata | Account verification and password-reset email; provider to be confirmed |
 | **Privacy/support mailbox provider** | Whatever you send to the published contact address | Responding to support and rights requests; existing Gmail mailbox `financehub+pauluk83@gmail.com` |
 | **Professional advisers, security reviewers and penetration testers** | Documents and evidence needed for their engagement, under confidentiality | Legal, privacy and security assurance |
@@ -223,6 +244,9 @@ Do not publish this notice until those fields and the processor register are com
 | Provider vault ciphertext | Inside the budget document | Yes, ciphertext only |
 | Starling personal access token | Windows DPAPI-backed secure store only | No |
 | Fetched Starling account/transactions | Desktop memory and the review grid; only appended rows enter the budget | Only if the resulting budget is synced |
+| Enable Banking application ID and private key | Windows DPAPI-backed secure store only | No |
+| Enable Banking sessions and linked-account list | Windows DPAPI-backed secure store only | No |
+| Fetched Open Banking account/transactions | Desktop memory and the review grid; only appended rows enter the budget | Only if the resulting budget is synced |
 | People portal records | Browser storage on the owner’s device | No |
 | Feedback | Browser storage on the owner’s device | No |
 | Restore points | Device storage, encrypted | No |
@@ -256,6 +280,8 @@ end-to-end encrypted. This means a party with database/operator access could rea
 | Sync conflicts | Local queue capped at 25 records and two full snapshot pairs within 1.5 MB; cloud metadata until purged or the account is deleted |
 | Starling personal token | Until you forget it in FinanceHub or remove the app data; revoke it separately in Starling |
 | Fetched Starling data | Only the rows you append enter the budget and follow the budget retention rule; the fetched response is not stored separately |
+| Enable Banking application key and sessions | Until you forget the connection in FinanceHub or remove the app data; revoke consent separately in Enable Banking |
+| Fetched Open Banking data | Only the rows you append enter the budget and follow the budget retention rule; the fetched response is not stored separately; consent ends at the provider's expiry date |
 | Support bundle | Until the support request is resolved; delete downloads and mailbox copies afterwards |
 | Processor logs and backups | Per the provider’s documented retention, recorded in the processor register |
 
