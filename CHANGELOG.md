@@ -19,6 +19,7 @@ and the build time.
 - Import hints name the actual As-of date and point to Settings → Budget when rows fall outside it
 - Imports now accept rows dated up to today and move the As-of date forward when the added row is newer
 - Open Banking through Enable Banking: link any UK bank, fetch booked transactions into the review grid, with the application key kept in the Windows encrypted store
+- Move Enable Banking request signing into a tested module so the RS256 JWT path is covered by the suite
 
 ## [2026.11.16] — 16 November 2026
 

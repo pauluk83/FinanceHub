@@ -7,6 +7,7 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const { createSecureStore } = require('./secure-store.cjs');
+const { signEnableBankingJwt } = require('./enable-banking-jwt.cjs');
 const {
   buildBlockPlan,
   reconstructAsar,
@@ -335,12 +336,7 @@ function ebSaveSessions(sessions) {
 function ebJwt() {
   const { appId, privateKey } = ebCredentials();
   if (!appId || !privateKey) throw new Error('Save the Enable Banking application ID and private key first');
-  const issued = Math.floor(Date.now() / 1000);
-  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  const signingInput = `${encode({ typ: 'JWT', alg: 'RS256', kid: appId })}`
-    + `.${encode({ iss: 'enablebanking.com', aud: 'api.enablebanking.com', iat: issued, exp: issued + 3600 })}`;
-  const signature = crypto.sign('RSA-SHA256', Buffer.from(signingInput), privateKey).toString('base64url');
-  return `${signingInput}.${signature}`;
+  return signEnableBankingJwt(appId, privateKey);
 }
 
 async function ebRequest(pathname, init = {}) {

@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import {
   enableBankingAmountPence,
   enableBankingImportRows,
@@ -96,6 +98,21 @@ test('booked Enable Banking transactions become review rows and pending ones are
     ['2026-11-17', 'Expense', 2000, 'Daniel Champion'],
   ]);
   assert.equal(rows.every((row) => row.currency === 'GBP'), true);
+});
+
+test('the signed request JWT verifies with the application key', () => {
+  const require = createRequire(import.meta.url);
+  const { signEnableBankingJwt } = require('../electron/enable-banking-jwt.cjs') as {
+    signEnableBankingJwt: (appId: string, privateKey: string, nowSeconds?: number) => string;
+  };
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const appId = '11111111-1111-4111-8111-111111111111';
+  const token = signEnableBankingJwt(appId, privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(), 1_700_000_000);
+  const [header, payload, signature] = token.split('.');
+
+  assert.equal(crypto.verify('RSA-SHA256', Buffer.from(`${header}.${payload}`), publicKey, Buffer.from(signature, 'base64url')), true);
+  assert.deepEqual(JSON.parse(Buffer.from(header, 'base64url').toString()), { typ: 'JWT', alg: 'RS256', kid: appId });
+  assert.equal(JSON.parse(Buffer.from(payload, 'base64url').toString()).exp, 1_700_003_600);
 });
 
 test('the request JWT carries the Enable Banking issuer and a one-hour life', () => {
