@@ -1,7 +1,10 @@
-# Risk Acceptance Proposals — UNSIGNED
+# Risk Acceptance Register
 
-**Status:** PROPOSALS ONLY. No risk has been accepted. The owner has not signed either
-proposal. **C3 remains open** and the code-signing item in PR-0/PR-4 remains open.
+**Status:** **RA-1 and RA-2 signed by the owner on 2026-11-17.** Both entries record an
+accepted risk with conditions; each signature note says which evidence was filed and what
+is still outstanding. **C3 is accepted, not eliminated** — C1 processor evidence and an
+independent penetration test remain open. The code-signing gate is closed only because the
+owner accepted the unsigned distribution risk in RA-2.
 
 **Controller / proposed risk owner:** Zane Stanton.
 
@@ -76,9 +79,14 @@ This is a proposal rating, not an accepted one.
 5. Access to the Supabase project and service-role key is reviewed and limited.
 6. The position is reviewed at least every 12 months or on any trigger above.
 
-**Owner signature (not signed):** __________________________  **Date:** ____________
+**Owner signature:** Zane Stanton  **Date:** 2026-11-17
 
-**Review date:** ____________
+**Review date:** 2027-11-17
+
+**Signature note:** signed at the owner's direction before evidence items 1 (C1 processor
+evidence), 3 (Supabase project and service-role access review) and 5 (independent
+penetration test) were filed. Those items remain open under PR-1 and PR-3: the acceptance
+is recorded, the evidence is not claimed.
 
 ---
 
@@ -134,9 +142,17 @@ accepted one.
 7. A future code-signing certificate is treated as a change to this proposal, not as
    silently closing it.
 
-**Owner signature (not signed):** __________________________  **Date:** ____________
+**Owner signature:** Zane Stanton  **Date:** 2026-11-17
 
-**Review date:** ____________
+**Review date:** 2027-11-17
+
+**Signature note:** evidence items 1, 2 and 4 were filed before signature — the dated
+installer and `SHA256SUMS.txt` match (`FinanceHub-Setup-2026.11.16.exe`, SHA-256
+`39b56d97148d9b11a5b0734caadb6b21630cdd091358038017eec0a90206abc4`), the app's download link
+resolves to the versioned `v2026.11.16` release with no stable alias, and the
+unsigned-publisher warning is published on the application-changelog page. The owner also
+reports a successful delta update on a packaged app (2026-11-17). The release-asset scan
+for budget data or credentials (item 5) remains outstanding.
 
 ---
 
@@ -144,10 +160,12 @@ accepted one.
 
 | ID | Risk | Proposal | Provisional residual | Signature | Status |
 | --- | --- | --- | --- | --- | --- |
-| RA-1 | Cloud budget not end-to-end encrypted | Would accept if signed, with candidate controls | Medium–High | Missing | **Unsigned — C3 open** |
-| RA-2 | Unsigned installer/updater | Would accept if signed, with candidate controls | Medium–High | Missing | **Unsigned — code-signing gate open** |
+| RA-1 | Cloud budget not end-to-end encrypted | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — C3 accepted; C1 evidence and pen test open** |
+| RA-2 | Unsigned installer/updater | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — code-signing gate closed as accepted risk** |
 
-**C3 closure:** not met. C3 remains open until RA-1 is signed, dated and the evidence above
-is filed. Signing RA-2 closes only the code-signing gate; it does not close C3.
+**C3 status:** accepted risk. RA-1 is signed and dated, so the plaintext-at-rest model is
+permitted for this launch. The evidence items listed in RA-1 are still outstanding and are
+tracked under PR-1 and PR-3. RA-2 closes only the code-signing gate.
 
-**No acceptance may be inferred from this document, the plan, the notice or any checklist.**
+**No acceptance beyond the two signed entries above may be inferred from this document, the
+plan, the notice or any checklist.**
