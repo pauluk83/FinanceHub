@@ -43,6 +43,7 @@ import { legalRouteFromHash, type LegalDocId } from './legal';
 import { AuthLoading, EmailVerificationPage, LocalImportPrompt, LoginPage, ModeChooser, RecoveryPage } from './views/login';
 import { BlockedStatePage } from './views/recovery';
 import { HOSTED_WEB } from './runtime';
+import { clearHostedCache } from './store';
 import { DEMO_USER_ID, demoState } from './demo';
 import type { EncryptedVault, UnlockedVault } from './vault';
 import { readAppLock, writeAppLock } from './appLockStore';
@@ -939,11 +940,15 @@ export default function App() {
   }, [session?.user.id]);
 
   const handleSignOut = async () => {
+    const signedOutUserId = session?.user.id;
     try {
       await endSession();
     } catch {
       /* endSession clears the local session even when the network sign-out fails */
     }
+    // Hosted pages keep the budget in plaintext browser storage; drop the cached
+    // copy so signing out does not leave it readable. Unsynced edits stay put.
+    if (HOSTED_WEB && signedOutUserId) clearHostedCache(signedOutUserId);
     setSession(null);
     setRecovery(false);
     setStorageMode('cloud');

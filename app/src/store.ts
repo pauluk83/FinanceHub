@@ -139,6 +139,46 @@ function removeRaw(key: string) {
   requireBrowserStore().delete(key);
 }
 
+/**
+ * Which keys a hosted sign-out may remove. The outbox holds the only copy of edits
+ * that have not reached the server, so nothing is removed while it has an item.
+ */
+export function hostedKeysToClear(keys: string[], outboxRaw: string | null): string[] {
+  let pending = false;
+  if (outboxRaw) {
+    try {
+      const parsed = JSON.parse(outboxRaw) as unknown;
+      pending = Array.isArray(parsed) ? parsed.length > 0 : true;
+    } catch {
+      pending = true; // an unreadable outbox is treated as unsynced work
+    }
+  }
+  if (pending) return [];
+  return keys.filter((key) => key.startsWith('financehub.') && !key.startsWith('financehub.applock.'));
+}
+
+/**
+ * Remove this browser's cached budget after a hosted sign-out. The hosted build
+ * keeps the document in plaintext `localStorage`, so leaving it behind would make
+ * the signed-out budget readable to anyone using the same browser profile.
+ */
+export function clearHostedCache(userId: string): number {
+  if (!HOSTED_WEB || typeof window === 'undefined') return 0;
+  try {
+    const store = webStorage();
+    const keys: string[] = [];
+    for (let index = 0; index < store.length; index += 1) {
+      const key = store.key(index);
+      if (key) keys.push(key);
+    }
+    const doomed = hostedKeysToClear(keys, store.getItem(`financehub.sync.outbox.v1:${userId}`));
+    for (const key of doomed) store.removeItem(key);
+    return doomed.length;
+  } catch {
+    return 0;
+  }
+}
+
 function preserveDamaged(userId: string | undefined, raw: string) {
   try { writeRaw(damagedKey(userId), raw); } catch { /* the original remains untouched */ }
 }

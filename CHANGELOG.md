@@ -10,6 +10,7 @@ and the build time.
 ### Changed
 - Keep the sidebar buttons named for screen readers when the labels are hidden
 - Restore real budgets in the hosted web app
+- Clear the cached budget when signing out of the hosted web app
 
 ## [2026.11.16] — 16 November 2026
 

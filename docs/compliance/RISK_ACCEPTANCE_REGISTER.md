@@ -178,11 +178,13 @@ The data outlives sign-out until site data is cleared.
 | Supabase RLS scoped to `auth.uid()` | Policies applied; owner-attested two-account isolation test |
 | HTTPS transport | Live site serves over HTTPS |
 | Session ends on sign-out | Sign-out ends the Supabase session |
+| Cached budget removed on hosted sign-out | Implemented 2026-11-17; skipped while the sync outbox holds unsynced edits |
 | Notice discloses plaintext browser storage | Draft updated 2026-11-17 |
 | Trusted-device guidance | Draft notice text |
 
-**Not in place:** encryption of browser-stored budget data; automatic purge of stored
-budget on sign-out; anything beyond the exact Supabase CSP origin.
+**Not in place:** encryption of browser-stored budget data; a purge while unsynced edits
+remain in the outbox (those are kept rather than lost); anything beyond the exact Supabase
+CSP origin.
 
 **Residual if signed:** **Medium–High**, accepted by the owner.
 

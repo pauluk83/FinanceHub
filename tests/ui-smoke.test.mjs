@@ -321,3 +321,23 @@ test('the hosted build opens the real budget for a signed-in user', async () => 
   assert.match(app, /if \(HOSTED_WEB\) return 'cloud';/);
   assert.match(app, /onContinueLocally=\{HOSTED_WEB \? undefined/);
 });
+
+test('a hosted sign-out clears the cached budget only once it is synced', async () => {
+  const { hostedKeysToClear } = await server.ssrLoadModule('/src/store.ts');
+  const keys = [
+    'financehub.state.v1:abc',
+    'financehub.state.v1:abc.last-good.v1',
+    'financehub.sync.outbox.v1:abc',
+    'financehub.applock.v1',
+    'sb-project-auth-token',
+  ];
+
+  assert.deepEqual(hostedKeysToClear(keys, '[]'), [
+    'financehub.state.v1:abc',
+    'financehub.state.v1:abc.last-good.v1',
+    'financehub.sync.outbox.v1:abc',
+  ]);
+  // Pending edits are the only copy: keep everything rather than lose them.
+  assert.deepEqual(hostedKeysToClear(keys, '[{"state":{}}]'), []);
+  assert.deepEqual(hostedKeysToClear(keys, 'not json'), []);
+});

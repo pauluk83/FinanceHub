@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.17",
-  "buildId": "eb32d6dd39a2",
+  "buildId": "05c9e9cb3591",
   "builtAt": "2026-11-17",
   "releases": [
     {
@@ -16,7 +16,8 @@ export const APP_CHANGELOG: AppChangelog = {
           "title": "Changed",
           "items": [
             "Keep the sidebar buttons named for screen readers when the labels are hidden",
-            "Restore real budgets in the hosted web app"
+            "Restore real budgets in the hosted web app",
+            "Clear the cached budget when signing out of the hosted web app"
           ]
         }
       ]
