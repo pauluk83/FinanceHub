@@ -634,9 +634,11 @@ access token, which Starling permits for the token owner's own account.
   transactions cross IPC only after the main process has reduced the API response to the
   fields the review grid needs.
 - **Fetching:** accounts and `transactions-between` are called from the Electron main
-  process. The open period is the budget's `lockCutoff` to `asOfDate`; Starling's
-  non-paginated endpoint is limited to one year. Only `SETTLED` items are offered, so a
-  pending item cannot be imported twice. Transactions use the UK calendar date.
+  process. The window is the budget's `lockCutoff` to today (or to `asOfDate` when that
+  is later), so settled rows newer than the As-of date still reach the review grid;
+  adding one moves the As-of date forward, capped at today. Starling's non-paginated
+  endpoint is limited to one year. Only `SETTLED` items are offered, so a pending item
+  cannot be imported twice. Transactions use the UK calendar date.
 - **Posting:** rows enter the existing duplicate/out-of-window review grid and are appended
   only when the owner ticks them and presses **Add to log**. Nothing is auto-posted.
 - **Code:** `core/starling.ts` (normalisation and date-window rules), `electron/main.cjs`

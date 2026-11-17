@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.17",
-  "buildId": "5aac785a6603",
+  "buildId": "59dcd537d6a8",
   "builtAt": "2026-11-17",
   "releases": [
     {
@@ -23,7 +23,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Updated the Import guide for the Starling personal feed.",
             "Restored sign-in in Windows builds by bundling the public Supabase client configuration.",
             "Starling feed fetches settled transactions through today, so rows newer than the As-of date are visible in the review grid",
-            "Import hints name the actual As-of date and point to Settings → Budget when rows fall outside it"
+            "Import hints name the actual As-of date and point to Settings → Budget when rows fall outside it",
+            "Imports now accept rows dated up to today and move the As-of date forward when the added row is newer"
           ]
         }
       ]

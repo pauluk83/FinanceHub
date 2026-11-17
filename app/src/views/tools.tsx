@@ -10,7 +10,8 @@ import { LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
 import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { decodeBackupDataset } from '../backup';
 import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
-import { backupFileProblem, countCsvRows, csvFileProblem, csvRowProblem } from '../../../core/importLimits';
+import { backupFileProblem, countCsvRows, csvFileProblem, csvRowProblem, importOutOfWindow, importWindowEnd } from '../../../core/importLimits';
+import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { classifyAccount } from '../../../core/accounts';
 import { normaliseStarlingAccounts, starlingFetchWindow, starlingImportRows, type StarlingAccount } from '../../../core/starling';
 import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
@@ -187,6 +188,9 @@ export function ImportView({ ds, update, notify }: ViewProps) {
   const [bankBusy, setBankBusy] = useState(false);
   const [bankError, setBankError] = useState('');
 
+  // Imports run to today even when the As-of date has not caught up yet; adding a
+  // row dated after it moves the As-of date forward (never past today).
+  const importThrough = importWindowEnd(ds.settings.asOfDate, todayIso());
   const duplicateCount = staging.filter((r) => r.duplicateWith).length;
   const outsideCount = staging.filter((r) => r.outOfWindow).length;
   const ready = staging.filter((r) => r.add && !r.outOfWindow);
@@ -322,7 +326,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
         description: row.description,
         amountPence: row.amountPence,
         type: row.type,
-        outOfWindow: row.date < ds.settings.lockCutoff || row.date > ds.settings.asOfDate,
+        outOfWindow: importOutOfWindow(row.date, ds.settings.lockCutoff, ds.settings.asOfDate, todayIso()),
       }));
       stageCandidates(candidates, `Starling — ${selected.name}`);
       setError('');
@@ -380,7 +384,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
         description: cells[descIdx] || cells[descIdx + 1] || '',
         amountPence: Math.abs(amountPence),
         type,
-        outOfWindow: date < ds.settings.lockCutoff || date > ds.settings.asOfDate,
+        outOfWindow: importOutOfWindow(date, ds.settings.lockCutoff, ds.settings.asOfDate, todayIso()),
       });
     }
     stageCandidates(candidates, file.name);
@@ -394,6 +398,9 @@ export function ImportView({ ds, update, notify }: ViewProps) {
       setError('Choose a recognised bank account before importing.');
       return;
     }
+    const today = todayIso();
+    const newest = ready.map((r) => r.date).sort().slice(-1)[0] ?? '';
+    const movedTo = newest > ds.settings.asOfDate ? (newest > today ? today : newest) : '';
     update((d) => {
       let row = Math.max(0, ...d.transactions.map((t) => t.row));
       for (const r of ready) {
@@ -409,8 +416,9 @@ export function ImportView({ ds, update, notify }: ViewProps) {
           budgetTreatment: '',
         });
       }
+      advanceAsOfToLatestTransaction(d, today);
     });
-    notify(`${ready.length} transactions appended — nothing was auto-posted`);
+    notify(`${ready.length} transactions appended${movedTo ? ` — As-of date moved to ${dateUk(movedTo)}` : ''} — nothing was auto-posted`);
     setStaging([]);
     setFileName('');
   };
@@ -429,7 +437,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
           <input className="input" type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} />
           <span className="muted small">{fileName || 'Choose a bank CSV export'}</span>
           <div className="toolbar-spacer" />
-          <Badge tone="blue">Open period {dateUk(ds.settings.lockCutoff)} → {dateUk(ds.settings.asOfDate)}</Badge>
+          <Badge tone="blue">Open period {dateUk(ds.settings.lockCutoff)} → {dateUk(importThrough)}</Badge>
         </div>
         <div className="metric-list" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
           <div className="metric"><span>Source rows</span><strong>{staging.length}</strong></div>
@@ -456,8 +464,8 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             </div>
             <div className="toolbar" style={{ borderBottom: 0, borderTop: '1px solid var(--line)' }}>
               <span className="muted small">
-                Duplicates are skipped by default; tick one only if it is a genuine second payment. Out-of-window rows cannot be added.
-                {outsideCount > 0 ? ` ${outsideCount} row${outsideCount === 1 ? '' : 's'} fall outside ${dateUk(ds.settings.lockCutoff)} → ${dateUk(ds.settings.asOfDate)}; move the As-of date forward in Settings → Budget to import newer rows.` : ''}
+                Duplicates are skipped by default; tick one only if it is a genuine second payment. Out-of-window rows (before {dateUk(ds.settings.lockCutoff)} or after {dateUk(importThrough)}) cannot be added.
+                {outsideCount > 0 ? ` ${outsideCount} row${outsideCount === 1 ? '' : 's'} fall outside the open period; rows dated after the As-of date move it forward, and future-dated rows stay out of window.` : ''}
               </span>
               <div className="toolbar-spacer" />
               <button className="btn primary" disabled={ready.length === 0} onClick={commit}>Add {ready.length} to log</button>
@@ -553,7 +561,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
                 </button>
               </div>
               <div className="muted small">
-                Fetching covers {dateUk(ds.settings.lockCutoff)} through today, or through the As-of date when that is later, and imports into the account selected above. Rows dated after your As-of date ({dateUk(ds.settings.asOfDate)}) still appear, but move that date forward in Settings → Budget before they can be added. Only settled items are offered; pending and reversed items are excluded.
+                Fetching covers {dateUk(ds.settings.lockCutoff)} through today, or through the As-of date when that is later, and imports into the account selected above. Rows dated up to {dateUk(importThrough)} can be added; adding a row dated after the As-of date ({dateUk(ds.settings.asOfDate)}) moves that date forward, up to today. Only settled items are offered; pending and reversed items are excluded.
               </div>
             </>
           )}

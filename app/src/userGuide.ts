@@ -389,7 +389,7 @@ export const USER_GUIDE: GuideEntry[] = [
     notes: [
       'Imports never post into locked months and never silently overwrite existing rows.',
       'File size and row limits are shown before an import starts.',
-      'The Starling feed is Starling’s own personal API, not Open Banking. Its token stays in the Windows encrypted store; pending items are excluded and you can forget or revoke the token. Rows dated after the As-of date are shown but need the As-of date moved forward before they can be added.',
+      'The Starling feed is Starling’s own personal API, not Open Banking. Its token stays in the Windows encrypted store; pending items are excluded and you can forget or revoke the token. Rows dated up to today can be added even when the As-of date lags behind; adding one moves the As-of date forward, up to today.',
     ],
   },
   {

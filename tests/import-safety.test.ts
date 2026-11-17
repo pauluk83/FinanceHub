@@ -10,6 +10,8 @@ import {
   countCsvRows,
   csvFileProblem,
   csvRowProblem,
+  importOutOfWindow,
+  importWindowEnd,
 } from '../core/importLimits.ts';
 import { decodeBackupDataset, findUnsafeUrlField } from '../app/src/backup.ts';
 import { csvCell, toCsv } from '../app/src/format.ts';
@@ -55,6 +57,16 @@ test('CSV files are rejected by size and row count before parsing', () => {
 
   assert.equal(backupFileProblem(MAX_BACKUP_BYTES), null);
   assert.ok(backupFileProblem(MAX_BACKUP_BYTES + 1));
+});
+
+test('the import window reaches today even when the As-of date lags behind', () => {
+  assert.equal(importWindowEnd('2026-11-07', '2026-11-17'), '2026-11-17');
+  assert.equal(importWindowEnd('2026-11-30', '2026-11-17'), '2026-11-30');
+  // A row dated today is importable while As-of is still the 7th...
+  assert.equal(importOutOfWindow('2026-11-17', '2026-11-01', '2026-11-07', '2026-11-17'), false);
+  // ...but future-dated rows and rows before the lock cutoff are not.
+  assert.equal(importOutOfWindow('2026-11-18', '2026-11-01', '2026-11-07', '2026-11-17'), true);
+  assert.equal(importOutOfWindow('2026-10-31', '2026-11-01', '2026-11-07', '2026-11-17'), true);
 });
 
 test('row counting ignores the header and a trailing newline', () => {

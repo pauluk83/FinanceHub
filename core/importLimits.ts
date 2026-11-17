@@ -27,6 +27,20 @@ export function csvRowProblem(rows: number): string | null {
   return null;
 }
 
+/**
+ * The import window ends today, or the As-of date when that is later, so a row
+ * dated today can still be imported while the budget's As-of date catches up.
+ * Adding such a row advances the As-of date (never past today).
+ */
+export function importWindowEnd(asOfDate: string, today: string): string {
+  return asOfDate > today ? asOfDate : today;
+}
+
+/** Rows before the lock cutoff or after the import window stay out of window. */
+export function importOutOfWindow(date: string, lockCutoff: string, asOfDate: string, today: string): boolean {
+  return date < lockCutoff || date > importWindowEnd(asOfDate, today);
+}
+
 export function backupFileProblem(bytes: number): string | null {
   if (!Number.isFinite(bytes) || bytes < 0) return 'That backup could not be read.';
   if (bytes === 0) return 'That backup is empty.';
