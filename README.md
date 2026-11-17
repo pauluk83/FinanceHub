@@ -48,9 +48,10 @@ are end-to-end encrypted inside the synced document; the rest of the budget is n
 end-to-end encrypted, so treat the hosted deployment as private. See
 [`COMPLIANCE.md`](./COMPLIANCE.md) and the security findings in [`PLAN.md`](./PLAN.md).
 
-Sign-in requires Supabase environment variables (`VITE_SUPABASE_URL`,
-`VITE_SUPABASE_ANON_KEY`) in `.env`; nothing secret is committed. Without them the app
-still opens in local or demo mode.
+Sign-in uses the public Supabase client configuration in `app/publicSupabase.ts`; a
+local `.env` can override it with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Only
+the publishable/anon key belongs in the client; never put a service-role key there. The
+app still opens in local or demo mode without a Supabase account.
 
 ## Development
 

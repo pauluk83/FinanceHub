@@ -1,7 +1,8 @@
 import { createClient, type Session, type SupabaseClient, type User } from '@supabase/supabase-js';
+import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '../publicSupabase';
 
-const url = import.meta.env.VITE_SUPABASE_URL?.trim();
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+const url = import.meta.env.VITE_SUPABASE_URL?.trim() || PUBLIC_SUPABASE_URL;
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || PUBLIC_SUPABASE_ANON_KEY;
 
 /** Public auth endpoint values used by the account-security helpers. */
 export const authUrl = url;

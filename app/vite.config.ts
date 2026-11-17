@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { connectSources } from './csp.ts';
+import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from './publicSupabase.ts';
 
 const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -43,6 +44,9 @@ function productionCsp(command: string, env: Record<string, string>): Plugin {
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, projectRoot, '');
+  const supabaseUrl = env.VITE_SUPABASE_URL?.trim() || PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY?.trim() || PUBLIC_SUPABASE_ANON_KEY;
+  const buildEnv = { ...env, VITE_SUPABASE_URL: supabaseUrl, VITE_SUPABASE_ANON_KEY: supabaseAnonKey };
   const hosted = mode === 'hosted' || env.VITE_HOSTED_WEB === '1';
   const publicSeed = hosted || !hasPrivateWorkbook;
   const dataAliases = [
@@ -52,8 +56,8 @@ export default defineConfig(({ command, mode }) => {
       : []),
   ];
 
-  if (hosted && (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY)) {
-    console.warn('Hosted build: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not both set; the login screen will show the setup notice.');
+  if (hosted && (!supabaseUrl || !supabaseAnonKey)) {
+    console.warn('Hosted build: the public Supabase client configuration is missing; the login screen will show the setup notice.');
   }
 
   return {
@@ -68,7 +72,7 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: dataAliases,
     },
-    plugins: [react(), productionCsp(command, env)],
+    plugins: [react(), productionCsp(command, buildEnv)],
     build: {
       outDir: fileURLToPath(new URL(hosted ? '../dist-web' : '../dist', import.meta.url)),
       emptyOutDir: true,

@@ -14,6 +14,7 @@ and the build time.
 - Add dashboard bill and income countdowns
 - Added a desktop-only Starling personal feed that imports settled transactions into the existing review grid. It is not Open Banking, uses a personal access token stored in the Windows encrypted store, and never posts automatically.
 - Updated the Import guide for the Starling personal feed.
+- Restored sign-in in Windows builds by bundling the public Supabase client configuration.
 
 ## [2026.11.16] — 16 November 2026
 
