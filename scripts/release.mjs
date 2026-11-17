@@ -11,7 +11,7 @@
  * append notes. The generated build id stays a content hash, so two builds of the
  * same day are still distinguishable and live parity keeps comparing like with like.
  */
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,7 +26,30 @@ const CHANGELOG = join(ROOT, 'CHANGELOG.md');
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const PAGES_PROJECT = process.env.PAGES_PROJECT ?? 'financehub-uk';
 const HOSTED_ORIGIN = process.env.HOSTED_ORIGIN ?? `https://${PAGES_PROJECT}.pages.dev`;
-const canDeploy = Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID);
+
+let deployReady;
+/**
+ * Deploying needs either the token pair or a `wrangler login` session. The check
+ * runs once, only when a deploy is actually requested.
+ */
+function canDeploy() {
+  if (deployReady !== undefined) return deployReady;
+  if (process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID) {
+    deployReady = true;
+    return deployReady;
+  }
+  try {
+    const output = execFileSync(
+      process.execPath,
+      [join(ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js'), 'whoami'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    );
+    deployReady = !/not authenticated/i.test(output);
+  } catch {
+    deployReady = false;
+  }
+  return deployReady;
+}
 
 export function compareVersions(a, b) {
   const left = a.split('.').map(Number);
@@ -334,8 +357,8 @@ function requireNote(note) {
 /** Normal release: version from the release date, note added, artefacts rebuilt. */
 function release(note, deploy) {
   const text = requireNote(note);
-  if (deploy && !canDeploy) {
-    throw new Error('CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. Use --no-deploy to build without publishing, or set them for this command only.');
+  if (deploy && !canDeploy()) {
+    throw new Error('Not signed in to Cloudflare. Run `npx wrangler login` once, or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for this command only. Use --no-deploy to build without publishing.');
   }
   const pkg = JSON.parse(read('package.json'));
   const version = releaseVersion();
@@ -358,8 +381,8 @@ function release(note, deploy) {
 /** Explicit bump: only on the owner's request. */
 function bump(kind, note, deploy) {
   const text = requireNote(note);
-  if (deploy && !canDeploy) {
-    throw new Error('CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. Use --no-deploy to build without publishing, or set them for this command only.');
+  if (deploy && !canDeploy()) {
+    throw new Error('Not signed in to Cloudflare. Run `npx wrangler login` once, or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for this command only. Use --no-deploy to build without publishing.');
   }
   const pkg = JSON.parse(read('package.json'));
   const next = bumpVersion(pkg.version, kind);
