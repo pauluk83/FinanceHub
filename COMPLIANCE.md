@@ -31,7 +31,7 @@ to other people.
 - Cloud sync through Supabase; authentication through Supabase (email/password and
   Google OAuth).
 - Provider logins optionally stored client-side, encrypted with AES-256-GCM.
-- Hosted static web build on InfinityFree. Since the owner's 2026-11-17 decision it opens, edits and syncs a signed-in real budget in the browser, still requiring a confirmed email before sync. Browser storage is plaintext while the site is open, and that residual risk is recorded as RA-3 in `docs/compliance/RISK_ACCEPTANCE_REGISTER.md`.
+- Hosted static web build on Cloudflare Pages (`https://financehub-uk.pages.dev/`), which replaced the suspended InfinityFree account on 2026-11-17. Since the owner's 2026-11-17 decision it opens, edits and syncs a signed-in real budget in the browser, still requiring a confirmed email before sync. Browser storage is plaintext while the site is open, and that residual risk is recorded as RA-3 in `docs/compliance/RISK_ACCEPTANCE_REGISTER.md`.
 - Owner and data controller: Zane Stanton (individual, England).
 
 ## Applicability matrix
@@ -49,7 +49,7 @@ to other people.
 | FCA authorisation | No own authorisation | FinanceHub does not provide account-information services itself; the provider is authorised | Use only through the AISP's restricted mode for the owner's own accounts; make no FCA-approved or bank-level-security claim. Public distribution needs counsel sign-off |
 | FinCEN MSB / state money transmitter licences | No | No money transmission | Reassess if account funding or payments are added |
 | KYC / AML | No | No customer funds and no transmission | Reassess with payments; do not add account funding without a compliance programme |
-| MFA | Passkeys only (hosted web app) | Supabase supports passkeys | TOTP setup was removed from Settings; Supabase passkeys are enabled with RP ID `financehub.freedev.app` and the passkey controls are built. The packaged Electron window loads `file://` and cannot use WebAuthn, and a real passkey ceremony is still untested |
+| MFA | Passkeys only (hosted web app) | Supabase supports passkeys | TOTP setup was removed from Settings; Supabase passkeys are enabled with RP ID `financehub-uk.pages.dev` (re-pointed when the host moved; earlier passkeys must be re-enrolled) and the passkey controls are built. The packaged Electron window loads `file://` and cannot use WebAuthn, and a real passkey ceremony is still untested |
 | Biometric login | Not implemented | Web build; desktop OS keychain is possible | Roadmap |
 | Zero Trust | Partial | HTTPS, row-level security, anon key only, client-side E2EE vault | Keep the service-role key server-side only (already the case) |
 | App store declarations | Only on store release | Google Play Financial Features Declaration; Apple organisation account for some finance categories | Prepare at submission |

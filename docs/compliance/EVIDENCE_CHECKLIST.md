@@ -15,12 +15,12 @@ budget data or identity documents.
 
 ## Processors and transfers
 
-- [~] Partial — provider facts gathered 17 Nov 2026. Supabase region `eu-west-1`, DPA v1/SCCs/UK Addendum/TIA, subprocessor list 12 Oct 2026, contacts and no Free-plan backups recorded. GitHub DPA recorded. Google Controller-Controller Terms recorded. InfinityFree and consumer Gmail have no DPA; C1 remains open.
+- [~] Partial — provider facts gathered 17 Nov 2026. Supabase region `eu-west-1`, DPA v1/SCCs/UK Addendum/TIA, subprocessor list 12 Oct 2026, contacts and no Free-plan backups recorded. GitHub DPA recorded. Google Controller-Controller Terms recorded. Cloudflare's self-serve DPA is not yet accepted and filed, consumer Gmail has no DPA; C1 remains open.
 - [x] Supabase DPA is incorporated into the Terms (v1, 1 Aug 2026) and no separate signature is required; TIA available; security contact recorded. **Free plan has no automatic backups.**
-- [~] Partial — InfinityFree terms last revised 2024-10-25; no DPA, no transfer mechanism and a stale 2018 subprocessor list. Hosting IP geolocated to Gosforth, England.
+- [~] Partial — Cloudflare Pages replaced InfinityFree on 17 Nov 2026. Cloudflare publishes a self-serve DPA, a subprocessor list and SCCs; the DPA has not been accepted in the dashboard, and Pages log retention and the account's processing region are not yet recorded.
 - [~] Partial — Google Controller-Controller Terms and UK Controller SCCs recorded; Google Sign-In is not a customer-DPA service. OAuth app is unverified with a 1/100 user cap.
-- [~] Partial — Supabase, GitHub and Google have recorded transfer bases. InfinityFree and consumer Gmail have no transfer mechanism.
-- [~] Partial — Supabase Free: no backups and 1-day logs (Pro: 7 days); GitHub/Google/InfinityFree publish no fixed processor retention window for this use.
+- [~] Partial — Supabase, GitHub and Google have recorded transfer bases. Cloudflare's SCCs sit in its DPA, which is not yet accepted. Consumer Gmail has no transfer mechanism.
+- [~] Partial — Supabase Free: no backups and 1-day logs (Pro: 7 days); GitHub/Google/Cloudflare publish no fixed processor retention window for this use.
 
 ## Security controls
 
@@ -28,7 +28,7 @@ budget data or identity documents.
 - [~] Partial — client email-verification gate implemented; Supabase Confirm email is currently enabled, but custom SMTP is disabled and the default service is non-production (2 messages/hour). Live signup/resend test remains open.
 - [ ] Service-role key never present in client code or public assets.
 - [x] TOTP setup removed from Settings; passkeys are the in-app second-factor option. Existing identity-provider factors are outside FinanceHub's UI.
-- [x] Passkey/WebAuthn settings recorded 13 November 2026: display name `FinanceHub`; RP ID `financehub.freedev.app`; origin `https://financehub.freedev.app`. In-app controls shipped for the hosted browser app; a real enrolment/sign-in ceremony remains untested.
+- [~] Partial — passkey settings were recorded 13 November 2026 against the old host, then re-pointed to RP ID `financehub-uk.pages.dev` and origin `https://financehub-uk.pages.dev` on 17 November 2026. Existing passkeys cannot be used on the new origin, so they need re-enrolment; a real enrolment/sign-in ceremony remains untested.
 - [x] Account-deletion SQL applied 13 November 2026; `SECURITY DEFINER`, owned by `postgres`, `anon` execute denied and `authenticated` allowed.
 - [~] Partial — owner attests 16 Nov 2026 that account deletion and data-export drills completed; no dated build artifact, so this is not closed. Live passkey, email verification and two-device conflict tests remain open.
 - [x] Pre-rotation conflict history purged and old backups removed (owner confirmed 13 November 2026).

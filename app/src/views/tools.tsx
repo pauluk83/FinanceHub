@@ -6,7 +6,7 @@ import { clearState } from '../store';
 import { PeopleAccessSection } from './peoplePortal';
 import { MenuLayoutSection } from './menuLayout';
 import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
-import { LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
+import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
 import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { decodeBackupDataset } from '../backup';
 import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
@@ -791,7 +791,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
           {openBankingBridge && !ebStatus.hasCredentials && (
             <>
               <div className="notice info">
-                Register a free production application at Enable Banking, add <strong>https://financehub.freedev.app/bank-callback.html</strong> as a redirect URL, then paste its application ID and the generated private key here. Restricted production only returns accounts you link yourself.
+                Register a free production application at Enable Banking, add <strong>{FINANCEHUB_URL}bank-callback.html</strong> as a redirect URL, then paste its application ID and the generated private key here. Restricted production only returns accounts you link yourself.
               </div>
               <div className="form-grid">
                 <Field label="Enable Banking application ID" hint="The UUID shown next to the application in the Enable Banking control panel.">

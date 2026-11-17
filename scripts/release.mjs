@@ -24,9 +24,9 @@ const SITE = join(ROOT, 'dist-web');
 const PACKAGE = join(ROOT, 'package.json');
 const CHANGELOG = join(ROOT, 'CHANGELOG.md');
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
-const HOST = process.env.FTP_HOST ?? 'ftpupload.net';
-const USER = process.env.FTP_USER ?? 'if0_41682313';
-const FTP_ROOT = process.env.FTP_ROOT ?? '/financehub.freedev.app/htdocs';
+const PAGES_PROJECT = process.env.PAGES_PROJECT ?? 'financehub-uk';
+const HOSTED_ORIGIN = process.env.HOSTED_ORIGIN ?? `https://${PAGES_PROJECT}.pages.dev`;
+const canDeploy = Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID);
 
 export function compareVersions(a, b) {
   const left = a.split('.').map(Number);
@@ -129,12 +129,13 @@ export function syncVersionConstant(version, root = ROOT) {
   return next !== source;
 }
 
-function ftpRead(remotePath) {
-  if (!process.env.FTP_PASSWORD) throw new Error('FTP_PASSWORD is not set');
-  return execSync(
-    `curl -sS --user ${JSON.stringify(`${USER}:${process.env.FTP_PASSWORD}`)} "ftp://${HOST}${FTP_ROOT}${remotePath}"`,
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-  );
+async function httpsRead(pathname) {
+  const response = await fetch(`${HOSTED_ORIGIN}${pathname}?cb=${Date.now()}`, {
+    cache: 'no-store',
+    headers: { 'cache-control': 'no-cache' },
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${HOSTED_ORIGIN}${pathname}`);
+  return response.text();
 }
 
 async function localChecks({ requireUpdateAssets = false } = {}) {
@@ -287,12 +288,8 @@ async function localChecks({ requireUpdateAssets = false } = {}) {
 
   if (!html) return failures;
 
-  if (!process.env.FTP_PASSWORD) {
-    console.log('SKIP  live parity — set FTP_PASSWORD to compare the deployed site');
-    return failures;
-  }
   try {
-    const remoteHtml = ftpRead('/index.html');
+    const remoteHtml = await httpsRead('/index.html');
     const localBundle = (html.match(/assets\/index-[A-Za-z0-9_-]+\.js/) || [''])[0];
     const remoteBundle = (remoteHtml.match(/assets\/index-[A-Za-z0-9_-]+\.js/) || [''])[0];
     if (!remoteBundle || remoteBundle !== localBundle) {
@@ -314,8 +311,8 @@ function buildAndDeploy(deploy) {
   console.log('building hosted web bundle…');
   run('npm run build:web:hosted');
   if (deploy) {
-    console.log('deploying…');
-    run('node scripts/deploy-hosted.mjs');
+    console.log('deploying to Cloudflare Pages…');
+    run('node scripts/deploy-pages.mjs');
   } else {
     console.log('skip deploy (--no-deploy)');
   }
@@ -337,8 +334,8 @@ function requireNote(note) {
 /** Normal release: version from the release date, note added, artefacts rebuilt. */
 function release(note, deploy) {
   const text = requireNote(note);
-  if (deploy && !process.env.FTP_PASSWORD) {
-    throw new Error('FTP_PASSWORD is not set. Use --no-deploy to build without publishing, or set it for this command only.');
+  if (deploy && !canDeploy) {
+    throw new Error('CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. Use --no-deploy to build without publishing, or set them for this command only.');
   }
   const pkg = JSON.parse(read('package.json'));
   const version = releaseVersion();
@@ -361,8 +358,8 @@ function release(note, deploy) {
 /** Explicit bump: only on the owner's request. */
 function bump(kind, note, deploy) {
   const text = requireNote(note);
-  if (deploy && !process.env.FTP_PASSWORD) {
-    throw new Error('FTP_PASSWORD is not set. Use --no-deploy to build without publishing, or set it for this command only.');
+  if (deploy && !canDeploy) {
+    throw new Error('CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. Use --no-deploy to build without publishing, or set them for this command only.');
   }
   const pkg = JSON.parse(read('package.json'));
   const next = bumpVersion(pkg.version, kind);

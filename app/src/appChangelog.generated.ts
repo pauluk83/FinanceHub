@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.17",
-  "buildId": "1e8ab7ce687a",
+  "buildId": "8d87c3c46516",
   "builtAt": "2026-11-17",
   "releases": [
     {
@@ -27,7 +27,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Imports now accept rows dated up to today and move the As-of date forward when the added row is newer",
             "Open Banking through Enable Banking: link any UK bank, fetch booked transactions into the review grid, with the application key kept in the Windows encrypted store",
             "Move Enable Banking request signing into a tested module so the RS256 JWT path is covered by the suite",
-            "Show the Starling and Enable Banking feeds only in the Windows app; the hosted web build now offers CSV import alone"
+            "Show the Starling and Enable Banking feeds only in the Windows app; the hosted web build now offers CSV import alone",
+            "Move the hosted build to Cloudflare Pages after InfinityFree suspended the account, with HTTPS live checks and Pages header rules"
           ]
         }
       ]

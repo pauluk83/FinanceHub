@@ -5,7 +5,7 @@ this order. They are not performed by the app build.
 
 ## 1. Purge the pre-rotation conflict history — COMPLETED 13 NOVEMBER 2026
 
-1. Sign in as the owner at https://financehub.freedev.app/.
+1. Sign in as the owner at https://financehub-uk.pages.dev/.
 2. Open **Settings → Sync conflicts**.
 3. Select **Purge conflict history** and confirm.
 4. Check the page reports no conflicts.
@@ -56,10 +56,12 @@ Passkey support is a Supabase beta feature. Enabling it configures the backend; 
 build does not yet show passkey enrolment or sign-in controls, so users will not see a
 passkey option until that UI is added.
 
-**Configured 13 November 2026.** Passkey authentication is on with display name
-`FinanceHub`, RP ID `financehub.freedev.app` and origin `https://financehub.freedev.app`.
-The page was reloaded after saving to confirm the values persisted. In-app passkey
-controls are now delivered in Account security and on the hosted login page. A real
+**Configured 13 November 2026**, then re-pointed on 17 November 2026 when the hosted
+site moved to Cloudflare Pages. Passkey authentication is on with display name
+`FinanceHub`, RP ID `financehub-uk.pages.dev` and origin `https://financehub-uk.pages.dev`.
+**Existing passkeys were registered against `financehub.freedev.app` and cannot be used
+on the new origin; delete them in the authenticator and enrol again.** In-app passkey
+controls are delivered in Account security and on the hosted login page. A real
 enrolment and sign-in has not been run because it needs a supported browser and an
 actual authenticator.
 
@@ -67,16 +69,16 @@ actual authenticator.
 2. Turn on **Enable Passkey authentication**.
 3. Set the relying party values:
    - **Relying Party Display Name:** `FinanceHub`
-   - **Relying Party ID:** `financehub.freedev.app` (bare host; no scheme, port or path)
-   - **Relying Party Origins:** `https://financehub.freedev.app`
+   - **Relying Party ID:** `financehub-uk.pages.dev` (bare host; no scheme, port or path)
+   - **Relying Party Origins:** `https://financehub-uk.pages.dev`
    - For local development only, add the Vite/localhost origin shown in your Supabase
      project settings if you test passkeys there.
 4. Save. Keep the RP ID stable: changing it makes every existing passkey unusable.
-5. Confirm the project's Site URL and redirect URLs include
-   `https://financehub.freedev.app/`. Confirmed 13 November 2026: the Site URL is
-   `https://financehub.freedev.app/` and the redirect list includes
-   `https://financehub.freedev.app/`, `https://financehub.freedev.app/**`,
-   `http://localhost:5173/**` and the desktop callback.
+5. Set the project's Site URL to `https://financehub-uk.pages.dev/` and add
+   `https://financehub-uk.pages.dev/`, `https://financehub-uk.pages.dev/**`,
+   `https://financehub-uk.pages.dev/bank-callback.html`, `http://localhost:5173/**` and
+   the desktop callback to the redirect allow-list. Remove the `financehub.freedev.app`
+   entries once the old host is gone; the account there is suspended.
 6. Recorded in `docs/compliance/EVIDENCE_CHECKLIST.md`. Do not enable passkeys as a
    required factor until enrolment and sign-in have been tested and account recovery is confirmed.
 
@@ -90,12 +92,14 @@ actual authenticator.
    into the Terms and covers the EU SCCs and UK Addendum. Download the TIA from the
    organisation's Legal Documents page and file it privately with the DPA reference.
 5. Transfers: Supabase (UK Addendum/SCCs), GitHub (UK Addendum/DPF) and Google
-   (Controller-Controller Terms/UK Controller SCCs) are recorded. **InfinityFree and
-   consumer Gmail have no transfer mechanism**; move them or record a signed risk
-   acceptance with a transfer assessment.
-6. InfinityFree: it provides no DPA. Obtain written processor terms or move the static site
-   to a provider that offers a DPA. If it stays, revalidate iFastNet's 2018 third-party
-   processor list and record the hosting location.
+   (Controller-Controller Terms/UK Controller SCCs) are recorded. **Consumer Gmail has no
+   transfer mechanism**; move it or record a signed risk acceptance with a transfer
+   assessment. Cloudflare's transfer position is recorded with its DPA.
+6. Cloudflare Pages replaced InfinityFree on 17 November 2026. Accept the self-serve
+   Cloudflare DPA in the dashboard (Account → DPA), record the account jurisdiction and
+   the access-log retention setting, and revalidate Cloudflare's published subprocessor
+   list. InfinityFree is no longer used and its entry can be retired from the processor
+   register once the old account is closed.
 7. Supabase backups: the Free plan has **no automatic database backups** and only 1-day
    logs. Upgrade to Pro (7-day daily backups and 7-day logs) or schedule regular manual
    exports to an off-site location, and record the decision.
@@ -121,7 +125,8 @@ still needs the provider contract, KYB and the G1–G5 gate.
 1. Create a free account at https://enablebanking.com and open the Control Panel.
 2. **API applications → new application**, environment **Production**, keep “generate the
    private key in the browser”, and add the redirect URL
-   `https://financehub.freedev.app/bank-callback.html` exactly. Copy the application ID and
+   `https://financehub-uk.pages.dev/bank-callback.html` exactly. Update the redirect URL in
+   the existing application if it still names the old host. Copy the application ID and
    keep the downloaded `<application-id>.pem` private — never in the repo, chat or a screenshot.
 3. Activate the application with **Activate by linking accounts** and complete the bank's
    consent for each account you want. Only linked accounts are returned by the API.

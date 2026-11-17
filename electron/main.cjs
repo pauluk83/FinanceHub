@@ -45,7 +45,7 @@ const EB_CALLBACK_PATH = '/enablebanking/callback';
 const EB_CALLBACK_LOCAL = `http://127.0.0.1:${EB_CALLBACK_PORT}${EB_CALLBACK_PATH}`;
 // Enable Banking requires HTTPS production redirects, so the hosted bounce page
 // forwards the consent result to this loopback listener.
-const EB_REDIRECT_URL = 'https://financehub.freedev.app/bank-callback.html';
+const EB_REDIRECT_URL = 'https://financehub-uk.pages.dev/bank-callback.html';
 const UPDATE_MANIFEST_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/update-manifest.json';
 const UPDATE_ARCHIVE_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/FinanceHub-app.asar';
 const SERVE_ONLY = process.argv.includes('--serve');

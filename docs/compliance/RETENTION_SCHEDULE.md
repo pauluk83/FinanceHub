@@ -20,7 +20,7 @@ limits below.
 | Plain safety copy before restore | User's downloads | User-controlled | User deletes the file |
 | Support bundle | User's downloads / support mailbox | Only as long as needed for the request | Delete after resolution |
 | App-lock and device settings | Device storage | Until reset or app data removal | Settings / OS |
-| Hosting and authentication logs | InfinityFree / Supabase | Processor-defined | Processor retention controls |
+| Hosting and authentication logs | Cloudflare Pages / Supabase | Processor-defined | Processor retention controls |
 | Processor backups | Supabase / hosting | Processor-defined; confirm in DPA | Processor deletion process |
 
 ## Rules

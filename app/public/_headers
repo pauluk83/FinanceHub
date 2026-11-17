@@ -1,0 +1,11 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/bank-callback.html
+  Cache-Control: no-cache, must-revalidate

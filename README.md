@@ -7,7 +7,7 @@ month-end figures in one place, with the same calculation core behind the deskto
 the hosted build.
 
 **Download the Windows app:** [latest installer](https://github.com/pauluk83/FinanceHub/releases/latest)
-· [all releases](https://github.com/pauluk83/FinanceHub/releases) · [hosted app](https://financehub.freedev.app/)
+· [all releases](https://github.com/pauluk83/FinanceHub/releases) · [hosted app](https://financehub-uk.pages.dev/)
 
 The installer is unsigned, so Windows may show an unknown-publisher warning. Each
 release also attaches `SHA256SUMS.txt` for verification.
@@ -93,7 +93,7 @@ and the desktop app read the same core, and both report the version from `packag
 A release is one command, then one tag:
 
 ```bash
-FTP_PASSWORD=… npm run release -- "Short description of the change"
+CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npm run release -- "Short description of the change"
 git add -A && git commit -m "…"
 git tag v2026.11.9
 git push origin main v2026.11.9
@@ -102,7 +102,7 @@ git push origin main v2026.11.9
 `npm run release` takes its version from the release date (`YYYY.M.D`), appends the note
 to `CHANGELOG.md`, regenerates the in-app changelog, rebuilds the Windows installer and
 the hosted bundle, deploys the website and checks live parity. Later releases on the same
-day append to the same section. Use `--no-deploy` when FTP credentials are unavailable.
+day append to the same section. Use `--no-deploy` when the Cloudflare credentials are unavailable.
 
 Pushing a `v*` tag runs [`.github/workflows/release.yml`](./.github/workflows/release.yml),
 which builds the installer on `windows-latest` and attaches two assets to the GitHub

@@ -29,7 +29,7 @@ Data flows:
 4. Encrypted backups and restore points are created locally. Automatic daily restore
    points use a random key held in the device secure store; manual exports use the
    user's passphrase.
-5. Google OAuth and Supabase process authentication data. InfinityFree serves the static
+5. Google OAuth and Supabase process authentication data. Cloudflare Pages serves the static
    web assets. There is no analytics, advertising or third-party crash reporter.
 
 ## 2. Necessity and proportionality
@@ -104,7 +104,7 @@ must not start from this DPIA.
 
 The assessment covers the data flows in `DATA_MAP.md`: local Windows storage, the current
 hosted-web `localStorage` flow (to be removed for real budgets at launch), Supabase
-Auth/Postgres/Realtime, Google OAuth, InfinityFree hosting, GitHub Releases, backups,
+Auth/Postgres/Realtime, Google OAuth, Cloudflare Pages hosting, GitHub Releases, backups,
 restore points, the people portal, feedback and support bundles.
 
 ## A.2 Screening and conclusion
@@ -205,9 +205,9 @@ Public production is conditional on all of the following evidence:
 1. **C1 — Data map validated:** Supabase region, sub-processors, email provider, hosting
    logs and processor backup windows are recorded in `PROCESSOR_REGISTER.md`; every “to
    confirm” item is closed and the register is signed. Evidence was gathered on 17 November
-   2026, but InfinityFree and consumer Gmail have no DPA, the Supabase Free plan has no
-   automatic backups and uses only the non-production default SMTP, and the register is not
-   signed. C1 remains open.
+   2026, but Cloudflare's self-serve DPA has not been accepted and filed, consumer Gmail has
+   no DPA, the Supabase Free plan has no automatic backups and uses only the non-production
+   default SMTP, and the register is not signed. C1 remains open.
 2. **C2 — Hosted-web storage (superseded 2026-11-17):** the demo-only restriction was
    withdrawn by the owner, so the hosted build now loads and syncs a real budget for a
    signed-in, confirmed account. Browser storage is plaintext, which is accepted in RA-3
@@ -316,7 +316,7 @@ control panel. The application ID and RSA private key are stored in Electron `sa
 (Windows DPAPI) under `bank.enablebanking.app-id` / `bank.enablebanking.private-key`,
 outside the budget, backups and cloud sync. Each API request carries a short-lived RS256
 JWT signed in the main process. Linking opens the bank's own consent and SCA flow in the
-browser; the HTTPS bounce page at `financehub.freedev.app/bank-callback.html` forwards only
+browser; the HTTPS bounce page at `financehub-uk.pages.dev/bank-callback.html` forwards only
 `code`/`state` to `127.0.0.1:53684`, where the main process exchanges the code for a
 session and stores the session list in DPAPI. The renderer receives only reduced account
 and transaction fields. Only rows the owner ticks in the review grid enter the budget; the

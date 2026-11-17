@@ -162,7 +162,7 @@ for budget data or credentials (item 5) remains outstanding.
 
 **Decision:** the owner withdrew the demo-only hosted model on 2026-11-17, so a signed-in
 account with a confirmed email opens, edits and syncs its real budget at
-`https://financehub.freedev.app/`. The hosted build holds the budget, session, restore
+`https://financehub-uk.pages.dev/` (the site moved to Cloudflare Pages on 2026-11-17). The hosted build holds the budget, session, restore
 points and sync metadata in unencrypted browser `localStorage`.
 
 **Risk being considered:** anyone who can use that browser profile, or a device where the

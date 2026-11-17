@@ -20,25 +20,25 @@
 One command does the whole release, and it is the only supported way to ship:
 
 ```bash
-FTP_PASSWORD=… npm run release -- "Short description of the change"
+CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npm run release -- "Short description of the change"
 ```
 
 The version **is the release date** (`YYYY.M.D`, e.g. `2026.11.8`). The release command
 sets `package.json` and `app/src/version.ts` from the date, so the first release of a
 day moves the version forward and later releases that day add notes to the same section.
 It regenerates the application changelog, rebuilds the **Windows installer**
-(`release/FinanceHub-Setup-<version>.exe`), rebuilds the **hosted web bundle**, deploys
-the website, and verifies the live bundle matches the local build. The installer is
-attached by the GitHub `Release` workflow when the release commit is tagged; it is no
-longer uploaded to the web host. Without credentials, use `--no-deploy` so the artefacts
-are still built and reported.
+(`release/FinanceHub-Setup-<version>.exe`), rebuilds the **hosted web bundle**, publishes
+it to **Cloudflare Pages**, and verifies the live bundle matches the local build. The
+installer is attached by the GitHub `Release` workflow when the release commit is tagged;
+it is never uploaded to the web host. Without the Cloudflare token, use `--no-deploy` so
+the artefacts are still built and reported.
 
 Build info stays a content hash plus the build date, so two builds of the same day are
 still distinguishable. For a deliberate milestone (a schema change, or a release you
 want to signal), run:
 
 ```bash
-FTP_PASSWORD=… npm run release:bump -- minor "Short description"
+CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npm run release:bump -- minor "Short description"
 ```
 
 Rules that follow from this:
@@ -59,16 +59,22 @@ Rules that follow from this:
 
 ## Hosting constraints
 
-- The Windows installer is **not** hosted on InfinityFree. It is a GitHub Release asset on
+- The Windows installer is **not** hosted on the web host. It is a GitHub Release asset on
   `pauluk83/FinanceHub`: one dated `FinanceHub-Setup-<version>.exe` and
   `SHA256SUMS.txt`. Pushing a `v<version>` tag runs `.github/workflows/release.yml`,
   which builds and uploads them. The app links directly to
   `/releases/download/v<version>/FinanceHub-Setup-<version>.exe`; do not add a stable
   alias asset or point the link at a hosting path.
-- InfinityFree still deletes any non-HTML file at or above **10 MB** and caps JS/HTML at
-  1 MB. `deploy:web` refuses oversized files, so keep the installer out of `dist-web/`.
-- The FTP password is supplied only as `FTP_PASSWORD` for one command. Never write it to
-  the repository, a build, a log, `.env` or `README.md`.
+- The hosted build is a static site on **Cloudflare Pages**, project `financehub-uk`, at
+  `https://financehub-uk.pages.dev/`. `npm run deploy:web` uploads `dist-web/` with
+  Wrangler; the project is created on first deploy. Pages serves `_headers` from
+  `app/public/_headers` (security and no-cache rules that used to live in `.htaccess`)
+  and falls back to `index.html` for unknown paths when no `404.html` exists. Pages caps
+  each asset at 25 MiB and a deployment at 20,000 files, so the installer must stay out
+  of `dist-web/`.
+- Cloudflare credentials are supplied only as `CLOUDFLARE_API_TOKEN` (Account → Cloudflare
+  Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID` for one command. Never write them to the
+  repository, a build, a log, `.env` or `README.md`.
 - This repository is **public**. Never commit `data/workbook.json`, `data/*.db`,
   screenshots of real figures, `analysis/`, `reports/`, `.env` or any token. Builds without
   the private workbook use `data/web-seed.json` (blank) so CI and contributors can build.
@@ -78,18 +84,18 @@ Rules that follow from this:
 
 The owner wants every completed release build published, not left only on this machine:
 
-1. Build with `npm run release -- "..."`; use `FTP_PASSWORD` for the deploy or `--no-deploy` when it is unavailable.
+1. Build with `npm run release -- "..."`; set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for the deploy, or use `--no-deploy` when they are unavailable.
 2. Commit the release output.
 3. Push `main` and the matching `v<version>` tag, then wait for the `Release` workflow to attach the installer.
 4. Deploy the hosted bundle and verify the live page after every build: HTML/JS/CSS hashes, version and build id, and the installer link.
-5. If `FTP_PASSWORD` is unavailable, use the signed-in InfinityFree File Manager. Its zip extractor skips nested `assets`, so upload the new JS/CSS directly into `assets` as well as the root files.
+5. If the Cloudflare token is unavailable, run `npm run deploy:web` from a machine where the owner has authenticated Wrangler (`npx wrangler login`), or use the Cloudflare dashboard's Pages **Create deployment** upload of `dist-web/`.
 
 ## Verification
 
 - `npm test` — the full suite, including changelog/version coherence.
 - `npx tsc -p app/tsconfig.json --noEmit` — typecheck.
-- `npm run release:check` — release coherence plus, with `FTP_PASSWORD`, live parity.
-- After deploying, load `https://financehub.freedev.app/` and the `#app-changelog` page
+- `npm run release:check` — release coherence plus live parity against `https://financehub-uk.pages.dev/` (set `HOSTED_ORIGIN` when a custom domain is attached).
+- After deploying, load `https://financehub-uk.pages.dev/` and the `#app-changelog` page
   and confirm the version and build id match the local build and the installer link opens
   the latest GitHub release.
 - After pushing a `v<version>` tag, wait for the `Release` workflow and verify all three

@@ -22,10 +22,10 @@ This map records what personal data FinanceHub processes, where it goes, who can
 it, how long it is kept and which processor or transfer applies. It covers:
 
 - the packaged Windows app (`electron/` plus the React renderer in `app/`);
-- the hosted static web build at `https://financehub.freedev.app/`;
+- the hosted static web build at `https://financehub-uk.pages.dev/`;
 - Supabase Auth, Postgres, Row Level Security and Realtime;
 - Google OAuth when the user chooses it;
-- InfinityFree static hosting;
+- Cloudflare Pages static hosting;
 - GitHub Releases for installer and update downloads;
 - local exports, restore points, the people portal and feedback;
 - the optional Windows-only Starling personal feed, which uses a Starling personal access
@@ -51,7 +51,7 @@ to other people or adding payments requires a new data map, DPIA and provider co
 | Feedback authors | Data subjects | A person who sends feedback through the app or portal. |
 | Supabase | Processor | Auth, Postgres, RLS, Realtime; DPA and region to confirm. |
 | Google | OAuth identity provider; controller/processor role to confirm | Only if Google sign-in is chosen; terms to confirm. |
-| InfinityFree | Processor / hosting provider | Serves static assets and may keep access logs; DPA position to confirm. |
+| Cloudflare (Pages) | Processor / hosting provider | Serves static assets and may keep access logs; self-serve DPA to accept and record. |
 | GitHub / Microsoft | Infrastructure recipient | Serves release assets and update manifests; receives network metadata, not budget data. |
 | Email delivery provider used by Supabase | Processor | Provider and terms to confirm for verification and password-reset email. |
 | Privacy/support mailbox provider | Processor (Gmail/Google) | Mailbox `financehub+pauluk83@gmail.com` adopted; terms/retention to confirm. |
@@ -89,7 +89,7 @@ to other people or adding payments requires a new data map, DPIA and provider co
 | D11 | Backups and restore points | Encrypted backup envelope; optional plain JSON export; restore-point metadata; auto-backup key | Yes; full financial record | App, user | Recovery and portability | Contract | Device storage; user-chosen export location | None by the app; user controls any sharing | Seven restore points; exports until user deletes; support copies only as needed |
 | D12 | Sync metadata | Device ID, revision, cursor, outbox operation, conflict IDs, changed paths, timestamps | Yes; device ID and activity metadata | App | Synchronise, retry, detect conflicts | Contract; legitimate interests for security | Local device; Supabase `sync_clock`, `sync_ops`, `sync_conflicts` | Supabase | Outbox/conflict until resolved or purged; account deletion cascades |
 | D13 | Support diagnostics | App version/build, platform, user agent, language, online flag, dataset counts, health check IDs/severity, conflict count, backup timestamps | Yes; user agent and device context can be personal | App when the user chooses to export | Troubleshooting | Legitimate interests / consent to share | User downloads the file; support mailbox if sent | Support mailbox, if the user sends it | Delete after resolution |
-| D14 | Hosting and authentication logs | IP address, timestamp, request path, email/auth events, errors | Yes | Supabase, InfinityFree, GitHub | Security, abuse prevention, debugging, billing | Legitimate interests; legal obligation where applicable | Processor logs | Processors and their sub-processors | Processor-defined; confirm and record |
+| D14 | Hosting and authentication logs | IP address, timestamp, request path, email/auth events, errors | Yes | Supabase, Cloudflare, GitHub | Security, abuse prevention, debugging, billing | Legitimate interests; legal obligation where applicable | Processor logs | Processors and their sub-processors | Processor-defined; confirm and record |
 | D15 | Demo data | Synthetic names, transactions and budgets | No real data if the demo remains synthetic | Bundled seed | Let people explore the app | Not personal data | Browser/device only; never synced | None | Until browser/app data is cleared |
 | D16 | Starling personal-feed data | Personal access token, account UID, default category UID, account name/type/currency, settled transaction date, amount, direction, counterparty, reference and feed ID | Yes; financial data and a bearer token | Owner creates the token; Starling API returns the account data | Read-only import into the review grid | Consent / contract to confirm; owner-only personal use | Token in Windows DPAPI-backed secure store; fetched data in desktop memory; appended rows in the normal budget | Starling (API); no FinanceHub server | Token until forgotten or app data removed; fetched response not stored separately; appended rows follow the budget retention rule |
 | D17 | Open Banking data (Enable Banking) | Application ID and RSA private key, session ID, linked-account UIDs, ASPSP name/country, consent expiry, booked transaction date, amount, currency, direction, counterparty, remittance text and transaction ID | Yes; financial data plus an application key and consent session | Owner registers the application, links accounts in Enable Banking and fetches on demand | Read-only import into the review grid | Consent (owner links each account); contract with the provider to confirm for extended use | Application ID and private key in Windows DPAPI-backed secure store; session list in the same store; fetched data in desktop memory; appended rows in the normal budget | Enable Banking (API); the owner's bank (SCA); no FinanceHub server | Key and sessions until forgotten or app data removed; consent until the provider's expiry; fetched response not stored separately; appended rows follow the budget retention rule |
@@ -111,7 +111,7 @@ into tickets unless necessary.
 | F3 | Hosted browser → `localStorage` | Budget, last-good copy, damaged copy, sync metadata, restore points, portal records, feedback, session token | Saves, sync, portal and feedback actions | Browser origin storage; no app-layer encryption | Any script on the origin and anyone with the browser profile | Until site data is cleared; DPIA risk S-04. **Planned launch change:** the public hosted build will be synthetic demo + account settings only and will not load a real budget; this row describes the current live build until C2 lands. |
 | F4 | User → Supabase Auth (email/password) | Email, password over TLS, session tokens | Sign-up, sign-in, recovery | HTTPS; Supabase Auth; no password stored by the app | Supabase Auth; user | Auth record until deletion; session until expiry/sign-out |
 | F5 | User → Google → Supabase Auth | Google identity, email, OAuth code; no Google password | User chooses Google sign-in | OAuth 2.0 authorisation code with PKCE; HTTPS; desktop loopback callback | Google, Supabase | Google terms and retention apply; Supabase auth record until deletion |
-| F6 | User → Supabase passkey flow | Passkey credential ID/public key, challenge; private key stays in authenticator | Hosted passkey enrolment/sign-in | WebAuthn over HTTPS; RP ID `financehub.freedev.app` | Supabase; user's authenticator | Credential until removed or account deletion |
+| F6 | User → Supabase passkey flow | Passkey credential ID/public key, challenge; private key stays in authenticator | Hosted passkey enrolment/sign-in | WebAuthn over HTTPS; RP ID `financehub-uk.pages.dev` | Supabase; user's authenticator | Credential until removed or account deletion |
 | F7 | Supabase session → device | Access token, refresh token, user ID | Sign-in and token refresh | Desktop: DPAPI-backed store. Web: localStorage | User's device | Until sign-out, revocation or expiry |
 | F8 | Renderer → Supabase `settings` | Full `AppState` JSON: dataset, theme, savedAt, optional vault ciphertext; scalar settings columns | Signed-in save/sync | HTTPS; Supabase anon key + JWT; RLS; `financehub_push_state` revision check | The authenticated owner only; service-role operators in principle | Until account deletion; old revisions/backups may persist |
 | F9 | Supabase → renderer | Full document plus sync metadata; changed rows from pull RPC; Realtime hints | Sign-in, focus, reconnect, Realtime event | HTTPS/WSS; RLS scoped to `auth.uid()` | Authenticated owner | Local copy follows F1 |
@@ -124,7 +124,7 @@ into tickets unless necessary.
 | F16 | User → `delete_my_account` | Auth user ID | User confirms cloud deletion | Authenticated RPC; `SECURITY DEFINER`; cascade from `auth.users` | Owner only; service-role operators in principle | Removes cloud auth and public rows; local copies/exports unaffected |
 | F17 | Processors → logs | IP, auth events, requests, errors | Normal operation | Processor logging | Processor; owner where dashboards expose logs | Processor-defined; no retention job in app |
 | F18 | Desktop main process → Starling API | Personal access token, account/category UID, date range; Starling returns account and transaction JSON | Owner enables the feed and presses refresh/fetch | HTTPS to `api.starlingbank.com`; token read from DPAPI-backed store and never returned to the renderer | Desktop main process; Starling | Token until forgotten; fetched response not persisted separately; only reviewed rows enter the budget |
-| F19 | User browser → Enable Banking consent → desktop loopback → Enable Banking API | Application ID, signed RS256 JWT, ASPSP name/country, state, consent code, session ID, account UIDs, date range; provider returns account and transaction JSON | Owner saves the connection, links a bank, or fetches transactions | HTTPS to the bank's consent page and `api.enablebanking.com`; the HTTPS bounce page at `financehub.freedev.app/bank-callback.html` forwards `code`/`state` to `127.0.0.1:53684`; key stays in the main process | Desktop main process; Enable Banking; the owner's bank | Key and sessions until forgotten; consent until `valid_until`; fetched response not persisted separately; only reviewed rows enter the budget |
+| F19 | User browser → Enable Banking consent → desktop loopback → Enable Banking API | Application ID, signed RS256 JWT, ASPSP name/country, state, consent code, session ID, account UIDs, date range; provider returns account and transaction JSON | Owner saves the connection, links a bank, or fetches transactions | HTTPS to the bank's consent page and `api.enablebanking.com`; the HTTPS bounce page at `financehub-uk.pages.dev/bank-callback.html` forwards `code`/`state` to `127.0.0.1:53684`; key stays in the main process | Desktop main process; Enable Banking; the owner's bank | Key and sessions until forgotten; consent until `valid_until`; fetched response not persisted separately; only reviewed rows enter the budget |
 
 ### 4.1 Cloud tables in scope
 
@@ -157,7 +157,7 @@ into tickets unless necessary.
 | Supabase Postgres | Account/auth data, full budget document, sync metadata, conflict metadata, legacy tables | TLS; RLS by `auth.uid()`; encrypted at rest by the provider (confirm region/terms) | Authenticated owner; Supabase service-role/operators | Cloud document is not end-to-end encrypted (S-02) |
 | Supabase Auth | Email, password hash, identities, passkeys, sessions | Supabase-managed; TLS; provider controls | Supabase; the account owner | Password material never reaches FinanceHub |
 | Google | Google account identity and OAuth consent | Google controls | Google; the user | Only if Google sign-in is chosen |
-| InfinityFree | Static HTML/JS/CSS and access logs | TLS; provider controls | Provider; public assets are not confidential | No budget data should be deployed |
+| Cloudflare Pages | Static HTML/JS/CSS and access logs | TLS; provider controls | Provider; public assets are not confidential | No budget data should be deployed |
 | GitHub Releases | Installer, `app.asar`, manifest, checksums; request metadata | HTTPS; public assets | Anyone; request metadata logged by GitHub | No account or budget data in assets |
 | User export locations | JSON/CSV/encrypted backup/support bundle | User-controlled | User and anyone they share with | Plain JSON backup is not encrypted |
 | Support mailbox | Whatever the user sends | Mail provider controls | Owner/support | Not yet created; minimise and delete after resolution |
@@ -212,7 +212,7 @@ closure record.
 | --- | --- | --- | --- |
 | Supabase | Auth, budget document, sync metadata, logs | DPA/region/transfer mechanism to confirm | Execute DPA; record region, sub-processors, backup window, IDTA/SCC |
 | Google | OAuth identity and email | Terms/data-processing position to confirm | Record Google terms and transfer basis; disclose in notice |
-| InfinityFree | Static hosting and access logs | DPA/terms to confirm | Record terms, log retention and security contact |
+| Cloudflare Pages | Static hosting and access logs | Self-serve DPA to accept; terms published | Record DPA acceptance, log retention and security contact |
 | GitHub / Microsoft | Release downloads, IP/user-agent | Terms to confirm | Record as infrastructure recipient; no budget data sent |
 | Supabase email provider | Verification/reset email address and content | Provider and terms to confirm | Identify provider; add to register or replace with owner-controlled SMTP |
 | Privacy/support mailbox | User correspondence and support bundles | Provider: Gmail/Google (`financehub+pauluk83@gmail.com`); DPA/terms/retention to confirm | Record Gmail terms/transfer/retention; restrict access |
@@ -229,7 +229,7 @@ sub-processors are confirmed.
 
 ### Controls present
 
-- HTTPS for Supabase, Google, InfinityFree and GitHub.
+- HTTPS for Supabase, Google, Cloudflare Pages and GitHub.
 - Supabase Auth with PKCE; passkey support on the hosted origin.
 - RLS policies scoped to `auth.uid()` on public tables.
 - Anon/publishable key only in the client; service-role key is not shipped.

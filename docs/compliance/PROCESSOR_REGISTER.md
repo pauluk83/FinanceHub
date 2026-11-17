@@ -51,7 +51,7 @@ C1 closure.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P1 | **Supabase** — Auth, Postgres, Row Level Security, Realtime | Processor | Account identifiers, auth data, full budget document, sync/conflict metadata, logs (`D1`–`D4`, `D6`–`D8`, `D12`, `D14`) | TBC — project settings | TBC — Supabase sub-processor list | TBC — UK IDTA / SCC / adequacy and TIA | TBC — executed or accepted DPA, date and reference | TBC — database backup/PITR window and log retention | TBC — security contact / dashboard route | TBC | Open |
 | P2 | **Google** — OAuth sign-in | Controller/processor role to confirm | Google identity, email and OAuth consent data, only if Google sign-in is chosen (`D1`, `D2`, `D14`) | TBC — Google terms | TBC — Google identity sub-processors | TBC — Google terms and transfer basis | TBC — Google OAuth/API terms; DPA if processor | TBC — Google account/auth log retention | TBC | TBC | Open |
-| P3 | **InfinityFree** — static web hosting | Processor / hosting provider | Static asset requests, IP address, access logs; no budget data should be deployed (`D14`) | TBC — hosting region | TBC — hosting sub-processors | TBC — UK IDTA / SCC / adequacy | TBC — hosting terms/DPA position | TBC — access-log retention and backup window | TBC | TBC | Open |
+| P3 | **Cloudflare Pages** — static web hosting | Processor / hosting provider | Static asset requests, IP address, access logs; no budget data should be deployed (`D14`) | Global CDN; account jurisdiction TBC | TBC — Cloudflare subprocessor list version | TBC — DPA SCCs/UK Addendum (self-serve, to accept) | TBC — DPA acceptance date and reference | TBC — access-log retention and backup window | TBC | TBC | Partial — provider moved 17 Nov 2026; DPA and retention open |
 | P4 | **GitHub / Microsoft** — Releases and update assets | Infrastructure recipient; confirm whether request logs make it a processor | IP address, user agent, request metadata for update manifest/archive; no budget, account or credential data (`D14`) | TBC — global/US processing | TBC — GitHub sub-processors | TBC — GitHub terms/transfer basis | TBC — GitHub terms; DPA if applicable | TBC — request-log retention | TBC | TBC | Open |
 | P5 | **Supabase email delivery provider** — verification and password-reset email | Processor | Email address, message metadata and delivery events (`D1`, `D14`) | TBC — provider and region | TBC | TBC | TBC — provider terms/DPA | TBC — delivery-log retention | TBC | TBC | Open |
 | P6 | **Privacy/support mailbox provider** — Gmail/Google (`financehub+pauluk83@gmail.com`) | Independent controller (consumer Gmail) | Correspondence, support bundles and any attachments the user sends (`D13`, `D14`) | TBC — Gmail region | TBC — Google sub-processors | TBC — Google terms and transfer basis | TBC — mailbox terms/DPA | TBC — mailbox retention and backup window | `financehub+pauluk83@gmail.com` | Owner-provided mailbox 16 Nov 2026; terms/retention pending | Partial — address recorded; terms/retention open |
@@ -102,31 +102,27 @@ a decision.
   <https://bughunters.google.com/>.
 - **OAuth client state:** the `FinanceHub Web` client is External and marked In production,
   but the project is **unverified** and shows a 1-of-100 user cap. Branding is populated
-  (`FinanceHub`, `https://financehub.freedev.app/`, privacy and Terms links, authorised
-  domains `freedev.app` and the Supabase project domain). The only requested scope is
+  (`FinanceHub`, `https://financehub-uk.pages.dev/`, privacy and Terms links, authorised
+  domains `pages.dev` and the Supabase project domain). The branding still needs
+  re-pointing from the retired `freedev.app` origin. The only requested scope is
   `userinfo.email` (non-sensitive).
 - **Gap:** complete Google verification before relying on public Google sign-in; obtain
   legal confirmation of the controller role and transfer wording.
 
-**P3 — InfinityFree**
+**P3 — Cloudflare Pages**
 
-- **Entity and location:** InfinityFree is registered in the Netherlands. The account's
-  hosting IP resolved on 17 November 2026 to Gosforth, England (AS34119 Wildcard UK
-  Limited); the service is fulfilled by iFastNet Ltd., a UK company.
-- **Terms:** last revised 25 October 2024. The privacy policy says personal data may be
-  transferred and processed outside the EEA; it does not provide a transfer mechanism.
-- **DPA:** none. InfinityFree support-forum staff state that no separate DPA is available
-  and that the privacy policies govern; this is a staff statement, not a contract. iFastNet
-  publishes a privacy policy but no DPA for free-hosting customers.
-- **Subprocessors:** iFastNet's published third-party processor list is dated 26 May 2018
-  and includes KoPage, cPanel, Let's Encrypt, domain registrars, payment providers,
-  Attracta, Wildcard Networks and Cloudflare. It is stale and needs revalidation.
-- **Retention and logs:** the privacy policy gives no fixed retention period. Forum staff
-  say free-hosting access logs are aggregated and discarded immediately; that is not a
-  contractual commitment and needs written confirmation.
-- **Contact:** `hello@infinityfree.com`; responsible disclosure is also via that address.
-- **Gap:** no DPA and no transfer mechanism. This provider cannot close C1 as-is; either
-  obtain written terms or move the static site to a provider that offers a DPA.
+- **Entity and location:** Cloudflare, Inc. (United States), with Cloudflare UK Limited as
+  its UK establishment. Pages serves the build from Cloudflare's global anycast CDN; the
+  account's processing jurisdiction setting is not recorded yet.
+- **Terms and DPA:** Cloudflare publishes a self-serve Data Processing Addendum that
+  incorporates the EU SCCs and the UK Addendum. **It has not been accepted in the dashboard
+  or filed in the private evidence folder yet.**
+- **Subprocessors:** Cloudflare publishes a dated subprocessor list; record the version
+  relied on rather than the current page.
+- **Retention and logs:** FinanceHub sends no application logs to Pages. Cloudflare's own
+  request analytics and account-log retention follow the plan and are not recorded yet.
+- **Gap:** accept the DPA, record the subprocessor list version, the log-retention window
+  and a security contact before C1 can close.
 
 **P4 — GitHub / Microsoft**
 
@@ -190,7 +186,7 @@ enough; record the list version/date relied on.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Supabase | TBC | Auth/Postgres/Realtime infrastructure | TBC | Account and budget data | TBC | TBC | TBC |
 | Google | TBC | OAuth identity | TBC | Identity/email | TBC | TBC | TBC |
-| InfinityFree | TBC | Hosting/CDN/logs | TBC | IP/request logs | TBC | TBC | TBC |
+| Cloudflare | TBC | Pages hosting/CDN/logs | Global CDN | IP/request logs | TBC | TBC | TBC |
 | GitHub / Microsoft | TBC | Release delivery and logs | TBC | IP/user-agent/request metadata | TBC | TBC | TBC |
 | Email provider | TBC | Verification/reset delivery | TBC | Email/message metadata | TBC | TBC | TBC |
 | Gmail/Google (`financehub+pauluk83@gmail.com`) | TBC | Support correspondence | TBC | Correspondence | TBC | TBC | TBC |
@@ -207,7 +203,7 @@ identifier here. Do not rely on a provider’s marketing page as the contract.
 | E-P1-DPA | Supabase | Data-processing agreement | TBC | Auth/Postgres/Realtime | TBC | TBC | Private evidence folder | TBC |
 | E-P1-SUB | Supabase | Sub-processor list | TBC | Infrastructure | TBC | TBC | Private evidence folder | TBC |
 | E-P2-TERMS | Google | OAuth/API terms | TBC | Google sign-in | TBC | TBC | Private evidence folder | TBC |
-| E-P3-TERMS | InfinityFree | Hosting terms/DPA position | TBC | Static hosting and logs | TBC | TBC | Private evidence folder | TBC |
+| E-P3-TERMS | Cloudflare | Self-serve DPA and subprocessor list | TBC | Static hosting and logs | TBC | TBC | Private evidence folder | TBC |
 | E-P4-TERMS | GitHub / Microsoft | GitHub terms and privacy statement | TBC | Release/update requests | TBC | TBC | Private evidence folder | TBC |
 | E-P5-DPA | Email provider | Email delivery terms/DPA | TBC | Verification/reset email | TBC | TBC | Private evidence folder | TBC |
 | E-P6-DPA | Gmail/Google | Mailbox terms/DPA | TBC | Support correspondence | TBC | TBC | Private evidence folder | TBC |
@@ -233,7 +229,7 @@ C1 from `DPIA.md` Addendum A is **OPEN** until every line is checked and evidenc
 - [x] Supabase retention recorded: no Free-plan backups, 1-day logs, Pro gives 7 days; DPA 30-day deletion window. **Backup decision still open.**
 - [x] Supabase security/privacy contacts recorded: `security@supabase.com`, `privacy@supabase.com`.
 - [~] Google role/terms/transfer recorded: Controller-Controller Terms and UK Controller SCCs; Sign-In-specific subprocessors and region commitment remain unconfirmed. OAuth app is unverified.
-- [~] InfinityFree recorded: Netherlands entity, UK hosting, terms 2024-10-25, no DPA and no transfer mechanism; subprocessor list dated 2018.
+- [~] Cloudflare Pages replaced InfinityFree on 17 November 2026. Entity, published DPA and subprocessor list identified; DPA acceptance, subprocessor version, processing jurisdiction and log retention still to record.
 - [x] GitHub/Microsoft recorded: DPA October 2025, UK Addendum/DPF, US/global processing, published subprocessor list; free-account coverage still to confirm.
 - [~] Email delivery: Supabase default SMTP; custom SMTP disabled and no named provider. Production SMTP remains open.
 - [~] Privacy/support contact recorded as `financehub+pauluk83@gmail.com`; consumer Gmail has no DPA and retention/role remain open.
@@ -253,6 +249,7 @@ the register stays **OPEN** and the privacy notice must not be published with un
 | --- | --- | --- | --- |
 | 14 Nov 2026 | Draft prepared | Initial inventory from `DATA_MAP.md`; all provider evidence remains open | Before public production |
 | 17 Nov 2026 | Dashboard evidence pass | Supabase region/subprocessors/DPA/TIA/backups/SMTP; Google OAuth state; InfinityFree terms/no DPA; GitHub DPA; Gmail consumer terms. C1 remains partial | Before public production |
+| 17 Nov 2026 | Hosting move | InfinityFree account suspended; static site moved to Cloudflare Pages (`financehub-uk.pages.dev`). Cloudflare DPA acceptance and log retention open | Before public production |
 
 ## 7. Sources checked — 17 November 2026
 

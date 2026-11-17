@@ -205,7 +205,7 @@ we specify, under their terms and any data-processing agreement.
 | --- | --- | --- |
 | **Supabase** | Account identifiers, authentication data, synced budget document, sync metadata, conflict metadata, logs | Authentication, database, row-level security and realtime sync |
 | **Google** | Google identity, email address and OAuth consent data, only if you choose Google sign-in | Sign-in |
-| **InfinityFree** | Static website requests and access logs; no budget data should be deployed there | Hosting the web app |
+| **Cloudflare** (Cloudflare Pages) | Static website requests and access logs; no budget data should be deployed there | Hosting the web app |
 | **GitHub / Microsoft** | IP address, user agent and request metadata when checking for or downloading an update; no budget or account data | Release downloads and app updates |
 | **Starling Bank** | Your Starling personal access token and the account/transaction request; Starling returns your account and transaction data | Only if you enable the desktop Starling personal feed |
 | **Enable Banking** (FIN-FSA-authorised AISP) | Your application ID, signed requests, the accounts you link and the transaction requests; it returns your account and transaction data | Only if you enable the desktop Open Banking feed |
@@ -228,8 +228,8 @@ Some providers may process data outside the UK. Before public production, we wil
 the processing region and the transfer mechanism for each provider — UK International Data
 Transfer Addendum, Standard Contractual Clauses, or an adequacy regulation — together with
 a transfer risk assessment. `[TO CONFIRM: Supabase region and sub-processors]`,
-`[TO CONFIRM: Google transfer terms]`, `[TO CONFIRM: InfinityFree region and terms]`,
-`[TO CONFIRM: GitHub/Microsoft terms]`.
+`[TO CONFIRM: Google transfer terms]`, `[TO CONFIRM: Cloudflare DPA acceptance and log
+retention]`, `[TO CONFIRM: GitHub/Microsoft terms]`.
 
 Do not publish this notice until those fields and the processor register are complete.
 
@@ -251,7 +251,7 @@ Do not publish this notice until those fields and the processor register are com
 | Feedback | Browser storage on the owner’s device | No |
 | Restore points | Device storage, encrypted | No |
 | Support bundle | Downloaded by you; sent only if you choose | No |
-| Processor logs | Supabase, InfinityFree, GitHub and their sub-processors | No, but provider-controlled |
+| Processor logs | Supabase, Cloudflare, GitHub and their sub-processors | No, but provider-controlled |
 
 **Hosted web app:** the hosted site stores your synced budget, restore points, sync
 metadata and your session in browser storage while you use it, and offers a synthetic demo

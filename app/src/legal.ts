@@ -12,7 +12,7 @@ export interface LegalDoc {
 }
 
 export const LEGAL_OWNER = 'Zane Stanton';
-export const FINANCEHUB_URL = 'https://financehub.freedev.app/';
+export const FINANCEHUB_URL = 'https://financehub-uk.pages.dev/';
 export const LEGAL_YEAR = 2026;
 export const LEGAL_VERSION = APP_VERSION;
 export const LEGAL_UPDATED = '7 November 2026';

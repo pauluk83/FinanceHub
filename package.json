@@ -7,7 +7,7 @@
     "type": "git",
     "url": "git+https://github.com/pauluk83/FinanceHub.git"
   },
-  "homepage": "https://financehub.freedev.app/",
+  "homepage": "https://financehub-uk.pages.dev/",
   "bugs": {
     "url": "https://github.com/pauluk83/FinanceHub/issues"
   },
@@ -19,7 +19,7 @@
     "build:web:hosted": "vite build --config app/vite.config.ts --mode hosted",
     "prebuild:web": "node scripts/app-changelog.mjs",
     "prebuild:web:hosted": "node scripts/app-changelog.mjs",
-    "deploy:web": "npm run build:web:hosted && node scripts/deploy-hosted.mjs",
+    "deploy:web": "npm run build:web:hosted && node scripts/deploy-pages.mjs",
     "github:release": "node scripts/github-release.mjs",
     "release": "node scripts/release.mjs",
     "release:bump": "node scripts/release.mjs bump",
@@ -47,6 +47,7 @@
     "electron-builder": "^26.18.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
+    "wrangler": "^4.164.0",
     "xlsx": "^0.18.5"
   }
 }
