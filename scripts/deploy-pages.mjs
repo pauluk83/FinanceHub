@@ -1,9 +1,10 @@
 /**
  * Deploy the hosted build to Cloudflare Pages.
  *
- * Requires, for this command only:
- *   CLOUDFLARE_API_TOKEN   API token with Account → Cloudflare Pages: Edit
- *   CLOUDFLARE_ACCOUNT_ID  account id from the Cloudflare dashboard
+ * Authentication (one of):
+ *   - run `npx wrangler login` once, which stores an OAuth session locally; or
+ *   - set CLOUDFLARE_API_TOKEN (Account → Cloudflare Pages: Edit) and
+ *     CLOUDFLARE_ACCOUNT_ID for this command only.
  * Optional:
  *   PAGES_PROJECT          Pages project name (default financehub-uk)
  *
@@ -20,16 +21,9 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SITE = join(ROOT, 'dist-web');
 const WRANGLER = join(ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
 const PROJECT = process.env.PAGES_PROJECT ?? 'financehub-uk';
-const TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
+const TOKEN = process.env.CLOUDFLARE_API_TOKEN?.trim();
+let account = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
 
-if (!TOKEN || !ACCOUNT) {
-  console.error(
-    'Set CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID for this command only.\n'
-    + 'Both are read from the environment and are never stored in the repository.',
-  );
-  process.exit(1);
-}
 if (!existsSync(WRANGLER)) {
   console.error('wrangler is not installed. Run npm install first.');
   process.exit(1);
@@ -39,13 +33,17 @@ if (!existsSync(join(SITE, 'index.html'))) {
   process.exit(1);
 }
 
+const env = { ...process.env };
+if (TOKEN) env.CLOUDFLARE_API_TOKEN = TOKEN;
+else delete env.CLOUDFLARE_API_TOKEN;
+
 const wrangler = (args, { allowFailure = false } = {}) => {
   try {
     return execFileSync(process.execPath, [WRANGLER, ...args], {
       cwd: ROOT,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, CLOUDFLARE_API_TOKEN: TOKEN, CLOUDFLARE_ACCOUNT_ID: ACCOUNT },
+      env,
     });
   } catch (error) {
     if (allowFailure) return null;
@@ -54,6 +52,22 @@ const wrangler = (args, { allowFailure = false } = {}) => {
     throw error;
   }
 };
+
+// Wrangler login stores an OAuth session; the account id can be read from it.
+if (!account) {
+  const whoami = wrangler(['whoami'], { allowFailure: true }) ?? '';
+  const match = whoami.match(/[0-9a-f]{32}/i)
+    ?? whoami.match(/Account ID[^0-9a-f]*([0-9a-f-]{32,36})/i);
+  if (match) account = match[1] ?? match[0];
+}
+if (!account) {
+  console.error(
+    'No Cloudflare account is available. Run `npx wrangler login` once, or set\n'
+    + 'CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for this command only.',
+  );
+  process.exit(1);
+}
+env.CLOUDFLARE_ACCOUNT_ID = account;
 
 // A fresh account has no project yet. Creating an existing project fails, which
 // is expected on every later release.

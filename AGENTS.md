@@ -72,9 +72,14 @@ Rules that follow from this:
   and falls back to `index.html` for unknown paths when no `404.html` exists. Pages caps
   each asset at 25 MiB and a deployment at 20,000 files, so the installer must stay out
   of `dist-web/`.
-- Cloudflare credentials are supplied only as `CLOUDFLARE_API_TOKEN` (Account → Cloudflare
-  Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID` for one command. Never write them to the
-  repository, a build, a log, `.env` or `README.md`.
+- Authentication: either run `npx wrangler login` once (browser OAuth, stored outside the
+  repository) and let `deploy-pages.mjs` read the account id from `wrangler whoami`, or set
+  `CLOUDFLARE_API_TOKEN` (Account → Cloudflare Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`
+  for one command. Never write a token or the account id to the repository, a build, a log,
+  `.env` or `README.md`.
+- Pages rewrites `.html` requests with a 308 to the extensionless path and serves
+  `index.html` for unknown paths, so `/bank-callback.html` resolves to `/bank-callback`
+  with its query string intact.
 - This repository is **public**. Never commit `data/workbook.json`, `data/*.db`,
   screenshots of real figures, `analysis/`, `reports/`, `.env` or any token. Builds without
   the private workbook use `data/web-seed.json` (blank) so CI and contributors can build.
