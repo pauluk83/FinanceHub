@@ -306,22 +306,18 @@ test('the email verification page blocks sync and offers resend and local use', 
   assert.match(html, /Cloud sync stays off/);
 });
 
-test('the hosted build exposes account settings without a budget workspace', async () => {
-  const { HostedAccountSettings } = await server.ssrLoadModule('/src/views/hostedAccount.tsx');
-  const html = render(HostedAccountSettings, { email: 'owner@example.test', onSignOut: () => {}, onTryDemo: () => {} });
-
-  assert.match(html, /Hosted account settings/);
-  assert.match(html, /does not load a real budget/);
-  assert.match(html, /Delete cloud account permanently/);
-  assert.match(html, /Take a look around/);
-  assert.doesNotMatch(html, /Continue locally/);
-});
-
-test('the app shell gates the hosted build to demo and account settings', async () => {
+test('the hosted build opens the real budget for a signed-in user', async () => {
   const app = fs.readFileSync(path.join(ROOT, 'app', 'src', 'App.tsx'), 'utf8');
 
-  assert.match(app, /if \(HOSTED_WEB\) \{/);
-  assert.match(app, /HostedAccountSettings/);
-  assert.match(app, /if \(HOSTED_WEB\) return null;/);
-  assert.match(app, /setPeopleRoute\(!HOSTED_WEB &&/);
+  // The demo-only gate was withdrawn by the owner on 2026-11-17, so a hosted
+  // session reaches the normal cloud workspace instead of an account-settings page.
+  assert.doesNotMatch(app, /HostedAccountSettings/);
+  assert.doesNotMatch(app, /hostedAccount/);
+  assert.doesNotMatch(app, /setPeopleRoute\(!HOSTED_WEB/);
+  // A confirmed email is still required before cloud sync.
+  assert.match(app, /emailNeedsVerification\(session.user\)/);
+  // Hosted is always a cloud workspace, so it never shows the mode chooser or a
+  // device-only budget.
+  assert.match(app, /if \(HOSTED_WEB\) return 'cloud';/);
+  assert.match(app, /onContinueLocally=\{HOSTED_WEB \? undefined/);
 });

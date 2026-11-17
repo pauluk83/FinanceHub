@@ -17,7 +17,7 @@ owner-side Supabase and mailbox actions are in `docs/OWNER_ACTIONS.md`.
 - Cloud sync through Supabase; authentication through Supabase (email/password and
   Google OAuth).
 - Provider logins optionally stored client-side, encrypted with AES-256-GCM.
-- Hosted static web build on InfinityFree; public launch is planned as a synthetic demo plus hosted account settings, with no real-budget loading, viewing or sync. Real budgets are in the Windows Electron build.
+- Hosted static web build on InfinityFree. Since the owner's 2026-11-17 decision it opens, edits and syncs a signed-in real budget in the browser, still requiring a confirmed email before sync. Browser storage is plaintext while the site is open, and that residual risk is recorded as RA-3 in `docs/compliance/RISK_ACCEPTANCE_REGISTER.md`.
 - Owner and data controller: Zane Stanton (individual, England).
 
 ## Applicability matrix

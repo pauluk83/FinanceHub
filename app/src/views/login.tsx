@@ -302,7 +302,7 @@ export function LoginPage({ onContinueLocally, onTryDemo, onOpenPeoplePortal }: 
   const disabled = !authConfigured || busy !== null;
   const title = mode === 'signIn' ? 'Welcome back' : mode === 'signUp' ? 'Create your account' : 'Reset your password';
   const subtitle = HOSTED_WEB
-    ? 'Sign in for hosted account settings. Real budgets live in the Windows app.'
+    ? 'Sign in to open your synced budget in this browser.'
     : mode === 'signIn'
       ? 'Sign in to open your budget.'
       : mode === 'signUp'

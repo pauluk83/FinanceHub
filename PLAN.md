@@ -1265,6 +1265,7 @@ Open items:
 - 2026-11-17: Owner confirmed the hosted passkey ceremony works — enrolment and passkey sign-in both succeed on the live `2026.11.16` build (`bdd044bbdfc3`). C4's passkey item is closed; the desktop app stays on email/password or Google because the packaged `file://` window cannot use WebAuthn. Throwaway-account deletion, the email-verification signup/resend test and the two-device conflict test remain.
 - 2026-11-17: Closed the owner-evidence items and recorded two signed risk acceptances. RA-1 (cloud document not end-to-end encrypted) and RA-2 (unsigned installer/updater) are signed and dated in `docs/compliance/RISK_ACCEPTANCE_REGISTER.md`; C3 is accepted, with C1 processor evidence and an independent penetration test still open. The owner reports a successful delta update and a backup restore on the `2026.11.16` build, and confirms two-account isolation, two-device conflict/realtime behaviour, deletion and export drills. Supabase “Confirm email” is deliberately off, so cloud sync relies on the client gate, and no external legal review is planned; the ICO fee position and support/security contacts remain open. Accessibility pass on the live build: PASS — labelled inputs, image alternatives, one main and one nav landmark, sensible heading order, no unnamed controls at 1024–1280 px, keyboard traversal works, and no horizontal overflow at 1024 px (125%) or 640 px (200%); CSS defines visible focus outlines, though automation reported `:focus-visible` false so the rendered ring was not confirmed. FAIL — below roughly 1000 px the sidebar set `.nav-label` to `display:none`, leaving 20 icon-only buttons whose only content is `aria-hidden` glyphs, so they had no accessible name at 200% zoom.
 - 2026-11-17: Released `2026.11.17` (build `195682713b7a`, hosted bundle `index-DMaLCO4U.js`) to fix that defect: the narrow-width rule now visually hides `.nav-label` with a 1 px clipped box instead of `display:none`, so the icon-only sidebar keeps every button's accessible name. `npm test` **294/294**, `tsc` clean, `release:check` passed with the hosted bundle deployed (11/11 files) and live parity confirmed; the live grid still collapses to 73 px with no horizontal overflow at 640 px, and all 20 sidebar buttons report their labels in the accessibility tree. Published as commit `6dfa878` and tag `v2026.11.17`; the Release workflow attached `FinanceHub-Setup-2026.11.17.exe` (122,624,493 bytes, CI SHA-256 `26255b714dc1eb37cdd234a955cdc7ec9cae57cf35df80ed5842e170e4bf571a`), `SHA256SUMS.txt`, `update-manifest.json` and `FinanceHub-app.asar`, and `release:check` confirms the published installer and delta assets match. The live changelog page reports `2026.11.17 · build 195682713b7a`, and its download link resolves to the `v2026.11.17` release (200, 122,624,493 bytes).
+- 2026-11-17: Withdrew the hosted demo-only gate at the owner's direction and restored the real budget in the hosted app (release `2026.11.17`, build `eb32d6dd39a2`, bundle `index-DvKdJDHC.js`). `App.tsx` no longer early-returns to hosted account settings, so a signed-in session reaches the normal cloud workspace; hosted stays cloud-only (no local mode, no mode chooser) and a confirmed email is still required before sync. The people portal is reachable again. `hostedAccount.tsx` is removed, the login subtitle reads “Sign in to open your synced budget in this browser.”, and `tests/ui-smoke.test.mjs` asserts that the gate is gone while the email rule remains. Risk acceptance RA-3 covers the plaintext browser storage, and the DPIA C2 condition, privacy-notice text, data map and `COMPLIANCE.md` are updated to match. `npm test` passed, `tsc` clean, the release deployed 11/11 files and `release:check` passed with live parity; the live bundle hash `bdeca99af155eb7ffbfcb1d027e47912b35282740629642b6f61b5d26def0766` matches the local build, the live footer reads `2026.11.17 · build eb32d6dd39a2`, and the hosted login shows the new subtitle, the demo and the people portal with no “Continue locally”. Not verified live: an actual signed-in hosted session loading a budget, because no account credentials were used. The published `v2026.11.17` installer remains the CI build from commit `6dfa878`; this commit changes hosted behaviour only, so desktop behaviour is unchanged, but its installer bytes are not the published asset.
 
 ## 18. Notes and constraints
 
@@ -1704,7 +1705,7 @@ A release is production-ready only when all of these are true:
 
 ### 23.2 Launch scope and explicit exclusions
 
-**Target:** direct Windows x64 installer plus the hosted web app (synthetic demo and hosted account settings only), for personal/household budgeting in the UK. No Microsoft Store or iOS release in this plan.
+**Target:** direct Windows x64 installer plus the hosted web app (which now opens the signed-in real budget alongside the synthetic demo and hosted account settings), for personal/household budgeting in the UK. No Microsoft Store or iOS release in this plan.
 
 Explicitly excluded from this launch: Open Banking and bank linking (separate G1–G5 gate in §10), card payments, money transmission, holding customer funds, card data, advertising, third-party analytics, public user-generated content, and use by under-18s. If any of these changes, the DPIA and legal review must be reopened before release.
 
@@ -1723,7 +1724,7 @@ Explicitly excluded from this launch: Open Banking and bank linking (separate G1
 | --- | --- | --- | --- |
 | 1 | Launch market | **UK only.** | Enforce UK availability in the site and terms; no EEA representation or EU consumer work for this launch. |
 | 2 | Price | **Free at launch.** | No payment, cancellation, refund or VAT flow in the first production release. Revisit before charging. |
-| 3 | Hosted web model | **Demo + hosted account settings only.** | The public hosted build shows a synthetic demo and allows hosted account settings, passkeys and deletion. It must not sign in to, load, view, edit or sync a real budget. Real budgets remain in the Windows app. Gate built and deployed in `2026.11.16` (build `bdd044bbdfc3`); live check passed 2026-11-16 (C2). |
+| 3 | Hosted web model | **Real budget restored — supersedes the 2026-11-16 gate.** | The owner withdrew the demo-only restriction on 2026-11-17: a signed-in hosted session now opens, edits and syncs the real cloud budget and the people portal, with the confirmed-email rule still enforced before sync. Browser storage is plaintext, so this is covered by risk acceptance RA-3. The demo and hosted account settings remain available. |
 | 4 | Cloud encryption | **Accepted by the owner 2026-11-17 (RA-1 signed).** | `settings.state_json` stays readable at rest for this launch; the “not end-to-end encrypted” disclosure must stay published. C3 is accepted, not eliminated: C1 processor evidence and an independent penetration test remain open. |
 | 5 | Windows local database | **Keep DPAPI value store; no SQLCipher.** | Narrow the at-rest wording to “values encrypted; SQLite database not full-disk encrypted” and align the notice. |
 | 6 | Desktop passkeys | **Hosted-only passkeys.** | Windows uses email/password or Google; state this in the notice and support material. Live hosted ceremony confirmed by the owner on 2026-11-17 (C4 passkey item closed); desktop stays email/password or Google. |
@@ -1734,11 +1735,12 @@ Explicitly excluded from this launch: Open Banking and bank linking (separate G1
 | 11 | Legal review | **None planned.** | The owner recorded on 2026-11-17 that no UK counsel or privacy adviser will review this launch. The app must not claim legal compliance or “production ready”; PR-2 and PR-7 stay open and the §23.7 go/no-go rule still applies. |
 | 12 | Support contacts | **Pending owner input.** | PR-5 needs published support, security-disclosure and incident addresses; the owner will supply them and none are recorded yet. |
 
-**C2 hosted gating (implementation pending):** on the public hosted build, offer the
-synthetic demo and hosted account settings only. Hosted sign-in may be used for account
-settings, passkeys and cloud-account deletion; it must not load, save or sync any budget
-document, restore point, vault, portal or feedback record. The live check must confirm
-that a hosted session never opens a real budget and that the demo remains synthetic.
+**C2 hosted gating — withdrawn 2026-11-17.** The demo-only hosted model was reversed by the
+owner, so the hosted build opens the real budget for a signed-in, confirmed account. The
+previous requirement that a hosted session never load, save or sync a budget document is
+no longer a gate. What remains is the confirmed-email rule before sync and RA-3, which
+records the plaintext browser storage this exposes. The gate itself is kept only as
+history in `2026.11.16`.
 
 ### 23.3 Workstreams and gates
 
@@ -1783,7 +1785,8 @@ Counsel must mark each item **applicable**, **not applicable with reason**, or *
 - [x] Owner-attested: deletion and export drills completed, and a backup restore was run on the `2026.11.16` build (2026-11-17). No instrumented artifact.
 - [x] Owner-attested: two-account isolation and two-device conflict/realtime behaviour confirmed (2026-11-17). No instrumented artifact.
 - [x] Client verification gate implemented; Supabase “Confirm email” deliberately left off by the owner on 2026-11-17 — cloud sync relies on the client gate (decision 7).
-- [x] Hosted web demo + hosted account-settings gate built in `2026.11.16` (`bdd044bbdfc3`) with source and shell tests; deployed and live-checked 2026-11-16.
+- [x] Hosted demo-only gate built, deployed and live-checked on 2026-11-16, then withdrawn by the owner on 2026-11-17 so the hosted app serves a real budget again.
+- [x] RA-3 signed by the owner on 2026-11-17: plaintext browser storage for the hosted budget, with the confirmed-email rule retained.
 - [ ] Exact-origin CSP and forged/replayed OAuth callback tests.
 - [ ] Independent penetration test and remediation record.
 - [x] No code signing — RA-2 signed by the owner on 2026-11-17; unsigned-publisher warning published.

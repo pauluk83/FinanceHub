@@ -232,10 +232,10 @@ sub-processors are confirmed.
 
 ### Gaps and production conditions
 
-1. **Hosted web storage:** the current live build shares the budget, session and
-   auto-backup key in plaintext `localStorage`. The public launch will be a synthetic demo
-   plus hosted account settings only, with no real-budget load, view or sync; implement and
-   verify that restriction before C2 closes.
+1. **Hosted web storage:** the hosted build shares the budget, session and auto-backup key
+   in plaintext `localStorage`, and since the owner's 2026-11-17 decision it also loads a
+   real budget for a signed-in, confirmed account. The plaintext storage is accepted in
+   RA-3 of `RISK_ACCEPTANCE_REGISTER.md`, and the notice must keep disclosing it.
 2. **Cloud document encryption:** `settings.state_json` is plaintext at rest; record the
    risk acceptance or encrypt the wider document.
 3. **Local database:** SQLite is not SQLCipher; DPAPI protects values but not the whole

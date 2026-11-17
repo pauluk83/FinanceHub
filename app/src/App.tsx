@@ -41,7 +41,6 @@ import { authClient, authConfigured, emailNeedsVerification, endSession, type Se
 import { LegalPage } from './views/legal';
 import { legalRouteFromHash, type LegalDocId } from './legal';
 import { AuthLoading, EmailVerificationPage, LocalImportPrompt, LoginPage, ModeChooser, RecoveryPage } from './views/login';
-import { HostedAccountSettings } from './views/hostedAccount';
 import { BlockedStatePage } from './views/recovery';
 import { HOSTED_WEB } from './runtime';
 import { DEMO_USER_ID, demoState } from './demo';
@@ -222,15 +221,17 @@ const LEGACY_LOCAL_KEY = 'financehub.local-mode.v1';
 type StorageMode = 'cloud' | 'local';
 
 function readStorageMode(): StorageMode | null {
-  if (HOSTED_WEB) return null;
+  // The hosted build is always a cloud workspace: it has no mode chooser and never
+  // stores a device-only budget.
+  if (HOSTED_WEB) return 'cloud';
   try {
     const saved = localStorage.getItem(STORAGE_MODE_KEY);
     if (saved === 'cloud' || saved === 'local') return saved;
     if (localStorage.getItem(LEGACY_LOCAL_KEY) === '1') return 'local';
   } catch {
-    /* localStorage may be unavailable; fall back to the hosted default */
+    /* localStorage may be unavailable; fall through to the chooser */
   }
-  return HOSTED_WEB ? 'cloud' : null;
+  return null;
 }
 
 function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorkspace, onOpenDemo }: { user: AppUser; onSignOut: () => void; localAccount?: LocalAccountControls; demo?: boolean; onChooseWorkspace: (mode: 'account' | 'local') => void; onOpenDemo?: () => void }) {
@@ -851,13 +852,13 @@ export default function App() {
   const [demo, setDemo] = useState(false);
   const [localImportResolved, setLocalImportResolved] = useState(false);
   const [localImportError, setLocalImportError] = useState<string | null>(null);
-  const [peopleRoute, setPeopleRoute] = useState(() => !HOSTED_WEB && window.location.hash.replace(/^#/, '') === 'people');
+  const [peopleRoute, setPeopleRoute] = useState(() => window.location.hash.replace(/^#/, '') === 'people');
   const [legalRoute, setLegalRoute] = useState<LegalDocId | null>(legalRouteFromHash);
   const [appChangelogRoute, setAppChangelogRoute] = useState(() => window.location.hash.replace(/^#/, '') === 'app-changelog');
 
   useEffect(() => {
     const onHash = () => {
-      setPeopleRoute(!HOSTED_WEB && window.location.hash.replace(/^#/, '') === 'people');
+      setPeopleRoute(window.location.hash.replace(/^#/, '') === 'people');
       setAppChangelogRoute(window.location.hash.replace(/^#/, '') === 'app-changelog');
       setLegalRoute(legalRouteFromHash());
     };
@@ -866,7 +867,6 @@ export default function App() {
   }, []);
 
   const openPeoplePortal = () => {
-    if (HOSTED_WEB) return;
     if (window.location.hash !== '#people') window.location.hash = '#people';
     setPeopleRoute(true);
   };
@@ -1086,35 +1086,6 @@ export default function App() {
       />
     );
   }
-  if (HOSTED_WEB) {
-    if (authLoading) return <AuthLoading />;
-    if (!session) {
-      return <LoginPage onTryDemo={() => setDemo(true)} />;
-    }
-    if (recovery) {
-      return (
-        <RecoveryPage
-          onComplete={() => setRecovery(false)}
-          onCancel={() => void handleRecoveryCancel()}
-        />
-      );
-    }
-    if (emailNeedsVerification(session.user)) {
-      return (
-        <EmailVerificationPage
-          email={session.user.email ?? null}
-          onSignOut={() => void handleSignOut()}
-        />
-      );
-    }
-    return (
-      <HostedAccountSettings
-        email={session.user.email ?? null}
-        onSignOut={() => void handleSignOut()}
-        onTryDemo={() => setDemo(true)}
-      />
-    );
-  }
   if (session && !recovery && emailNeedsVerification(session.user)) {
     return (
       <EmailVerificationPage
@@ -1142,7 +1113,7 @@ export default function App() {
   if (!session) {
     return (
       <LoginPage
-        onContinueLocally={() => setStorageMode('local')}
+        onContinueLocally={HOSTED_WEB ? undefined : () => setStorageMode('local')}
         onTryDemo={() => setDemo(true)}
         onOpenPeoplePortal={openPeoplePortal}
       />

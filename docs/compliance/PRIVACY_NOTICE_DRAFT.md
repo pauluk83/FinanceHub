@@ -23,9 +23,9 @@ it is kept and what rights you have. It covers the app, the hosted site, optiona
 and sync, the people portal, feedback, support bundles and update checks.
 
 FinanceHub is offered to users in the UK only at launch. It is not directed at users in
-other markets. The public hosted web app provides a synthetic demo and hosted account
-settings only. It does not sign in to, load, view, edit or sync a real budget; real budgets
-remain in the Windows app.
+other markets. The hosted web app opens your own synced budget in the browser once you sign
+in with a confirmed email, and also offers a synthetic demo you can explore without an
+account. Browser storage on the hosted site is not encrypted by FinanceHub.
 
 FinanceHub is intended for adults aged 18 or over. It is not a bank, lender, financial
 adviser or payment service. It does not connect to your bank, move money, store card
@@ -205,10 +205,11 @@ Do not publish this notice until those fields and the processor register are com
 | Support bundle | Downloaded by you; sent only if you choose | No |
 | Processor logs | Supabase, InfinityFree, GitHub and their sub-processors | No, but provider-controlled |
 
-**Hosted web app:** the public hosted site is a synthetic demo plus hosted account
-settings. It stores demo data and a hosted session in browser storage, but it does not
-load a real budget. Browser storage is not encrypted by FinanceHub; use a trusted device
-and clear site data when you stop using it. The Windows app uses the operating system’s
+**Hosted web app:** the hosted site stores your synced budget, restore points, sync
+metadata and your session in browser storage while you use it, and offers a synthetic demo
+that stays in the tab. Browser storage is not encrypted by FinanceHub, so anyone who can
+use this browser profile can read that data; use a trusted device, sign out, and clear site
+data when you stop using it. The Windows app uses the operating system’s
 secure storage for values, but its SQLite database is not full-disk encrypted. The app lock
 is a screen barrier, not disk encryption.
 
@@ -302,6 +303,6 @@ confirmed before publication.]`
 - [ ] Confirm the lawful basis for named-person and portal data.
 - [ ] Confirm the email-delivery provider and add it to the processor register.
 - [~] Privacy/support mailbox recorded as `financehub+pauluk83@gmail.com`; controller service address still open.
-- [ ] Implement the demo + hosted account-settings build, block real-budget loading, and add email verification before publishing.
+- [~] The demo-only hosted restriction was withdrawn by the owner on 2026-11-17; the hosted site now loads a real budget with the confirmed-email rule enforced, and plaintext browser storage is accepted as RA-3. This notice text must be reviewed against that model.
 - [ ] Reconcile this notice with `DATA_MAP.md`, `DPIA.md` Addendum A and `RETENTION_SCHEDULE.md`.
 - [ ] Obtain UK legal and privacy review before publication.

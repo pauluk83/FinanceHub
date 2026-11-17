@@ -1,8 +1,8 @@
 # Risk Acceptance Register
 
-**Status:** **RA-1 and RA-2 signed by the owner on 2026-11-17.** Both entries record an
-accepted risk with conditions; each signature note says which evidence was filed and what
-is still outstanding. **C3 is accepted, not eliminated** — C1 processor evidence and an
+**Status:** **RA-1, RA-2 and RA-3 signed by the owner on 2026-11-17.** Each entry records
+an accepted risk with conditions; each signature note says which evidence was filed and
+what is still outstanding. **C3 is accepted, not eliminated** — C1 processor evidence and an
 independent penetration test remain open. The code-signing gate is closed only because the
 owner accepted the unsigned distribution risk in RA-2.
 
@@ -156,11 +156,56 @@ for budget data or credentials (item 5) remains outstanding.
 
 ---
 
+## RA-3 — Accepted risk: plaintext browser storage for the hosted budget
+
+**Related:** S-04; DPIA condition C2 (superseded 2026-11-17); data map `F3`.
+
+**Decision:** the owner withdrew the demo-only hosted model on 2026-11-17, so a signed-in
+account with a confirmed email opens, edits and syncs its real budget at
+`https://financehub.freedev.app/`. The hosted build holds the budget, session, restore
+points and sync metadata in unencrypted browser `localStorage`.
+
+**Risk being considered:** anyone who can use that browser profile, or a device where the
+site was used without clearing site data, can read the budget without the app passphrase.
+A script-injection flaw on the origin or a malicious browser extension could read it too.
+The data outlives sign-out until site data is cleared.
+
+**Controls relied on:**
+
+| Control | Status |
+| --- | --- |
+| Confirmed email required before cloud sync | Implemented as a client gate; Supabase “Confirm email” is deliberately off |
+| Supabase RLS scoped to `auth.uid()` | Policies applied; owner-attested two-account isolation test |
+| HTTPS transport | Live site serves over HTTPS |
+| Session ends on sign-out | Sign-out ends the Supabase session |
+| Notice discloses plaintext browser storage | Draft updated 2026-11-17 |
+| Trusted-device guidance | Draft notice text |
+
+**Not in place:** encryption of browser-stored budget data; automatic purge of stored
+budget on sign-out; anything beyond the exact Supabase CSP origin.
+
+**Residual if signed:** **Medium–High**, accepted by the owner.
+
+**Conditions:**
+
+1. The notice keeps disclosing that browser storage is not encrypted.
+2. Confirmed email stays required before cloud sync.
+3. Review before charging, before the hosted app becomes the primary product, or if a
+   browser-storage encryption route lands.
+4. Any report of budget data read from a shared device is treated as a security incident.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-17
+
+**Review date:** 2027-11-17
+
+---
+
 ## Proposal status
 
 | ID | Risk | Proposal | Provisional residual | Signature | Status |
 | --- | --- | --- | --- | --- | --- |
 | RA-1 | Cloud budget not end-to-end encrypted | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — C3 accepted; C1 evidence and pen test open** |
+| RA-3 | Hosted budget in plaintext browser storage | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — hosted real-budget model permitted** |
 | RA-2 | Unsigned installer/updater | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — code-signing gate closed as accepted risk** |
 
 **C3 status:** accepted risk. RA-1 is signed and dated, so the plaintext-at-rest model is

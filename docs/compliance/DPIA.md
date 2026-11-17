@@ -199,11 +199,11 @@ Public production is conditional on all of the following evidence:
 1. **C1 — Data map validated:** Supabase region, sub-processors, email provider, hosting
    logs and processor backup windows are recorded in `PROCESSOR_REGISTER.md`; every “to
    confirm” item is closed and the register is signed.
-2. **C2 — Hosted-web storage:** the public hosted build is restricted to a synthetic demo
-   and hosted account settings; passkeys and deletion may work there, but no real budget
-   may be signed in to, loaded, viewed, edited or synced. Real budgets stay in the Windows
-   app. The gate is implemented locally; C2 is open until it is released, checked on the
-   live build and reflected in the notice.
+2. **C2 — Hosted-web storage (superseded 2026-11-17):** the demo-only restriction was
+   withdrawn by the owner, so the hosted build now loads and syncs a real budget for a
+   signed-in, confirmed account. Browser storage is plaintext, which is accepted in RA-3
+   of `RISK_ACCEPTANCE_REGISTER.md`; the notice must disclose it, and a trusted-device
+   instruction applies. C2 is no longer a blocker but its residual risk stays recorded.
 3. **C3 — Cloud encryption decision:** the owner is considering an unsigned proposal to
    keep the wider budget document plaintext at rest under a risk acceptance, rather than
    encrypting it. The notice must disclose that it is not end-to-end encrypted. C3 remains
