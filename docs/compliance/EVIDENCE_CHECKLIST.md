@@ -25,6 +25,7 @@ budget data or identity documents.
 ## Security controls
 
 - [~] Partial — owner attests 16 Nov 2026 that two-account sync isolation passed; no dated build artifact, so this is not closed. Two-device conflict still open.
+- [x] Hosted sign-in verified end to end on the moved origin 17 Nov 2026: Google OAuth returned to `https://financehub-uk.pages.dev/`, the PKCE token exchange and `financehub_pull_changes` returned 200, the real budget loaded sync'd as the owner on build `8d87c3c46516`, and the console was clean. This is a single-account live check, not the two-account isolation test.
 - [~] Partial — client email-verification gate implemented; Supabase Confirm email is currently enabled, but custom SMTP is disabled and the default service is non-production (2 messages/hour). Live signup/resend test remains open.
 - [ ] Service-role key never present in client code or public assets.
 - [x] TOTP setup removed from Settings; passkeys are the in-app second-factor option. Existing identity-provider factors are outside FinanceHub's UI.
