@@ -4,6 +4,7 @@ import {
   isStarlingUuid,
   normaliseStarlingAccounts,
   starlingDateRangeProblem,
+  starlingFetchWindow,
   starlingImportRows,
 } from '../core/starling.ts';
 
@@ -113,6 +114,28 @@ test('a missing direction falls back to the amount sign', () => {
     ['positive', 'Income', 500],
     ['negative', 'Expense', 700],
   ]);
+});
+
+test('the Starling fetch window runs through today, and through a later As-of date', () => {
+  // The As-of date lags today: recent settled rows still have to be fetched.
+  assert.deepEqual(starlingFetchWindow('2026-11-01', '2026-11-13', '2026-11-17'), {
+    min: '2026-11-01',
+    max: '2026-11-17',
+    problem: null,
+  });
+  // A later As-of date (month-end reconciliation) stays the upper bound.
+  assert.deepEqual(starlingFetchWindow('2026-11-01', '2026-11-30', '2026-11-17'), {
+    min: '2026-11-01',
+    max: '2026-11-30',
+    problem: null,
+  });
+  // Extending a stale open period past a year falls back to the As-of window.
+  const stale = starlingFetchWindow('2024-01-01', '2024-12-31', '2026-11-17');
+  assert.deepEqual(stale, { min: '2024-01-01', max: '2024-12-31', problem: null });
+  // ...and still reports Starling's one-year limit when the As-of window breaks it.
+  const tooLong = starlingFetchWindow('2023-01-01', '2024-06-01', '2026-11-17');
+  assert.equal(tooLong.max, '2024-06-01');
+  assert.match(tooLong.problem ?? '', /one year/i);
 });
 
 test('Starling date ranges reject invalid and longer-than-one-year windows', () => {

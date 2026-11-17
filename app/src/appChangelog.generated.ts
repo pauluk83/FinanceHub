@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.17",
-  "buildId": "d44175965d83",
+  "buildId": "4454c234aa93",
   "builtAt": "2026-11-17",
   "releases": [
     {
@@ -21,7 +21,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Add dashboard bill and income countdowns",
             "Added a desktop-only Starling personal feed that imports settled transactions into the existing review grid. It is not Open Banking, uses a personal access token stored in the Windows encrypted store, and never posts automatically.",
             "Updated the Import guide for the Starling personal feed.",
-            "Restored sign-in in Windows builds by bundling the public Supabase client configuration."
+            "Restored sign-in in Windows builds by bundling the public Supabase client configuration.",
+            "Starling feed fetches settled transactions through today, so rows newer than the As-of date are visible in the review grid"
           ]
         }
       ]

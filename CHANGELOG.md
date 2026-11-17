@@ -15,6 +15,7 @@ and the build time.
 - Added a desktop-only Starling personal feed that imports settled transactions into the existing review grid. It is not Open Banking, uses a personal access token stored in the Windows encrypted store, and never posts automatically.
 - Updated the Import guide for the Starling personal feed.
 - Restored sign-in in Windows builds by bundling the public Supabase client configuration.
+- Starling feed fetches settled transactions through today, so rows newer than the As-of date are visible in the review grid
 
 ## [2026.11.16] — 16 November 2026
 

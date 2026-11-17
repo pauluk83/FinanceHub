@@ -129,6 +129,28 @@ export function starlingImportRows(input: unknown): StarlingImportRow[] {
   return rows.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
 }
 
+/**
+ * The feed window runs from the lock cutoff through today (or through the As-of
+ * date when that is later), so settled rows newer than the budget's As-of date
+ * still reach the review grid. The caller flags anything after the As-of date as
+ * out of window; those rows show what has happened but cannot be added until the
+ * As-of date moves forward.
+ */
+export function starlingFetchWindow(
+  lockCutoff: string,
+  asOfDate: string,
+  today: string,
+): { min: string; max: string; problem: string | null } {
+  const todayMax = DATE_RE.test(asOfDate) && asOfDate > today ? asOfDate : today;
+  if (!starlingDateRangeProblem(lockCutoff, todayMax)) {
+    return { min: lockCutoff, max: todayMax, problem: null };
+  }
+  // Starling rejects ranges longer than a year. Fall back to the As-of window so an
+  // old open period keeps its previous behaviour instead of failing outright.
+  const asOfMax = DATE_RE.test(asOfDate) ? asOfDate : todayMax;
+  return { min: lockCutoff, max: asOfMax, problem: starlingDateRangeProblem(lockCutoff, asOfMax) };
+}
+
 /** Starling's non-paginated feed endpoints reject ranges longer than one year. */
 export function starlingDateRangeProblem(min: string, max: string): string | null {
   if (!DATE_RE.test(min) || !DATE_RE.test(max)) return 'Choose a valid start and end date.';

@@ -12,7 +12,7 @@ import { decodeBackupDataset } from '../backup';
 import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
 import { backupFileProblem, countCsvRows, csvFileProblem, csvRowProblem } from '../../../core/importLimits';
 import { classifyAccount } from '../../../core/accounts';
-import { normaliseStarlingAccounts, starlingDateRangeProblem, starlingImportRows, type StarlingAccount } from '../../../core/starling';
+import { normaliseStarlingAccounts, starlingFetchWindow, starlingImportRows, type StarlingAccount } from '../../../core/starling';
 import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { createVault, legacySecrets, rotateVault, sealVault, stripLegacySecrets, unlockVault, VAULT_MAX_HINT, VAULT_MIN_PASSPHRASE, type VaultField, type VaultSecrets } from '../vault';
 import { AppLockSection } from './appLock';
@@ -297,9 +297,9 @@ export function ImportView({ ds, update, notify }: ViewProps) {
       setBankError('This budget is in GBP. Choose a GBP Starling account.');
       return;
     }
-    const rangeProblem = starlingDateRangeProblem(ds.settings.lockCutoff, ds.settings.asOfDate);
-    if (rangeProblem) {
-      setBankError(rangeProblem);
+    const range = starlingFetchWindow(ds.settings.lockCutoff, ds.settings.asOfDate, todayIso());
+    if (range.problem) {
+      setBankError(range.problem);
       return;
     }
     setBankBusy(true);
@@ -308,8 +308,8 @@ export function ImportView({ ds, update, notify }: ViewProps) {
       const result = await starlingBridge.transactions({
         accountUid: selected.accountUid,
         categoryUid: selected.defaultCategoryUid,
-        min: ds.settings.lockCutoff,
-        max: ds.settings.asOfDate,
+        min: range.min,
+        max: range.max,
       });
       if (!result.ok) {
         setBankError(result.error ?? 'Starling transactions could not be loaded.');
@@ -326,9 +326,10 @@ export function ImportView({ ds, update, notify }: ViewProps) {
       }));
       stageCandidates(candidates, `Starling — ${selected.name}`);
       setError('');
+      const afterAsOf = rows.filter((row) => row.date > ds.settings.asOfDate).length;
       notify(rows.length === 0
-        ? 'No settled Starling transactions in the open period'
-        : `${rows.length} settled Starling transaction${rows.length === 1 ? '' : 's'} loaded — review before adding`);
+        ? 'No settled Starling transactions in this range'
+        : `${rows.length} settled Starling transaction${rows.length === 1 ? '' : 's'} loaded — review before adding${afterAsOf > 0 ? ` (${afterAsOf} after your As-of date of ${dateUk(ds.settings.asOfDate)})` : ''}`);
     } catch {
       setBankError('Starling transactions could not be loaded.');
     } finally {
@@ -454,7 +455,10 @@ export function ImportView({ ds, update, notify }: ViewProps) {
               </Table>
             </div>
             <div className="toolbar" style={{ borderBottom: 0, borderTop: '1px solid var(--line)' }}>
-              <span className="muted small">Duplicates are skipped by default; tick one only if it is a genuine second payment. Out-of-window rows cannot be added.</span>
+              <span className="muted small">
+                Duplicates are skipped by default; tick one only if it is a genuine second payment. Out-of-window rows cannot be added.
+                {outsideCount > 0 ? ` ${outsideCount} row${outsideCount === 1 ? '' : 's'} fall outside ${dateUk(ds.settings.lockCutoff)} → ${dateUk(ds.settings.asOfDate)}; move the As-of date forward in Settings → Budget basics to import newer rows.` : ''}
+              </span>
               <div className="toolbar-spacer" />
               <button className="btn primary" disabled={ready.length === 0} onClick={commit}>Add {ready.length} to log</button>
             </div>
@@ -549,7 +553,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
                 </button>
               </div>
               <div className="muted small">
-                Fetching uses the open period {dateUk(ds.settings.lockCutoff)} → {dateUk(ds.settings.asOfDate)} and imports into the account selected above. Only settled items are offered; pending and reversed items are excluded.
+                Fetching covers {dateUk(ds.settings.lockCutoff)} through today, or through the As-of date when that is later, and imports into the account selected above. Rows dated after the As-of date are shown but need the As-of date moved forward before they can be added. Only settled items are offered; pending and reversed items are excluded.
               </div>
             </>
           )}

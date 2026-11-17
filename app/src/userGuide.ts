@@ -382,14 +382,14 @@ export const USER_GUIDE: GuideEntry[] = [
     summary: 'Import a bank CSV or your own Starling feed: review every row, then append — nothing posts until you confirm.',
     steps: [
       'Choose a CSV and confirm the columns and account.',
-      'On Windows, you can instead save a Starling personal access token and fetch settled transactions for the open period.',
+      'On Windows, you can instead save a Starling personal access token and fetch settled transactions from the lock cutoff through today.',
       'Review duplicate warnings and rejected rows, and fix the file before continuing.',
       'Confirm to append the rows, then reconcile the account against its statement.',
     ],
     notes: [
       'Imports never post into locked months and never silently overwrite existing rows.',
       'File size and row limits are shown before an import starts.',
-      'The Starling feed is Starling’s own personal API, not Open Banking. Its token stays in the Windows encrypted store; pending items are excluded and you can forget or revoke the token.',
+      'The Starling feed is Starling’s own personal API, not Open Banking. Its token stays in the Windows encrypted store; pending items are excluded and you can forget or revoke the token. Rows dated after the As-of date are shown but need the As-of date moved forward before they can be added.',
     ],
   },
   {
