@@ -16,6 +16,7 @@ and the build time.
 - Updated the Import guide for the Starling personal feed.
 - Restored sign-in in Windows builds by bundling the public Supabase client configuration.
 - Starling feed fetches settled transactions through today, so rows newer than the As-of date are visible in the review grid
+- Import hints name the actual As-of date and point to Settings → Budget when rows fall outside it
 
 ## [2026.11.16] — 16 November 2026
 

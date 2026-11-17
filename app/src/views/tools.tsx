@@ -457,7 +457,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
             <div className="toolbar" style={{ borderBottom: 0, borderTop: '1px solid var(--line)' }}>
               <span className="muted small">
                 Duplicates are skipped by default; tick one only if it is a genuine second payment. Out-of-window rows cannot be added.
-                {outsideCount > 0 ? ` ${outsideCount} row${outsideCount === 1 ? '' : 's'} fall outside ${dateUk(ds.settings.lockCutoff)} → ${dateUk(ds.settings.asOfDate)}; move the As-of date forward in Settings → Budget basics to import newer rows.` : ''}
+                {outsideCount > 0 ? ` ${outsideCount} row${outsideCount === 1 ? '' : 's'} fall outside ${dateUk(ds.settings.lockCutoff)} → ${dateUk(ds.settings.asOfDate)}; move the As-of date forward in Settings → Budget to import newer rows.` : ''}
               </span>
               <div className="toolbar-spacer" />
               <button className="btn primary" disabled={ready.length === 0} onClick={commit}>Add {ready.length} to log</button>
@@ -553,7 +553,7 @@ export function ImportView({ ds, update, notify }: ViewProps) {
                 </button>
               </div>
               <div className="muted small">
-                Fetching covers {dateUk(ds.settings.lockCutoff)} through today, or through the As-of date when that is later, and imports into the account selected above. Rows dated after the As-of date are shown but need the As-of date moved forward before they can be added. Only settled items are offered; pending and reversed items are excluded.
+                Fetching covers {dateUk(ds.settings.lockCutoff)} through today, or through the As-of date when that is later, and imports into the account selected above. Rows dated after your As-of date ({dateUk(ds.settings.asOfDate)}) still appear, but move that date forward in Settings → Budget before they can be added. Only settled items are offered; pending and reversed items are excluded.
               </div>
             </>
           )}
