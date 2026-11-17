@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Bar, Card, Donut, Empty, Field, Money, Section, Table } from '../components';
-import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct } from '../format';
+import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct, todayIso } from '../format';
+import { countdownLabel, daysUntil, incomeCountdownLabel } from '../../../core/countdowns';
+import type { ScheduleRow } from '../../../core/engine';
 import { groupHolidayTrips } from '../../../core/holidays';
 import { accountsNeedingReview } from '../../../core/accounts';
 import { duplicateGroups } from '../../../core/importDedupe';
@@ -16,6 +18,8 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
     return next;
   });
   const d = engine.dashboard(year, month);
+  const today = todayIso();
+  const incomeDue = scheduledIncome(ds, year, month, today);
   const ytd = d.ytd;
   const refMonths = (ds.reference?.months ?? []) as any[];
   // Reconciliation against the workbook uses the uncorrected ledger: the months
@@ -300,16 +304,20 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
           sub={`Resolved for ${MONTH_LONG[month - 1]} — paid automatically on the due date`}
           actions={<button className="btn ghost sm" onClick={() => go('bills')}>View bills</button>}
         >
-          <Table head={['Bill', 'Due', 'Method', 'Amount', 'Status']} numHead={[3]}>
-            {d.bills.map((b) => (
-              <tr key={b.name}>
-                <td>{b.name}</td>
-                <td className="muted">{dateUk(b.dueDate)}</td>
-                <td className="muted small">{b.paymentMethod || '—'}</td>
-                <td className="num"><strong>{gbp(b.amountPence)}</strong></td>
-                <td>{b.paid ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}</td>
-              </tr>
-            ))}
+          <Table head={['Bill', 'Due', 'Countdown', 'Method', 'Amount']} numHead={[4]}>
+            {d.bills.map((b) => {
+              const days = daysUntil(b.dueDate, today);
+              const tone = b.paid ? 'green' : days < 0 ? 'red' : days <= 7 ? 'amber' : 'neutral';
+              return (
+                <tr key={b.name}>
+                  <td>{b.name}</td>
+                  <td className="muted">{dateUk(b.dueDate)}</td>
+                  <td><Badge tone={tone}>{b.paid ? 'Paid' : countdownLabel(days)}</Badge></td>
+                  <td className="muted small">{b.paymentMethod || '—'}</td>
+                  <td className="num"><strong>{gbp(b.amountPence)}</strong></td>
+                </tr>
+              );
+            })}
           </Table>
           {d.bills.length === 0 && <Empty>No bills scheduled for this month.</Empty>}
         </Section>
@@ -378,8 +386,47 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         </Section>
       </div>
 
+      <Section
+        title="Income due"
+        sub="PIP and Universal Credit dates for this month, counted from today"
+        actions={<button className="btn ghost sm" onClick={() => go('income')}>View income schedule</button>}
+      >
+        <Table head={['Source', 'Date', 'Amount', 'Countdown']} numHead={[2]}>
+          {incomeDue.map((payment) => (
+            <tr key={payment.key}>
+              <td>{payment.source}</td>
+              <td className="muted">{dateUk(payment.date)}</td>
+              <td className="num"><strong>{gbp(payment.amountPence)}</strong></td>
+              <td>
+                <Badge tone={payment.days < 0 ? 'neutral' : payment.days <= 7 ? 'amber' : 'blue'}>
+                  {incomeCountdownLabel(payment.days)}
+                </Badge>
+              </td>
+            </tr>
+          ))}
+        </Table>
+        {incomeDue.length === 0 && <Empty>No PIP or UC payment scheduled for this month.</Empty>}
+      </Section>
+
     </>
   );
+}
+
+function scheduledIncome(ds: ViewProps['ds'], year: number, month: number, today: string) {
+  const label = MONTHS[month - 1];
+  const hit = (row: ScheduleRow) => year === 2027 ? row.year2027 : year === 2028 ? row.year2028 : row.year2026;
+  const rows = [
+    ...ds.incomeSchedules.pip
+      .filter((row) => row.month === label)
+      .map((row, index) => ({ key: `pip-${index}-${row.month}`, source: 'PIP', ...hit(row) })),
+    ...ds.incomeSchedules.uc
+      .filter((row) => row.month === label)
+      .map((row, index) => ({ key: `uc-${index}-${row.month}`, source: 'Universal Credit (UC)', ...hit(row) })),
+  ]
+    .filter((row) => row.date && Number(row.date.slice(0, 4)) === year)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({ ...row, days: daysUntil(row.date, today) }));
+  return rows;
 }
 
 function feedbackExcerpt(message: string, max = 150) {

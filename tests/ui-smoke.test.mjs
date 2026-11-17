@@ -287,6 +287,39 @@ test('the update dialog shows delta size, speed, progress and install controls',
   assert.match(ready, /Restart and install/);
 });
 
+test('countdown helpers handle today, future, overdue and DST boundaries', async () => {
+  const { daysUntil, countdownLabel, incomeCountdownLabel } = await server.ssrLoadModule('/../core/countdowns.ts');
+
+  assert.equal(daysUntil('2026-11-16', '2026-11-16'), 0);
+  assert.equal(daysUntil('2026-11-19', '2026-11-16'), 3);
+  assert.equal(daysUntil('2026-11-15', '2026-11-16'), -1);
+  assert.equal(daysUntil('2026-03-30', '2026-03-28'), 2);
+  assert.equal(countdownLabel(0), 'Due today');
+  assert.equal(countdownLabel(1), 'Due tomorrow');
+  assert.equal(countdownLabel(-2), '2 days overdue');
+  assert.equal(incomeCountdownLabel(-2), '2 days ago');
+});
+
+test('the dashboard shows bill and income countdowns', async () => {
+  const { Dashboard } = await server.ssrLoadModule('/src/views/overview.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const ds = dataset({
+    dataset: {
+      incomeSchedules: {
+        pip: [{ month: 'Nov', year2026: { date: '2026-11-20', amountPence: 18_000 }, year2027: { date: '', amountPence: 0 }, year2028: { date: '', amountPence: 0 } }],
+        uc: [{ month: 'Nov', year2026: { date: '2026-11-25', amountPence: 12_000 }, year2027: { date: '', amountPence: 0 }, year2028: { date: '', amountPence: 0 } }],
+      },
+    },
+  });
+  const html = render(Dashboard, props(ds, { engine: buildEngine(ds) }));
+
+  assert.match(html, /Bills due/);
+  assert.match(html, /Countdown/);
+  assert.match(html, /Income due/);
+  assert.match(html, /PIP/);
+  assert.match(html, /Universal Credit \(UC\)/);
+});
+
 test('email verification is required for unconfirmed email accounts only', async () => {
   const { emailNeedsVerification } = await server.ssrLoadModule('/src/auth.ts');
 
