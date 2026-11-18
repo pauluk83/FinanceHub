@@ -178,6 +178,23 @@ export const USER_GUIDE: GuideEntry[] = [
     ],
   },
   {
+    id: 'reports',
+    group: 'Overview',
+    title: 'Reports and category targets',
+    summary: 'Category and tag spending for a month or the whole year, a twelve-month trend, and report-only monthly targets.',
+    steps: [
+      'Choose Show this month or Show whole year, then read the category table with rows, spend, share and remaining target.',
+      'Type a monthly target against a category and leave the field to save it; clear the field to remove the target.',
+      'Review the Targets section for on-track, close-to-target and over-target states, and the Tags table for tagged spending.',
+      'Export the report as CSV or Excel, or print it and choose Save as PDF.',
+    ],
+    notes: [
+      'Reports count ordinary expense rows only: transfers and generated bill rows are excluded, so the total is a categorised-spend view rather than the dashboard expense figure.',
+      'Targets are report-only. They never change a balance, a total, a locked month or any calculation, and they are not written to the budget changelog.',
+      'The yearly view compares twelve months of spend against twelve monthly targets.',
+    ],
+  },
+  {
     id: 'transactions',
     group: 'Ledger',
     title: 'Transactions',
@@ -437,6 +454,22 @@ export const USER_GUIDE: GuideEntry[] = [
     notes: [
       'Statements are a report — edit the underlying rows in Transactions.',
       'Locked months are included exactly as they were closed. All years puts every matching movement in date order.',
+    ],
+  },
+  {
+    id: 'evidence',
+    group: 'Tools',
+    title: 'Evidence packs',
+    summary: 'Printable and Excel packs for a provider dispute, a month close or benefits evidence, built from this budget.',
+    steps: [
+      'Choose Provider dispute, Month close or Benefits, then pick the provider, year or month the pack should cover.',
+      'Check the summary and the previewed sheets before exporting.',
+      'Choose Print / Save PDF to open the print dialog, or Export Excel for a workbook with every sheet.',
+    ],
+    notes: [
+      'A locked month uses its frozen snapshot; an open month is labelled live figures and must not be presented as a closed month.',
+      'Packs never include provider credentials, tokens, vault fields or full account numbers.',
+      'A provider pack is only produced when that provider-year has statement rows; an empty template is never invented.',
     ],
   },
   {

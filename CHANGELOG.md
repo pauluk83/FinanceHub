@@ -10,6 +10,7 @@ and the build time.
 ### Changed
 
 - Publish the Windows installer for the ranked budget delivery and audit fixes
+- Add bill price history and expiry reminders, Ctrl+K budget search, spending reports with report-only targets, evidence packs, and opt-in email reminder digests
 
 ## [2026.11.18] — 18 November 2026
 

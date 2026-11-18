@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.19",
-  "buildId": "6c8b322d2a8d",
+  "buildId": "1f9e457c1444",
   "builtAt": "2026-11-18",
   "releases": [
     {
@@ -15,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Publish the Windows installer for the ranked budget delivery and audit fixes"
+            "Publish the Windows installer for the ranked budget delivery and audit fixes",
+            "Add bill price history and expiry reminders, Ctrl+K budget search, spending reports with report-only targets, evidence packs, and opt-in email reminder digests"
           ]
         }
       ]

@@ -3,6 +3,8 @@
  *
  *   npm run release -- "What changed"              dated version, note, rebuild, deploy
  *   npm run release -- "What changed" --no-deploy  build only
+ *   npm run release -- "What changed" --version 2026.11.20  explicit version (owner choice)
+ *   npm run release -- "What changed" --allow-tag-move       allow an explicit version to reuse a tag
  *   npm run release:bump -- minor "What changed"   deliberate milestone bump only
  *   npm run release:check                          verify coherence, live parity when possible
  *
@@ -202,7 +204,7 @@ async function httpsRead(pathname) {
   return response.text();
 }
 
-async function localChecks({ requireUpdateAssets = false } = {}) {
+async function localChecks({ requireUpdateAssets = false, allowTagMismatch = false } = {}) {
   let failures = 0;
   const pass = (message) => console.log(`PASS  ${message}`);
   const fail = (message) => {
@@ -223,7 +225,10 @@ async function localChecks({ requireUpdateAssets = false } = {}) {
   }
   const tagSha = taggedCommit(pkg.version);
   const tagIssue = versionTagProblem(pkg.version, tagSha, headCommit());
-  if (tagIssue) fail(tagIssue);
+  if (tagIssue && allowTagMismatch) {
+    console.log(`WARN  ${tagIssue}`);
+    console.log(`WARN  continuing because --allow-tag-move was requested; move and push v${pkg.version} after committing`);
+  } else if (tagIssue) fail(tagIssue);
   else if (tagSha) pass(`tag v${pkg.version} matches HEAD`);
   else console.log(`SKIP  tag v${pkg.version} — not created yet`);
 
@@ -402,14 +407,25 @@ function requireNote(note) {
 }
 
 /** Normal release: version from the release date, note added, artefacts rebuilt. */
-function release(note, deploy) {
+function release(note, deploy, options = {}) {
   const text = requireNote(note);
   if (deploy && !canDeploy()) {
     throw new Error('Not signed in to Cloudflare. Run `npx wrangler login` once, or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for this command only. Use --no-deploy to build without publishing.');
   }
   const pkg = JSON.parse(read('package.json'));
-  const version = releaseVersion();
-  assertVersionTagFree(version);
+  const version = options.version ?? releaseVersion();
+  if (!/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(version)) {
+    throw new Error(`Explicit version ${version} is not a release date (YYYY.M.D)`);
+  }
+  if (options.allowTagMove) {
+    const problem = versionTagProblem(version, taggedCommit(version), headCommit());
+    if (problem) {
+      console.warn(`WARNING  ${problem}`);
+      console.warn(`WARNING  --allow-tag-move is overriding the guard for v${version}; the published installer will be replaced.`);
+    }
+  } else {
+    assertVersionTagFree(version);
+  }
   const previous = pkg.version;
   writeFileSync(CHANGELOG, addNote(prepareRelease(read('CHANGELOG.md'), version), version, text));
   if (pkg.version !== version) {
@@ -448,7 +464,13 @@ function bump(kind, note, deploy) {
 
 async function main(args) {
   const deploy = !args.includes('--no-deploy');
-  const clean = args.filter((value) => value !== '--no-deploy');
+  const allowTagMove = args.includes('--allow-tag-move');
+  const versionIndex = args.indexOf('--version');
+  const explicitVersion = versionIndex >= 0 ? args[versionIndex + 1] : undefined;
+  const clean = args.filter((value, index) => value !== '--no-deploy'
+    && value !== '--allow-tag-move'
+    && value !== '--version'
+    && !(versionIndex >= 0 && index === versionIndex + 1));
   if (clean[0] === 'check') {
     const failures = await localChecks({ requireUpdateAssets: true });
     process.exit(failures ? 1 : 0);
@@ -459,8 +481,8 @@ async function main(args) {
     console.log(failures ? `release ${version} built but coherence checks failed` : `release ${version} complete`);
     process.exit(failures ? 1 : 0);
   }
-  const version = release(clean.join(' '), deploy);
-  const failures = await localChecks();
+  const version = release(clean.join(' '), deploy, { version: explicitVersion, allowTagMove });
+  const failures = await localChecks({ allowTagMismatch: allowTagMove });
   console.log(failures ? `release ${version} built but coherence checks failed` : `release ${version} complete`);
   process.exit(failures ? 1 : 0);
 }

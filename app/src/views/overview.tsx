@@ -9,6 +9,7 @@ import { accountsNeedingReview } from '../../../core/accounts';
 import { duplicateGroups } from '../../../core/importDedupe';
 import { providerBalancesForYear } from '../../../core/providerSnapshot';
 import { monthLockNetWorthSnapshot } from '../../../core/assets';
+import { targetsSummary } from '../../../core/reports';
 import { buildStatementChecks, reconciliationGate, reconciliationKey, reconciliationRows } from '../../../core/reconciliation';
 import { explainAccount, explainBill, explainCard, explainLock, explainMonth, explainPerson } from '../../../core/explain';
 import type { Explanation } from '../../../core/explain';
@@ -24,6 +25,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
     return next;
   });
   const d = engine.dashboard(year, month);
+  const categoryTargets = targetsSummary(ds, year, month);
   const today = todayIso();
   const incomeDue = scheduledIncome(ds, year, month, today);
   const ytd = d.ytd;
@@ -420,6 +422,34 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         </Table>
         {incomeDue.length === 0 && <Empty>No PIP or UC payment scheduled for this month.</Empty>}
       </Section>
+
+      {categoryTargets.targets.length > 0 && (
+        <Section
+          title="Category targets"
+          sub={`Report-only progress for ${MONTH_LONG[month - 1]} ${year}; targets never change a balance`}
+          actions={<button className="btn ghost sm" onClick={() => go('reports')}>Open reports</button>}
+        >
+          <Table head={['Category', 'Spent', 'Target', 'Remaining', 'Progress']} numHead={[1, 2, 3]}>
+            {categoryTargets.targets.slice(0, 6).map((entry) => (
+              <tr key={entry.category}>
+                <td><strong>{entry.category}</strong></td>
+                <td className="num">{gbp(entry.spentPence)}</td>
+                <td className="num">{gbp(entry.targetPence)}</td>
+                <td className="num">{gbp(entry.remainingPence)}</td>
+                <td style={{ minWidth: 120 }}>
+                  <Bar value={entry.ratio} tone={entry.ratio > 1 ? 'red' : entry.ratio > 0.85 ? 'amber' : 'accent'} />
+                  <div className="muted small">{pct(entry.ratio, 0)}</div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+          {categoryTargets.exceeded > 0 && (
+            <div className="notice warn" style={{ margin: 16 }}>
+              {categoryTargets.exceeded} target{categoryTargets.exceeded === 1 ? ' is' : 's are'} over for this month; {gbp(categoryTargets.remainingPence)} remains across all targets.
+            </div>
+          )}
+        </Section>
+      )}
 
       <ExplainDialog explanation={explanation} onClose={() => setExplanation(null)} />
     </>

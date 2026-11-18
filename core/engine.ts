@@ -18,6 +18,7 @@ import type { Asset } from './assets.ts';
 import type { ImportRule } from './importRules.ts';
 import type { ImportBatch, StatementCheck } from './reconciliation.ts';
 import type { CsvProfile } from './csvMapping.ts';
+import type { Expiry } from './billTimeline.ts';
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
@@ -50,6 +51,11 @@ export interface Tx {
   reconciledAt?: string;
   /** The CSV or bank-feed import that created this row, for one-click undo. */
   importBatchId?: string;
+  /** Set on a merged duplicate: the row that now carries its amount. */
+  mergedIntoRow?: number;
+  /** The duplicate's amount before the merge, kept only for an exact undo. */
+  mergedFromPence?: number;
+  mergedAt?: string;
 }
 
 export interface Account {
@@ -79,6 +85,21 @@ export interface BillChange {
   skip?: boolean;
 }
 export interface BillSheet { name: string; providerKey?: string }
+export interface SavedTransactionFilter {
+  query?: string;
+  account?: string;
+  type?: string;
+  month?: string;
+  category?: string;
+  tag?: string;
+}
+export interface EmailReminderSettings {
+  enabled: boolean;
+  email: string;
+  bills: boolean;
+  expiries: boolean;
+  digestTime: string;
+}
 export interface MonthLock {
   lockedAt: string;
   note?: string;
@@ -148,6 +169,10 @@ export interface Dataset {
     yearOpenings?: Record<string, YearOpeningBalances>;
     /** Notification IDs the owner has already read. */
     notificationReads?: Record<string, string>;
+    /** Saved transaction filter, stored as an interface preference only. */
+    savedFilters?: Record<string, SavedTransactionFilter>;
+    /** Opt-in email reminder preferences; delivery stays off until a server key exists. */
+    emailReminders?: EmailReminderSettings;
   };
   accounts: Account[];
   people: Person[];
@@ -171,6 +196,10 @@ export interface Dataset {
   csvProfiles?: CsvProfile[];
   /** Extra category names supplied by a template; they never carry money. */
   categories?: string[];
+  /** Monthly report-only targets by category, in pence (R16). */
+  categoryTargets?: Record<string, number>;
+  /** Manually recorded insurance, MOT, tenancy and other expiry dates (R15). */
+  expiries?: Expiry[];
   holidays?: Record<string, any[]>;
   guides?: { monthEnd: string[]; newYear: string[] };
   changelog?: any[];

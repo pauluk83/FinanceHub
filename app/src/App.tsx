@@ -34,6 +34,9 @@ import { CalendarView } from './views/calendar';
 import { Forecast } from './views/forecast';
 import { Progress } from './views/progress';
 import { RulesView } from './views/rules';
+import { Reports } from './views/reports';
+import { Evidence } from './views/evidence';
+import { globalSearch } from '../../core/search';
 import { AppChangelogPage, AppChangelogView } from './views/appChangelog';
 import { Holidays } from './views/holidays';
 import { OnboardingView } from './views/onboarding';
@@ -99,6 +102,8 @@ const SUBTITLES: Record<string, string> = {
   appChangelog: 'What changed in each build, with the build id and installer download',
   guides: 'Month-End and New-Year workflows',
   netWorth: 'Bank accounts, savings, assets, cards and debts — and the recorded trend',
+  reports: 'Category and tag spending, twelve-month trend and report-only targets',
+  evidence: 'Printable and Excel evidence packs for provider disputes, month closes and benefits',
   calendar: 'Bills, income, debts and holidays by day, with safe-to-spend',
   rules: 'Review-only import rules: categories and tags, never a balance change',
 };
@@ -604,6 +609,10 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   const current = allItems.find((item) => item.id === view) ?? allItems[0] ?? { id: 'dashboard', label: 'Dashboard', icon: '' };
   const locked = engine.monthlySummary(activeYear, month).locked;
   const filtered = allItems.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
+  const searchResults = useMemo(
+    () => globalSearch(state.dataset, engine, query, 24),
+    [state.dataset, engine, query],
+  );
   const syncBadge = saveError
     ? { label: 'Not saved', tone: 'danger', title: `Changes are not being saved. ${saveError}` }
     : syncStatusLabel(sync);
@@ -634,6 +643,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       case 'calendar': return <CalendarView {...props} />;
       case 'forecast': return <Forecast {...props} />;
       case 'progress': return <Progress {...props} />;
+      case 'reports': return <Reports {...props} />;
+      case 'evidence': return <Evidence {...props} />;
       case 'rules': return <RulesView {...props} />;
       case 'transactions': return <Transactions {...props} />;
       case 'accounts': return <Accounts {...props} />;
@@ -896,15 +907,16 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
             <input
               className="palette-input"
               autoFocus
-              placeholder="Jump to a section…"
+              placeholder="Search sections and this budget…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && filtered[0]) {
-                  setView(filtered[0].id);
-                  setPalette(false);
-                  setQuery('');
-                }
+                if (e.key !== 'Enter') return;
+                if (filtered[0]) setView(filtered[0].id);
+                else if (searchResults[0]) setView(searchResults[0].view);
+                else return;
+                setPalette(false);
+                setQuery('');
               }}
             />
             <div className="palette-list">
@@ -918,7 +930,22 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
                   <span className="group">{MONTH_LONG[month - 1]}</span>
                 </button>
               ))}
-              {filtered.length === 0 && <div className="empty">No section matches “{query}”.</div>}
+              {searchResults.length > 0 && (
+                <div className="muted small" style={{ padding: '8px 12px 2px', borderTop: '1px solid var(--line)' }}>
+                  Budget matches
+                </div>
+              )}
+              {searchResults.map((result) => (
+                <button
+                  key={result.id}
+                  className="palette-item"
+                  onClick={() => { setView(result.view); setPalette(false); setQuery(''); }}
+                >
+                  <span>{result.title}</span>
+                  <span className="group">{result.kind} · {result.detail}</span>
+                </button>
+              ))}
+              {filtered.length === 0 && searchResults.length === 0 && <div className="empty">No section or budget row matches “{query}”.</div>}
             </div>
           </div>
         </div>

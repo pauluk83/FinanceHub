@@ -6,8 +6,9 @@
  * Only the read timestamps are persisted in `settings.notificationReads`.
  */
 import type { Dataset, Engine } from './engine.ts';
+import { expiryReminders } from './billTimeline.ts';
 
-export type NotificationKind = 'bill' | 'account' | 'card';
+export type NotificationKind = 'bill' | 'expiry' | 'account' | 'card';
 export type NotificationSeverity = 'info' | 'warning' | 'critical';
 
 export interface BudgetNotification {
@@ -121,10 +122,23 @@ function balanceNotifications(ds: Dataset, engine: Engine, today: string): Budge
   return notices;
 }
 
+function expiryNotifications(ds: Dataset, today: string, horizonDays: number): BudgetNotification[] {
+  return expiryReminders(ds, today, horizonDays).map((item) => ({
+    id: `expiry:${item.id}:${item.date}`,
+    kind: 'expiry' as const,
+    severity: item.days <= 7 ? 'warning' as const : 'info' as const,
+    title: item.days === 0 ? `${item.label} is due today` : `${item.label} in ${item.days} day${item.days === 1 ? '' : 's'}`,
+    detail: `${item.date} · ${item.kind === 'contract' ? 'Contract end' : item.kind === 'mot' ? 'MOT' : item.kind === 'insurance' ? 'Insurance' : item.kind === 'tenancy' ? 'Tenancy' : 'Expiry'}${item.notes ? ` · ${item.notes}` : ''}`,
+    date: item.date,
+    view: 'bills',
+  }));
+}
+
 export function buildBudgetNotifications(ds: Dataset, engine: Engine, options: NotificationOptions = {}): BudgetNotification[] {
   const today = options.today ?? ds.settings.asOfDate;
-  const horizon = addDays(today, Math.max(0, Math.min(60, options.horizonDays ?? 7)));
-  return [...billNotifications(ds, engine, today, horizon), ...balanceNotifications(ds, engine, today)]
+  const horizonDays = Math.max(0, Math.min(60, options.horizonDays ?? 7));
+  const horizon = addDays(today, horizonDays);
+  return [...billNotifications(ds, engine, today, horizon), ...expiryNotifications(ds, today, horizonDays), ...balanceNotifications(ds, engine, today)]
     .sort((a, b) => {
       const rank: Record<NotificationSeverity, number> = { critical: 0, warning: 1, info: 2 };
       return rank[a.severity] - rank[b.severity] || a.date.localeCompare(b.date) || a.title.localeCompare(b.title);

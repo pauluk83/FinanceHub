@@ -11,6 +11,8 @@ import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
 import { CADENCES, billPrefill, recurringSuggestions, type RecurringSuggestion } from '../../../core/recurring';
+import { bulkEditTransactions } from '../../../core/cleanup';
+import { EXPIRY_KINDS, billPriceSummary, expiryList, newExpiryId, normaliseExpiry, type ExpiryKind } from '../../../core/billTimeline';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
@@ -28,6 +30,10 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [tagFilter, setTagFilter] = useState('All');
   const [page, setPage] = useState(0);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(() => new Set());
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkTags, setBulkTags] = useState('');
+  const [filterName, setFilterName] = useState('');
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
   const [historyRow, setHistoryRow] = useState<number | null>(null);
@@ -96,8 +102,67 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const category = normaliseCategory(form.category);
   const formTags = normaliseTags(form.tags);
 
+  const savedFilters = ds.settings.savedFilters ?? {};
+  const applySavedFilter = (name: string) => {
+    const saved = savedFilters[name];
+    if (!saved) return;
+    setQ(saved.query ?? '');
+    setAccount(saved.account ?? 'All');
+    setType(saved.type ?? 'All');
+    setMFilter(saved.month ?? 'All');
+    setCategoryFilter(saved.category ?? 'All');
+    setTagFilter(saved.tag ?? 'All');
+    notify(`Applied saved filter “${name}”`);
+  };
+  const saveCurrentFilter = () => {
+    const name = filterName.trim().slice(0, 40);
+    if (!name) return notify('Give the filter a name first');
+    update((d) => {
+      d.settings.savedFilters = {
+        ...(d.settings.savedFilters ?? {}),
+        [name]: { query: q, account, type, month: mFilter, category: categoryFilter, tag: tagFilter },
+      };
+    });
+    setFilterName('');
+    notify(`Saved the current filters as “${name}”`);
+  };
+  const deleteSavedFilter = (name: string) => {
+    update((d) => {
+      const next = { ...(d.settings.savedFilters ?? {}) };
+      delete next[name];
+      d.settings.savedFilters = next;
+    });
+    notify(`Removed saved filter “${name}”`);
+  };
+
   const pageSize = 60;
   const pageRows = rows.slice(page * pageSize, (page + 1) * pageSize);
+  const pageAllSelected = pageRows.length > 0 && pageRows.every((row) => selectedRows.has(row.row));
+  const toggleRow = (row: number) => setSelectedRows((current) => {
+    const next = new Set(current);
+    if (next.has(row)) next.delete(row);
+    else next.add(row);
+    return next;
+  });
+  const togglePage = () => setSelectedRows((current) => {
+    const next = new Set(current);
+    if (pageAllSelected) pageRows.forEach((row) => next.delete(row.row));
+    else pageRows.forEach((row) => next.add(row.row));
+    return next;
+  });
+  const applyBulkEdit = () => {
+    if (selectedRows.size === 0) return;
+    if (!bulkCategory.trim() && !bulkTags.trim()) return notify('Enter a category or tags to apply');
+    const locked = (date: string) => engine.monthlySummary(Number(date.slice(0, 4)), Number(date.slice(5, 7))).locked;
+    const patch = {
+      ...(bulkCategory.trim() ? { category: bulkCategory } : {}),
+      ...(bulkTags.trim() ? { tags: normaliseTags(bulkTags) } : {}),
+    };
+    let result = { updated: 0, skipped: 0, message: '' };
+    update((d) => { result = bulkEditTransactions(d, [...selectedRows], patch, locked); });
+    setSelectedRows(new Set());
+    notify(result.message || 'No transactions were updated');
+  };
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
   const history = historyRow === null ? [] : recordHistory(ds, 'transactions', String(historyRow));
   const deleted = deletedTransactions(ds);
@@ -496,6 +561,31 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           </select>
           <button className="btn ghost" onClick={() => { setQ(''); setAccount('All'); setType('All'); setMFilter('All'); setCategoryFilter('All'); setTagFilter('All'); }}>Clear</button>
         </div>
+        <div className="toolbar">
+          <select className="select" value="" onChange={(e) => { if (e.target.value) applySavedFilter(e.target.value); }} aria-label="Saved filters">
+            <option value="">Saved filters…</option>
+            {Object.keys(savedFilters).sort().map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+          <input className="input" placeholder="Name this filter" value={filterName} onChange={(e) => setFilterName(e.target.value)} maxLength={40} />
+          <button className="btn ghost" onClick={saveCurrentFilter}>Save filter</button>
+          {Object.keys(savedFilters).length > 0 && (
+            <button className="btn ghost" onClick={() => deleteSavedFilter(Object.keys(savedFilters).sort().at(-1) ?? '')}>Delete newest</button>
+          )}
+          <div className="toolbar-spacer" />
+          <span className="muted small">Saved filters change no amounts and are never part of the budget changelog.</span>
+        </div>
+
+        {selectedRows.size > 0 && (
+          <div className="toolbar" style={{ background: 'var(--panel-2)' }}>
+            <strong>{selectedRows.size} selected</strong>
+            <input className="input" list="transaction-categories" placeholder="Category" value={bulkCategory} onChange={(e) => setBulkCategory(e.target.value)} aria-label="Bulk category" />
+            <input className="input" placeholder="Tags, comma-separated" value={bulkTags} onChange={(e) => setBulkTags(e.target.value)} aria-label="Bulk tags" />
+            <button className="btn primary sm" onClick={applyBulkEdit}>Apply</button>
+            <button className="btn ghost sm" onClick={() => setSelectedRows(new Set())}>Clear</button>
+            <div className="toolbar-spacer" />
+            <span className="muted small">Locked months are skipped.</span>
+          </div>
+        )}
 
         {adding && (
           <div className="inline-form">
@@ -585,12 +675,20 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           </div>
         )}
 
-        <Table head={['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared', 'Actions']} numHead={[3]}>
+        <Table
+          head={[
+            <input key="select" type="checkbox" aria-label="Select all rows on this page" checked={pageAllSelected} onChange={togglePage} />,
+            'Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared', 'Actions',
+          ]}
+          numHead={[4]}
+        >
           {pageRows.map((t) => (
             <tr key={t.row}>
+              <td><input type="checkbox" aria-label={`Select ${t.date} ${t.comments || 'transaction'}`} checked={selectedRows.has(t.row)} onChange={() => toggleRow(t.row)} /></td>
               <td className="nowrap muted">{dateUk(t.date)}</td>
               <td>
                 {t.account}{' '}
+                {typeof t.mergedIntoRow === 'number' && <Badge tone="violet">Merged into row {t.mergedIntoRow}</Badge>}
                 {kindOf(t.account) === 'unknown' && (linkedUnknownNames.has(t.account)
                   ? <Badge tone="blue">Linked account</Badge>
                   : <Badge tone="amber">Needs review</Badge>)}
@@ -957,6 +1055,24 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   const coveredCount = recurring.filter((entry) => entry.suppressedBy).length;
   const hiddenCount = (ds.recurringDismissed ?? []).length;
   const [suggestedFor, setSuggestedFor] = useState<RecurringSuggestion | null>(null);
+  const [historyBill, setHistoryBill] = useState(ds.bills[0]?.name ?? '');
+  const [expiryDraft, setExpiryDraft] = useState({ label: '', kind: 'insurance' as ExpiryKind, date: '', lead: '30' });
+  const priceSummary = historyBill ? billPriceSummary(ds, historyBill, ds.settings.asOfDate) : null;
+  const expiries = expiryList(ds);
+
+  const addExpiry = () => {
+    const expiry = normaliseExpiry({
+      id: newExpiryId(ds.expiries ?? []),
+      label: expiryDraft.label,
+      kind: expiryDraft.kind,
+      date: expiryDraft.date,
+      leadDays: Number(expiryDraft.lead) || 30,
+    });
+    if (!expiry) return notify('Give the expiry a name and a real calendar date');
+    update((d) => { d.expiries = [...(d.expiries ?? []), expiry]; });
+    setExpiryDraft({ label: '', kind: 'insurance', date: '', lead: '30' });
+    notify(`${expiry.label} added — reminders use its lead time`);
+  };
 
   const prefillBill = (entry: RecurringSuggestion) => {
     const prefill = billPrefill(entry);
@@ -1075,6 +1191,92 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
             </tr>
           ))}
         </Table>
+      </Section>
+
+      <Section
+        title="Price history"
+        sub="Every stored amount for one bill, with the change and annualised cost. No figure here can disagree with the bill engine."
+        actions={
+          <select className="select" value={historyBill} onChange={(e) => setHistoryBill(e.target.value)} aria-label="Bill for price history">
+            {ds.bills.length === 0 && <option value="">No bills</option>}
+            {ds.bills.map((bill) => <option key={bill.name} value={bill.name}>{bill.name}</option>)}
+          </select>
+        }
+      >
+        {priceSummary && priceSummary.points.length > 0 ? (
+          <>
+            <div className="metric-list" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+              <div className="metric"><span>Current amount</span><strong>{gbp(priceSummary.currentPence)}</strong></div>
+              <div className="metric"><span>Annualised</span><strong>{gbp(priceSummary.annualPence)}</strong></div>
+              <div className="metric"><span>Next change</span><strong>{priceSummary.nextChangeDate ? dateUk(priceSummary.nextChangeDate) : '—'}</strong></div>
+            </div>
+            <Table head={['From', 'To', 'Amount', 'Change', 'Annualised', 'Type / note']} numHead={[2, 3, 4]}>
+              {priceSummary.points.map((point, index) => (
+                <tr key={`${point.from}-${index}`}>
+                  <td className="muted nowrap">{point.from ? dateUk(point.from) : '—'}</td>
+                  <td className="muted nowrap">{point.to ? dateUk(point.to) : 'Open-ended'}</td>
+                  <td className="num"><strong>{gbp(point.amountPence)}</strong></td>
+                  <td className="num">
+                    {point.changePence === null ? '—' : (
+                      <span className={point.changePence > 0 ? 'amount neg' : 'amount pos'}>
+                        {point.changePence > 0 ? '+' : '−'}{gbp(Math.abs(point.changePence))}
+                        {point.changePct !== null && <div className="muted small">{pct(point.changePct)}</div>}
+                      </span>
+                    )}
+                  </td>
+                  <td className="num">{gbp(point.annualPence)}</td>
+                  <td className="muted small">{point.changeType}{point.note ? ` · ${point.note}` : ''}</td>
+                </tr>
+              ))}
+            </Table>
+            {priceSummary.nextChange && (
+              <div className="notice info" style={{ margin: 16 }}>
+                The next stored change takes effect on {dateUk(priceSummary.nextChangeDate)} at {gbp(priceSummary.nextChange.amountPence)}, a change of {gbp(priceSummary.nextChange.changePence ?? 0, { sign: true })}.
+              </div>
+            )}
+          </>
+        ) : <Empty>No price history yet. Add a bill amount or an effective-dated bill change.</Empty>}
+      </Section>
+
+      <Section
+        title="Expiry list"
+        sub="Contract ends, insurance, MOT, tenancy and anything else with a date. Reminders appear in Notifications (and the email digest when R6 is enabled)."
+        actions={<Badge tone={expiries.length ? 'blue' : 'neutral'}>{expiries.length} tracked</Badge>}
+      >
+        {expiries.length === 0 ? (
+          <Empty>No expiry dates yet. Add one below or record a provider contract end date.</Empty>
+        ) : (
+          <Table head={['Expiry', 'Date', 'Kind', 'Lead time', 'Source', '']} numHead={[]}>
+            {expiries.map((item) => {
+              const days = Math.round((Date.parse(`${item.date}T00:00:00Z`) - Date.parse(`${ds.settings.asOfDate}T00:00:00Z`)) / 86_400_000);
+              return (
+                <tr key={item.id}>
+                  <td><strong>{item.label}</strong>{item.notes && <div className="muted small">{item.notes}</div>}</td>
+                  <td className="muted nowrap">{dateUk(item.date)}{Number.isFinite(days) && days >= 0 && <div className="small">{days} days</div>}</td>
+                  <td>{EXPIRY_KINDS.find((kind) => kind.id === item.kind)?.label ?? item.kind}</td>
+                  <td className="num">{item.leadDays} days</td>
+                  <td>{item.source === 'provider' ? <Badge tone="blue">Provider contract</Badge> : <Badge>Manual</Badge>}</td>
+                  <td>
+                    {item.source === 'manual' && (
+                      <button className="btn ghost sm" onClick={() => update((d) => { d.expiries = (d.expiries ?? []).filter((entry) => entry.id !== item.id); })}>Remove</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </Table>
+        )}
+        <div className="inline-form">
+          <Field label="Expiry"><input className="input" placeholder="e.g. Car insurance" value={expiryDraft.label} onChange={(e) => setExpiryDraft({ ...expiryDraft, label: e.target.value })} /></Field>
+          <Field label="Date"><input className="input" type="date" value={expiryDraft.date} onChange={(e) => setExpiryDraft({ ...expiryDraft, date: e.target.value })} /></Field>
+          <Field label="Kind">
+            <select className="select" value={expiryDraft.kind} onChange={(e) => setExpiryDraft({ ...expiryDraft, kind: e.target.value as ExpiryKind })}>
+              {EXPIRY_KINDS.map((kind) => <option key={kind.id} value={kind.id}>{kind.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Lead days"><input className="input" type="number" min={0} max={365} value={expiryDraft.lead} onChange={(e) => setExpiryDraft({ ...expiryDraft, lead: e.target.value })} /></Field>
+          <button className="btn primary" onClick={addExpiry}>Add expiry</button>
+        </div>
       </Section>
 
       <Section
