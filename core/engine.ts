@@ -185,8 +185,21 @@ const isCash = (t: Tx) => t.budgetTreatment !== 'Transfer' && t.budgetTreatment 
 const noHaircut = (t: Tx) => t.comments.toLowerCase() !== 'haircut';
 const isCardTagged = (t: Tx) => /\(card\)/i.test(t.comments);
 
-export function buildEngine(ds: Dataset) {
+export interface EngineOptions {
+  /**
+   * Today's calendar date (YYYY-MM-DD). Bills are paid from midnight on their
+   * due date, so a bill due today leaves the balance even before the bank
+   * import that would otherwise move the As-Of date reaches it. Omitting it
+   * keeps the historical As-Of behaviour (used by the parity fixtures).
+   */
+  today?: string;
+}
+
+export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
   const years = [2026, 2027, 2028] as const;
+  const calendarToday = /^\d{4}-\d{2}-\d{2}$/.test(options.today ?? '') ? options.today as string : '';
+  /** Bills count as paid from midnight on their due date, even before the As-Of date catches up. */
+  const paidThrough = calendarToday > ds.settings.asOfDate ? calendarToday : ds.settings.asOfDate;
   const providerKeyBySheet: Record<string, string> = {
     Rent: 'rent', Water: 'water', Ovo: 'ovo', 'Park Xmas': 'parkXmas',
     'Pure Cremation': 'pureCremation', 'Council Tax': 'councilTax', O2: 'o2', Virgin: 'virgin',
@@ -356,7 +369,7 @@ export function buildEngine(ds: Dataset) {
           name: b.name,
           amountPence: billAmount(b, year, month),
           dueDate,
-          paid: b.dueDay > 0 && dueDate <= ds.settings.asOfDate,
+          paid: b.dueDay > 0 && dueDate <= paidThrough,
           paymentMethod: b.paymentMethod,
           linkedSheet: b.linkedSheet,
           account: b.account || primaryAccount,
@@ -627,10 +640,11 @@ export function buildEngine(ds: Dataset) {
     const asOf = ds.settings.asOfDate;
     const movements: { date: string; deltaPence: number; comments: string; type: 'Income' | 'Expense'; row: number }[] = [];
     let syntheticRow = 0;
-    const push = (date: string, deltaPence: number, comments: string, type: 'Income' | 'Expense', row: number) => {
-      if (!date || deltaPence === 0 || date > asOf) return;
+    const push = (date: string, deltaPence: number, comments: string, type: 'Income' | 'Expense', row: number, through = asOf) => {
+      if (!date || deltaPence === 0 || date > through) return;
       movements.push({ date, deltaPence, comments, type, row });
     };
+    const billThrough = paidThrough;
     if (!anchor) return movements;
 
     for (const t of ds.transactions) {
@@ -663,12 +677,12 @@ export function buildEngine(ds: Dataset) {
       }
     }
 
-    for (let year = yearOf(anchor); year <= yearOf(asOf); year++) {
+    for (let year = yearOf(anchor); year <= yearOf(billThrough); year++) {
       for (let month = 1; month <= 12; month++) {
-        if (monthStart(year, month) > asOf) continue;
+        if (monthStart(year, month) > billThrough) continue;
         for (const bill of scheduledBills(year, month)) {
           if (bill.dueDate <= anchor) continue;
-          push(bill.dueDate, -bill.amountPence, `Scheduled bill: ${bill.name}`, 'Expense', --syntheticRow);
+          push(bill.dueDate, -bill.amountPence, `Scheduled bill: ${bill.name}`, 'Expense', --syntheticRow, billThrough);
         }
       }
     }
@@ -898,10 +912,17 @@ export function buildEngine(ds: Dataset) {
     });
   }
 
-  /** Balances stop at the As-Of date in the current month, not at a future month-end. */
+  /**
+   * Balances stop at the As-Of date in the current month, not at a future month-end.
+   * In the live month the cutoff is never earlier than today, so a bill due today
+   * leaves the balance from midnight even before the next bank import.
+   */
   function throughFor(year: number, month: number): string {
     const end = monthEnd(year, month);
-    return year === ds.settings.targetYear && end >= ds.settings.asOfDate ? ds.settings.asOfDate : end;
+    if (year !== ds.settings.targetYear) return end;
+    if (!calendarToday) return end >= ds.settings.asOfDate ? ds.settings.asOfDate : end;
+    if (`${calendarToday.slice(0, 7)}-01` > end) return end;
+    return calendarToday > ds.settings.asOfDate ? calendarToday : ds.settings.asOfDate;
   }
 
   function dashboard(year: number, month: number) {

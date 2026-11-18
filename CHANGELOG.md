@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.18] — 18 November 2026
+
+### Changed
+- Bills due today are treated as paid from midnight and leave the Starling balance even before the next bank import
+
 ## [2026.11.17] — 17 November 2026
 
 ### Changed

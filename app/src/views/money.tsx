@@ -1007,7 +1007,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
 
   return (
     <>
-      <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid automatically when As-Of reaches the due date; inactive bills stay in history">
+      <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid from midnight on the due date and taken from the balance; inactive bills stay in history">
         <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
           {scheduled.map((b) => (
             <tr key={b.name}>

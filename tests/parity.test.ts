@@ -173,6 +173,35 @@ test('a holiday in progress is ongoing, not passed, and stays at the top', () =>
   assert.ok(rows.slice(0, ongoing.length).every((h) => h.ongoing), 'every ongoing row sorts before upcoming and passed ones');
 });
 
+test('a bill due today leaves the Starling balance from midnight, before the next bank import', () => {
+  const primary = ds.settings.primaryAccount || 'Starling';
+  const settings = { ...ds.settings, asOfDate: '2026-11-17' };
+  const dueToday: Dataset = {
+    ...ds,
+    settings,
+    bills: ds.bills.map((b) => (b.name === 'PureGym' ? { ...b, dueDay: 18, baseDueDay: 18 } : b)),
+  };
+  const before = buildEngine(dueToday);
+  const after = buildEngine(dueToday, { today: '2026-11-18' });
+  const due = after.scheduledBills(2026, 11).find((b) => b.name === 'PureGym');
+  assert.equal(due?.dueDate, '2026-11-18');
+  assert.equal(before.scheduledBills(2026, 11).find((b) => b.name === 'PureGym')?.paid, false, 'not paid while the As-Of date is behind');
+  assert.equal(due?.paid, true, 'paid from midnight on the due date');
+  assert.equal(after.throughFor(2026, 11), '2026-11-18', 'the live month balances to today, not the last import');
+  assert.equal(before.starlingBalance(before.throughFor(2026, 11)) - after.starlingBalance(after.throughFor(2026, 11)), 950, 'the £9.50 leaves the balance');
+  assert.equal(after.starlingBalance(after.throughFor(2026, 11)), after.statement(primary, 2026, 11).closingPence, 'the statement still closes at the Dashboard balance');
+  assert.equal(after.throughFor(2026, 10), '2026-10-31', 'October keeps its month-end cutoff');
+  assert.equal(after.starlingBalance('2026-10-31'), before.starlingBalance('2026-10-31'), 'closed months are untouched');
+
+  const tomorrow: Dataset = {
+    ...dueToday,
+    bills: dueToday.bills.map((b) => (b.name === 'PureGym' ? { ...b, dueDay: 19, baseDueDay: 19 } : b)),
+  };
+  const waiting = buildEngine(tomorrow, { today: '2026-11-18' });
+  assert.equal(waiting.scheduledBills(2026, 11).find((b) => b.name === 'PureGym')?.paid, false, 'tomorrow\'s bill is not paid early');
+  assert.equal(waiting.starlingBalance(waiting.throughFor(2026, 11)), before.starlingBalance(before.throughFor(2026, 11)), 'tomorrow\'s bill is not deducted early');
+});
+
 test('due bills auto-mark paid and supply linked provider payments', () => {
   const before = buildEngine({ ...ds, settings: { ...ds.settings, asOfDate: '2026-11-29' } });
   assert.equal(before.scheduledBills(2026, 11).find((b) => b.name === 'Virgin Media')?.paid, false);

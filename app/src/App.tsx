@@ -235,6 +235,25 @@ function readStorageMode(): StorageMode | null {
   return null;
 }
 
+/**
+ * Today's date, refreshed just after midnight so a bill due today starts
+ * reducing the Starling balance without needing a reload.
+ */
+function useToday(): string {
+  const [today, setToday] = useState(todayIso);
+  useEffect(() => {
+    let timer = 0;
+    const schedule = () => {
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+      timer = window.setTimeout(() => { setToday(todayIso()); schedule(); }, midnight.getTime() - now.getTime());
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, []);
+  return today;
+}
+
 function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorkspace, onOpenDemo }: { user: AppUser; onSignOut: () => void; localAccount?: LocalAccountControls; demo?: boolean; onChooseWorkspace: (mode: 'account' | 'local') => void; onOpenDemo?: () => void }) {
   const [loaded] = useState<LoadedState>(() => (demo ? { state: demoState(), status: 'ok' } : loadStateWithStatus(user.id)));
   const [state, setState] = useState(() => {
@@ -293,7 +312,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   const syncRef = useRef(sync);
   syncRef.current = sync;
 
-  const engine = useMemo(() => buildEngine(state.dataset), [state.dataset]);
+  const today = useToday();
+  const engine = useMemo(() => buildEngine(state.dataset, { today }), [state.dataset, today]);
   const yearOptions = useMemo(() => availableYears(state.dataset), [state.dataset]);
   useEffect(() => {
     if (!yearOptions.includes(activeYear)) setActiveYear(state.dataset.settings.targetYear);

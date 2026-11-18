@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.17",
-  "buildId": "8d87c3c46516",
-  "builtAt": "2026-11-17",
+  "version": "2026.11.18",
+  "buildId": "587f07177b7d",
+  "builtAt": "2026-11-18",
   "releases": [
+    {
+      "version": "2026.11.18",
+      "date": "18 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Bills due today are treated as paid from midnight and leave the Starling balance even before the next bank import"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.17",
       "date": "17 November 2026",
