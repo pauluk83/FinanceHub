@@ -70,4 +70,17 @@ async function start() {
   );
 }
 
+// The service worker is for the hosted PWA only. Electron and the local
+// Wrangler preview (http://localhost) keep the normal network path.
+const pwaOrigin = window.location.protocol === 'https:'
+  || window.location.hostname === 'localhost'
+  || window.location.hostname === '127.0.0.1';
+if (import.meta.env.PROD && pwaOrigin && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* offline support is optional; the app still runs online */
+    });
+  });
+}
+
 void start();

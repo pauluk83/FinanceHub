@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FinanceHub">
+  <rect width="512" height="512" rx="112" fill="#0a101c"/>
+  <rect x="72" y="72" width="368" height="368" rx="80" fill="#34d399" opacity="0.14"/>
+  <text x="256" y="316" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="190" font-weight="700" fill="#34d399">FH</text>
+</svg>

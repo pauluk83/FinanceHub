@@ -58,9 +58,16 @@ export function tagsText(tags: readonly string[] | undefined): string {
   return (tags ?? []).join(', ');
 }
 
-export function categoryOptions(transactions: readonly Pick<Tx, 'category'>[]): string[] {
+export function categoryOptions(
+  transactions: readonly Pick<Tx, 'category'>[],
+  presets: readonly string[] = [],
+): string[] {
   const seen = new Set<string>();
   for (const category of STANDARD_CATEGORIES) seen.add(category);
+  for (const preset of presets) {
+    const category = normaliseCategory(preset);
+    if (category) seen.add(category);
+  }
   for (const tx of transactions) {
     const category = normaliseCategory(tx.category);
     if (category) seen.add(category);

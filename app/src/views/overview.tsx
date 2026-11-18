@@ -8,8 +8,14 @@ import { groupHolidayTrips } from '../../../core/holidays';
 import { accountsNeedingReview } from '../../../core/accounts';
 import { duplicateGroups } from '../../../core/importDedupe';
 import { providerBalancesForYear } from '../../../core/providerSnapshot';
+import { monthLockNetWorthSnapshot } from '../../../core/assets';
+import { buildStatementChecks, reconciliationGate, reconciliationKey, reconciliationRows } from '../../../core/reconciliation';
+import { explainAccount, explainBill, explainCard, explainLock, explainMonth, explainPerson } from '../../../core/explain';
+import type { Explanation } from '../../../core/explain';
+import { ExplainButton, ExplainDialog } from '../explain';
 
 export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, lastSavedAt, lastSyncedAt, feedbackItems, openFeedback, userEmail }: ViewProps) {
+  const [explanation, setExplanation] = useState<Explanation | null>(null);
   const [openHolidayTrips, setOpenHolidayTrips] = useState<Set<string>>(() => new Set());
   const toggleHolidayTrip = (key: string) => setOpenHolidayTrips((current) => {
     const next = new Set(current);
@@ -85,9 +91,9 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
           <span className="eyebrow">Current month</span>
           <h2>{MONTH_LONG[month - 1]} {year}</h2>
           <div className="hero-figures">
-            <div className="hero-figure"><span>Income</span><strong className="amount pos">{gbp(d.current.incomePence)}</strong></div>
-            <div className="hero-figure"><span>Expenses</span><strong className="amount neg">{gbp(d.current.expensesPence)}</strong></div>
-            <div className="hero-figure"><span>Net</span><strong className={`amount ${d.current.netPence < 0 ? 'neg' : 'pos'}`}>{gbp(d.current.netPence, { sign: true })}</strong></div>
+            <div className="hero-figure"><span>Income</span><strong className="amount pos">{gbp(d.current.incomePence)}</strong><ExplainButton label="Explain" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'income'))} /></div>
+            <div className="hero-figure"><span>Expenses</span><strong className="amount neg">{gbp(d.current.expensesPence)}</strong><ExplainButton label="Explain" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'expenses'))} /></div>
+            <div className="hero-figure"><span>Net</span><strong className={`amount ${d.current.netPence < 0 ? 'neg' : 'pos'}`}>{gbp(d.current.netPence, { sign: true })}</strong><ExplainButton label="Explain" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'net'))} /></div>
             <div className="hero-figure"><span>Owed to me</span><strong>{gbp(d.totalOwedPence)}</strong></div>
           </div>
         </div>
@@ -238,7 +244,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         sub="Expected balance at As-Of, with this month's flow, against target"
         actions={<button className="btn ghost sm" onClick={() => go('accounts')}>View accounts</button>}
       >
-          <Table head={['Account', 'Flow', 'Balance', 'Target', 'Difference', '']} numHead={[1, 2, 3, 4]}>
+          <Table head={['Account', 'Flow', 'Balance', 'Target', 'Difference', '', '']} numHead={[1, 2, 3, 4]}>
             {d.accounts.map((a) => {
               const diff = a.targetPence - a.balancePence;
               return (
@@ -249,6 +255,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
                   <td className="num muted">{gbp(a.targetPence)}</td>
                   <td className={`num ${diff < 0 ? 'amount neg' : 'amount pos'}`}>{gbp(diff, { sign: true })}</td>
                   <td style={{ width: 90 }}><Bar value={a.targetPence === 0 ? 0 : a.balancePence / a.targetPence} tone={diff < 0 ? 'amber' : 'accent'} /></td>
+                  <td><ExplainButton label="?" onClick={() => setExplanation(explainAccount(ds, engine, a.name))} /></td>
                 </tr>
               );
             })}
@@ -262,7 +269,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
           sub="Opening + charges − refunds/payments"
           actions={<button className="btn ghost sm" onClick={() => go('cards')}>View cards</button>}
         >
-          <Table head={['Card', 'Balance', 'Limit', 'Used', '']} numHead={[1, 2, 3]}>
+          <Table head={['Card', 'Balance', 'Limit', 'Used', '', '']} numHead={[1, 2, 3]}>
             {d.cards.map((c) => (
               <tr key={c.name}>
                 <td>{c.name}</td>
@@ -270,6 +277,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
                 <td className="num muted">{gbp(c.limitPence)}</td>
                 <td className="num">{pct(c.utilisation)}</td>
                 <td style={{ width: 80 }}><Bar value={c.utilisation} tone={c.utilisation > 0.5 ? 'red' : 'accent'} /></td>
+                <td><ExplainButton label="?" onClick={() => setExplanation(explainCard(ds, engine, c.name))} /></td>
               </tr>
             ))}
           </Table>
@@ -288,6 +296,10 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
                 key={person.shortName}
                 title={person.fullName}
                 aria-label={`${person.fullName || person.shortName}: ${gbp(person.balancePence)} owed`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setExplanation(explainPerson(ds, engine, person.shortName))}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setExplanation(explainPerson(ds, engine, person.shortName)); }}
               >
                 <span className="name">{person.shortName}</span>
                 <span className="amount">{gbp(person.balancePence)}</span>
@@ -302,9 +314,9 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Section
           title="Bills due"
           sub={`Resolved for ${MONTH_LONG[month - 1]} — paid automatically on the due date`}
-          actions={<button className="btn ghost sm" onClick={() => go('bills')}>View bills</button>}
+          actions={<><ExplainButton label="Explain bills" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'bills'))} /><button className="btn ghost sm" onClick={() => go('bills')}>View bills</button></>}
         >
-          <Table head={['Bill', 'Due', 'Countdown', 'Method', 'Amount']} numHead={[4]}>
+          <Table head={['Bill', 'Due', 'Countdown', 'Method', 'Amount', '']} numHead={[4]}>
             {d.bills.map((b) => {
               const days = daysUntil(b.dueDate, today);
               const tone = b.paid ? 'green' : days < 0 ? 'red' : days <= 7 ? 'amber' : 'neutral';
@@ -315,6 +327,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
                   <td><Badge tone={tone}>{b.paid ? 'Paid' : countdownLabel(days)}</Badge></td>
                   <td className="muted small">{b.paymentMethod || '—'}</td>
                   <td className="num"><strong>{gbp(b.amountPence)}</strong></td>
+                  <td><ExplainButton label="?" onClick={() => setExplanation(explainBill(ds, engine, year, month, b.name))} /></td>
                 </tr>
               );
             })}
@@ -408,6 +421,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         {incomeDue.length === 0 && <Empty>No PIP or UC payment scheduled for this month.</Empty>}
       </Section>
 
+      <ExplainDialog explanation={explanation} onClose={() => setExplanation(null)} />
     </>
   );
 }
@@ -447,7 +461,30 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
   const endDate = monthEndIso(year, month);
   const [confirmed, setConfirmed] = useState(false);
   const [note, setNote] = useState('');
+  const [explanation, setExplanation] = useState<Explanation | null>(null);
   const localLock = ds.monthLocks?.[key];
+
+  // Each statement figure starts at the calculated balance, as chosen for R9.
+  // The draft is keyed by month so typing resets only when the month changes.
+  // The lock stores dashboard(asOf), so the statement check must use the same
+  // cutoff — month end only applies when the engine's own cutoff is month end.
+  const closeDate = engine.throughFor(year, month);
+  const statementRows = reconciliationRows(ds, engine, closeDate);
+  const [statementDraft, setStatementDraft] = useState<{ key: string; values: Record<string, string> }>({ key: '', values: {} });
+  const statementValues = statementDraft.key === key ? statementDraft.values : {};
+  const statementValueFor = (row: typeof statementRows[number]) =>
+    statementValues[reconciliationKey(row)] ?? (row.calculatedPence / 100).toFixed(2);
+  const setStatementValue = (id: string, value: string) => {
+    const base = statementDraft.key === key ? statementDraft.values : {};
+    setStatementDraft({ key, values: { ...base, [id]: value } });
+  };
+  // The pre-filled figure is the checked figure: untouched rows agree by
+  // construction, and only an edited value can produce a difference.
+  const checks = buildStatementChecks(statementRows, Object.fromEntries(statementRows.map((row) => {
+    const raw = statementValueFor(row);
+    return [reconciliationKey(row), raw.trim() === '' ? null : parseMoney(raw)];
+  })));
+  const gate = reconciliationGate(checks, note);
   const summary = engine.monthlySummary(year, month);
   const d = engine.dashboard(year, month);
   const complete = ds.settings.asOfDate >= endDate;
@@ -460,7 +497,9 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
   const lockMonth = () => {
     if (!complete) return notify(`Set As-Of to ${dateUk(endDate)} or later before locking this month`);
     if (!confirmed) return notify('Confirm the balances before locking the month');
+    if (gate.blocked) return notify('Explain the statement difference in the reconciliation note before locking');
     const lockedAt = new Date().toISOString();
+    const netWorthSnapshot = monthLockNetWorthSnapshot(ds, engine, endDate);
     update((dataset) => {
       dataset.monthLocks = {
         ...(dataset.monthLocks ?? {}),
@@ -476,6 +515,11 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
           people: d.owedByPerson.map((p) => ({ shortName: p.shortName, balancePence: p.balancePence })),
           bills: d.bills.map((b) => ({ name: b.name, amountPence: b.amountPence })),
           providers: providerBalancesForYear(dataset, year, endDate),
+          savings: netWorthSnapshot.savings,
+          debts: netWorthSnapshot.debts,
+          assets: netWorthSnapshot.assets,
+          statement: checks,
+          reconciledNote: gate.overrideUsed ? note.trim() : '',
         },
       };
     });
@@ -497,10 +541,11 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
 
   if (summary.locked) {
     return (
+      <>
       <Section
         title={`Month end — ${MONTH_LONG[month - 1]} ${year}`}
         sub={localLock ? `Locked ${dateUk(localLock.lockedAt.slice(0, 10))}` : 'Locked by the imported workbook'}
-        actions={<Badge tone="amber">🔒 Locked</Badge>}
+        actions={<><ExplainButton label="Explain lock" onClick={() => setExplanation(explainLock(ds, year, month))} /><Badge tone="amber">🔒 Locked</Badge></>}
       >
         <div className="metric-list" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
           <div className="metric"><span>Income</span><strong>{gbp(summary.incomePence)}</strong></div>
@@ -509,13 +554,34 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
           <div className="metric"><span>Owed</span><strong>{gbp(summary.owedPence)}</strong></div>
         </div>
         {localLock?.note && <div style={{ padding: '0 16px 16px' }}><div className="notice info">{localLock.note}</div></div>}
+        {localLock?.statement && localLock.statement.length > 0 && (
+          <div style={{ padding: '0 16px 16px', display: 'grid', gap: 8 }}>
+            <Table head={['Balance', 'Statement close', 'Calculated', 'Difference']} numHead={[1, 2, 3]}>
+              {localLock.statement.map((check) => (
+                <tr key={`${check.kind}:${check.name}`}>
+                  <td>{check.name}<div className="muted small">{check.kind === 'card' ? 'Card · amount owed' : 'Bank account'}</div></td>
+                  <td className="num">{gbp(check.statementPence)}</td>
+                  <td className="num">{gbp(check.calculatedPence)}</td>
+                  <td className="num">{check.differencePence === 0 ? <Badge tone="green">Agrees</Badge> : <Badge tone="amber">{gbp(check.differencePence, { sign: true })}</Badge>}</td>
+                </tr>
+              ))}
+            </Table>
+            {localLock.reconciledNote && <div className="notice warn">{localLock.reconciledNote}</div>}
+          </div>
+        )}
         {localLock && <div className="toolbar" style={{ borderBottom: 0 }}><button className="btn danger" onClick={unlockMonth}>Unlock this month</button></div>}
       </Section>
+      <ExplainDialog explanation={explanation} onClose={() => setExplanation(null)} />
+      </>
     );
   }
 
   return (
-    <Section title={`Month end — ${MONTH_LONG[month - 1]} ${year}`} sub="Confirm the expected balances, then lock the month so its figures cannot change">
+    <Section
+      title={`Month end — ${MONTH_LONG[month - 1]} ${year}`}
+      sub="Confirm the expected balances, then lock the month so its figures cannot change"
+      actions={<ExplainButton label="Explain bills" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'bills'))} />}
+    >
       {!complete && (
         <div style={{ padding: '0 16px 16px' }}>
           <div className="notice warn">This month ends {dateUk(endDate)}. Set the As-Of date to that date or later in Settings before locking it.</div>
@@ -527,12 +593,57 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
         <div className="metric"><span>Owed to me</span><strong>{gbp(d.totalOwedPence)}</strong></div>
         <div className="metric"><span>Bills this month</span><strong>{gbp(d.billsTotalPence)}</strong></div>
       </div>
-      <Table head={['Type', 'Name', 'Expected balance']} numHead={[2]}>
-        {d.accounts.map((a) => <tr key={`bank-${a.name}`}><td>Bank</td><td>{a.name}</td><td className="num"><strong>{gbp(a.balancePence)}</strong></td></tr>)}
-        {d.cards.map((c) => <tr key={`card-${c.name}`}><td>Card</td><td>{c.name}</td><td className="num"><strong>{gbp(c.balancePence)}</strong></td></tr>)}
-        {d.owedByPerson.map((p) => <tr key={`person-${p.shortName}`}><td>Person</td><td>{p.shortName}</td><td className="num"><strong>{gbp(p.balancePence)}</strong></td></tr>)}
+      <Table head={['Type', 'Name', 'Expected balance', '']} numHead={[2]}>
+        {d.accounts.map((a) => <tr key={`bank-${a.name}`}><td>Bank</td><td>{a.name}</td><td className="num"><strong>{gbp(a.balancePence)}</strong></td><td><ExplainButton label="?" onClick={() => setExplanation(explainAccount(ds, engine, a.name))} /></td></tr>)}
+        {d.cards.map((c) => <tr key={`card-${c.name}`}><td>Card</td><td>{c.name}</td><td className="num"><strong>{gbp(c.balancePence)}</strong></td><td><ExplainButton label="?" onClick={() => setExplanation(explainCard(ds, engine, c.name))} /></td></tr>)}
+        {d.owedByPerson.map((p) => <tr key={`person-${p.shortName}`}><td>Person</td><td>{p.shortName}</td><td className="num"><strong>{gbp(p.balancePence)}</strong></td><td><ExplainButton label="?" onClick={() => setExplanation(explainPerson(ds, engine, p.shortName))} /></td></tr>)}
       </Table>
       {d.accounts.length + d.cards.length + d.owedByPerson.length === 0 && <Empty>No balances to confirm yet.</Empty>}
+
+      <div style={{ padding: '0 16px 16px' }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>Statement check</h3>
+        <p className="muted small" style={{ margin: '0 0 10px' }}>
+          Every figure starts at the calculated balance on the close date, {dateUk(closeDate)} — the same cutoff the lock will store. Replace one with the closing balance printed on the statement.
+          A difference needs a written note before the month can lock; an unchecked balance never blocks.
+        </p>
+      </div>
+      <Table head={['Balance', 'Calculated', 'Statement close', 'Difference', '']} numHead={[1, 2, 3]}>
+        {statementRows.map((row) => {
+          const id = reconciliationKey(row);
+          const raw = statementValueFor(row);
+          const typed = raw.trim() === '' ? null : parseMoney(raw);
+          const difference = typed === null ? null : typed - row.calculatedPence;
+          return (
+            <tr key={id}>
+              <td><strong>{row.name}</strong><div className="muted small">{row.kind === 'card' ? 'Card · amount owed' : 'Bank account'}</div></td>
+              <td className="num">{gbp(row.calculatedPence)}</td>
+              <td>
+                <input
+                  className="input compact"
+                  style={{ minWidth: 110 }}
+                  inputMode="decimal"
+                  aria-label={`Statement closing balance for ${row.name}`}
+                  value={raw}
+                  onChange={(event) => setStatementValue(id, event.target.value)}
+                />
+              </td>
+              <td className="num">
+                {difference === null ? <span className="muted small">Not checked</span>
+                  : difference === 0 ? <Badge tone="green">Agrees</Badge>
+                    : <Badge tone="amber">{gbp(difference, { sign: true })}</Badge>}
+              </td>
+              <td><ExplainButton label="?" onClick={() => setExplanation(row.kind === 'card' ? explainCard(ds, engine, row.name) : explainAccount(ds, engine, row.name))} /></td>
+            </tr>
+          );
+        })}
+      </Table>
+      {statementRows.length === 0 && <Empty>No active balances to check yet.</Empty>}
+      {statementRows.length > 0 && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <div className={`notice ${gate.blocked ? 'danger' : gate.differences.length ? 'warn' : 'info'}`}>{gate.message}</div>
+        </div>
+      )}
+
       <div style={{ padding: 16, display: 'grid', gap: 12 }}>
         <label className="muted small" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input id="month-end-confirm" type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
@@ -541,8 +652,9 @@ function MonthEndClose({ ds, engine, year, month, update, notify }: Pick<ViewPro
         <Field label="Reconciliation note (optional)">
           <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Starling and Vanquis checked against statements" />
         </Field>
-        <div><button className="btn primary" disabled={!complete || !confirmed} onClick={lockMonth}>Lock {MONTH_LONG[month - 1]} {year}</button></div>
+        <div><button className="btn primary" disabled={!complete || !confirmed || gate.blocked} onClick={lockMonth}>Lock {MONTH_LONG[month - 1]} {year}</button></div>
       </div>
+      <ExplainDialog explanation={explanation} onClose={() => setExplanation(null)} />
     </Section>
   );
 }

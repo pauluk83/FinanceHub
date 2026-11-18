@@ -9,6 +9,10 @@ and the build time.
 
 ### Changed
 - Bills due today are treated as paid from midnight and leave the Starling balance even before the next bank import
+- Mobile read-only companion, net worth, import rules, bill calendar and explainable figures
+- Reconciliation and import rollback, subscription detection, 12-month forecast, debt and savings progress, and onboarding templates
+- Keep savings in the forecast position, use the lock cutoff for statement checks, and batch every bank-feed import for undo
+- Audit fixes: roll cleared debt payments forward, reject impossible CSV dates and overflowing amounts, validate backup rows before restore, and block catastrophic rule regexes
 
 ## [2026.11.17] — 17 November 2026
 

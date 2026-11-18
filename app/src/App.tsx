@@ -29,6 +29,11 @@ import { Debts } from './views/debts';
 import { Savings } from './views/savings';
 import { ProviderView, Rent, Statements } from './views/providers';
 import { ChangelogView, GuidesView, ImportView, SettingsView } from './views/tools';
+import { NetWorth } from './views/netWorth';
+import { CalendarView } from './views/calendar';
+import { Forecast } from './views/forecast';
+import { Progress } from './views/progress';
+import { RulesView } from './views/rules';
 import { AppChangelogPage, AppChangelogView } from './views/appChangelog';
 import { Holidays } from './views/holidays';
 import { OnboardingView } from './views/onboarding';
@@ -52,6 +57,16 @@ import { changedBudgetSections } from './budgetChangelog';
 import { appendAudit, diffRecords } from '../../core/audit';
 import { buildBudgetNotifications, unreadBudgetNotifications } from '../../core/notifications';
 import { AppLockScreen } from './views/appLock';
+
+const PHONE_TABS = [
+  { id: 'dashboard', label: 'Dashboard', icon: '◫' },
+  { id: 'bills', label: 'Bills', icon: '⌂' },
+  { id: 'accounts', label: 'Accounts', icon: '▥' },
+  { id: 'transactions', label: 'Transactions', icon: '≡' },
+] as const;
+
+/** The views the phone shell opens read-only until mobile write (R18). */
+const PHONE_READ_ONLY_VIEWS = new Set<string>(PHONE_TABS.map((tab) => tab.id));
 
 const SUBTITLES: Record<string, string> = {
   setup: 'Onboarding and clean-start help — ongoing changes live in Settings',
@@ -83,6 +98,9 @@ const SUBTITLES: Record<string, string> = {
   changelog: 'Your budget history — bills, balances, people and month-end figures',
   appChangelog: 'What changed in each build, with the build id and installer download',
   guides: 'Month-End and New-Year workflows',
+  netWorth: 'Bank accounts, savings, assets, cards and debts — and the recorded trend',
+  calendar: 'Bills, income, debts and holidays by day, with safe-to-spend',
+  rules: 'Review-only import rules: categories and tags, never a balance change',
 };
 
 type ChangeSummary = {
@@ -254,6 +272,18 @@ function useToday(): string {
   return today;
 }
 
+/** The phone shell, used for the bottom tabs and the read-only guards. */
+function usePhoneShell(): boolean {
+  const [phone, setPhone] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 720px)');
+    const onChange = () => setPhone(media.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+  return phone;
+}
+
 function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorkspace, onOpenDemo }: { user: AppUser; onSignOut: () => void; localAccount?: LocalAccountControls; demo?: boolean; onChooseWorkspace: (mode: 'account' | 'local') => void; onOpenDemo?: () => void }) {
   const [loaded] = useState<LoadedState>(() => (demo ? { state: demoState(), status: 'ok' } : loadStateWithStatus(user.id)));
   const [state, setState] = useState(() => {
@@ -283,6 +313,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   const deviceOnly = !demo && user.local;
   const [appLock, setAppLockState] = useState<AppLockConfig | null>(() => (deviceOnly ? readAppLock() : null));
   const [appLocked, setAppLocked] = useState(() => deviceOnly && Boolean(readAppLock()));
+  const phoneShell = usePhoneShell();
   const blocked = loaded.status === 'blocked';
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -521,6 +552,10 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     );
   }
 
+  // The phone companion is read-only for the five daily views until R18 adds
+  // mobile write; every mutation funnels through update(), so guarding it here
+  // covers add, edit, delete, undo and bulk actions alike.
+  const phoneReadOnly = phoneShell && PHONE_READ_ONLY_VIEWS.has(view);
   const props: ViewProps = {
     ds: state.dataset,
     engine,
@@ -529,7 +564,10 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     year: activeYear,
     setYear: setActiveYear,
     availableYears: yearOptions,
-    update,
+    update: phoneReadOnly
+      ? () => notify('Read-only on the phone companion — open FinanceHub on a desktop to edit')
+      : update,
+    readOnly: phoneReadOnly,
     theme: state.theme,
     setTheme,
     notify,
@@ -592,6 +630,11 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       case 'monthly': return <Monthly {...props} />;
       case 'income': return <Income {...props} />;
       case 'monthEnd': return <MonthEnd {...props} />;
+      case 'netWorth': return <NetWorth {...props} />;
+      case 'calendar': return <CalendarView {...props} />;
+      case 'forecast': return <Forecast {...props} />;
+      case 'progress': return <Progress {...props} />;
+      case 'rules': return <RulesView {...props} />;
       case 'transactions': return <Transactions {...props} />;
       case 'accounts': return <Accounts {...props} />;
       case 'cards': return <Cards {...props} />;
@@ -791,6 +834,11 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
         </header>
 
         <main className="content">
+          {phoneShell && (
+            <div className="notice info mobile-readonly" role="status">
+              <strong>Phone companion.</strong> Read-only for Dashboard, Bills, Accounts and Transactions; edit on a desktop.
+            </div>
+          )}
           {demo && (
             <div className="notice info demo-banner" role="status">
               <span><strong>Demo workspace.</strong> Sample data only — nothing is saved to your account.</span>
@@ -815,6 +863,32 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
           <div className="view" key={view}>{renderView()}</div>
         </main>
       </div>
+
+      {phoneShell && (
+        <nav className="mobile-tabs" aria-label="Phone sections">
+          {PHONE_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`mobile-tab ${view === tab.id ? 'active' : ''}`}
+              onClick={() => setView(tab.id)}
+              aria-current={view === tab.id ? 'page' : undefined}
+            >
+              <span className="mobile-tab-icon" aria-hidden>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            className="mobile-tab"
+            onClick={() => { setPalette(true); setQuery(''); }}
+            aria-label="More sections"
+          >
+            <span className="mobile-tab-icon" aria-hidden>⋯</span>
+            <span>More</span>
+          </button>
+        </nav>
+      )}
 
       {palette && (
         <div className="palette-backdrop" onMouseDown={() => setPalette(false)}>

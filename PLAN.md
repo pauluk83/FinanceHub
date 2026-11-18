@@ -1899,3 +1899,299 @@ Counsel must mark each item **applicable**, **not applicable with reason**, or *
 ### 23.7 Go/no-go rule
 
 Ship only when every PR-0 to PR-7 gate has passed, every exception is recorded in the risk register with an owner and expiry, and no unresolved high or critical security finding remains. If legal advice and product ambition conflict, the legal advice wins until the owner formally narrows the product or accepts the risk in writing. “Production ready” is an evidence claim, not a version number.
+
+---
+
+## 24. Remaining releases — reworked priority plan (2026-11-18)
+
+Status: **ranks 1–10 delivered in the working tree (2026.11.18, uncommitted); ranks 11–18 remain planned.** This revision supersedes the earlier §24 draft:
+it removes work that has already shipped and re-ranks what is left. Effort is focused
+development time for one experienced developer with agent support; it excludes review,
+release packaging (about half a day per release), device testing and store work. Every
+release still ships through `npm run release`, keeps the parity suite green and changes no
+money rule without a test.
+
+Completed capabilities — categories and tags, transaction search and filters, transaction
+audit history with revert and deleted-transaction restore, encrypted backup export, daily
+restore points and restore, Excel/print extracts, contract end dates, demo/blank onboarding,
+month locks, the device-local read-only people portal, provider ledgers and hosted
+real-budget sync — are **not** listed as work. Where a release builds on one, only the
+missing delta is scoped. The audit core records accounts, bills, people and cards as well as
+transactions, but only transactions have a history UI; the people portal is a local sign-in
+with a statement snapshot, not a remote share link.
+
+### 24.1 Remaining releases, reprioritised
+
+Release IDs stay stable for traceability; the rank column is the new order.
+
+| Rank | ID | Remaining scope | Effort | Value | Depends on |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | R1 | Mobile PWA companion, read-only | 6–8 days | High | Hosted real-budget sync (exists) |
+| 2 | R2 | Net worth and manual assets: assets model, view, trend | 4–6 days | High | Savings, debts, cards and accounts (exist) |
+| 3 | R3 | Import rules, merchant normalisation, review suggestions | 4–6 days | High | Categories and tags (exist) |
+| 4 | R7 | Bill calendar, safe-to-spend, `.ics` export | 3–5 days | High | R1 for the mobile view |
+| 5 | R8 | “Explain this number” drill-down | 4–5 days | Very high | Existing engine breakdowns |
+| 6 | R9 | Reconciliation flags, statement balance, import-batch rollback | 4–5 days | High | Transaction audit trail (exists) |
+| 7 | R4 | Recurring and subscription detection | 3–5 days | High | R3 |
+| 8 | R10 | 12-month forecast and what-if scenarios | 7–9 days | High | Bills, income and debts (exist) |
+| 9 | R11 | Debt payoff, savings on-track, year-over-year | 5–6 days | High | Debts, savings and locks (exist) |
+| 10 | R12 | Budget templates and CSV column mapping | 3–5 days | High (onboarding) | Demo/blank onboarding and parser (exist) |
+| 11 | R13 | Partner read-only link and bill splitting | 7–10 days | High | Hosted sync and auth (exist); portal is device-local |
+| 12 | R14 | Evidence packs: provider dispute, month close, benefits | 4–6 days | High | Exports and provider ledgers (exist) |
+| 13 | R15 | Bill price timeline, consolidated expiry list, reminders | 2–3 days | Medium–high | `billChanges` and contract dates (exist) |
+| 14 | R5 | Global search, saved filters, category reports | 3–5 days | Medium | Transaction search and filters (exist) |
+| 15 | R16 | Category targets, bulk edit, duplicate merge | 5–6 days | Medium | R3; categories and duplicate detection (exist) |
+| 16 | R6 | Email bill reminders and preferences | 4–6 days | Medium–high | In-app alerts (exist) plus a provider |
+| 17 | R17 | Cloud backup upload and one-click data-health fixes | 5–7 days | Medium | Backups, restore points and health checks (exist) |
+| 18 | R18 | Mobile quick-add and web-push notifications | 4–6 days | Medium | R1, R6 |
+
+**Sequencing rationale:** R1–R3 remain the owner's first releases. R7 and R8 follow because
+they are the cheapest high-value additions and make R1 and R2 more useful; R9 then closes
+the trust gap before detection and planning. R4 and R10–R14 form the planning and household
+layer; R13 is the largest item there and can slip behind R14 if partner access is not urgent.
+R15–R18 are polish, operations and mobile write.
+
+**Total:** roughly 75–110 focused dev-days for the remaining 18 releases (±50%), or about
+four to six months for one full-time developer. That is broadly unchanged from the earlier
+80–105 estimate: delivered foundations lower the floor, while R13's remote link, R6's email
+delivery and R17's cloud storage are genuinely new infrastructure at the top end.
+
+**Verified against the code (2026-11-18):** transaction search and tag filters, transaction
+audit revert/trash, encrypted backups with automatic daily restore points, Excel/print
+exports, contract end dates, blank/demo onboarding, month-lock snapshots, provider ledgers
+and hosted real-budget sync all ship. The earlier draft's two overbroad claims — “audit
+history” for all records and a reusable remote people-portal link — are corrected above.
+
+### 24.2 Priority 1–3: R1, R2, R3
+
+**R1 — Mobile PWA companion (read-only).** Manifest, icons and a service worker for the app
+shell only, with network-first Supabase calls and no API caching; a phone shell below about
+720px with a bottom tab bar (Dashboard, Bills, Accounts, Transactions, More), card-style
+tables, 44px touch targets and safe-area insets; read-only guards on those views. The
+existing 1180px/880px breakpoints stay and are extended, not rebuilt. Auth, passkeys and
+sign-out cache clearing must keep working. Out of scope: native apps, push, mobile editing,
+bank feeds on mobile. Acceptance: at 390px the five views have no page-level horizontal
+overflow; the installed app opens offline to the last synced budget; a desktop edit appears
+after refresh; no CSP or OAuth regression.
+
+**R2 — Net worth.** Add `dataset.assets` (property, vehicle, pension, investment, other;
+manual valuations, ownership percentage and an active flag) and a `netWorth()` calculation:
+bank accounts at the current cutoff + savings + assets − cards − debts. Provider ledgers
+stay out because bills already account for them. Add an “exclude from net worth” flag to
+accounts and savings to prevent double counting. The view shows the total, assets versus
+liabilities, composition and a 12-month trend, using month locks where present and optional
+savings/assets/debts snapshots on new locks. Out of scope: live prices, holdings or
+performance, crypto, pension modelling, mortgage amortisation. Acceptance: zero-difference
+test against the existing totals when savings, debts and assets are empty; old backups and
+locks still load.
+
+**R3 — Import rules and suggestions.** Add `dataset.importRules` (field, operator, pattern,
+priority, category, tags, treatment, target account, enabled), merchant normalisation
+(strip card references, dates and trailing digits), suggestions in the existing review grid
+with Category, Tags and Rule columns, per-row overrides, “always do this” and bulk apply,
+plus a Settings rule manager with a test-against-history count. Commit writes existing `Tx`
+fields only. Out of scope: auto-posting, split transactions, category budgets, machine
+learning. Acceptance: rules cannot move a balance or total; every hit is visible and
+reversible per row; a 10,000-row import still stages under the 20,000-row cap.
+
+### 24.3 Priority 4–6: R7, R8, R9
+
+**R7 — Bill calendar and safe-to-spend.** A month grid built from scheduled bills, income
+schedules, debt due days, holidays and lock state, with a day-detail panel; a safe-to-spend
+figure defined as cleared cash minus bills due before the next income minus savings
+contributions, with the formula shown and card balances not subtracted twice; and `.ics`
+export with stable UIDs. Acceptance: the calendar's bill total equals `scheduledBillsTotal`;
+safe-to-spend reconciles to `starlingBreakdown`; the file imports into Google and Apple
+calendars.
+
+**R8 — Explain this number.** Add an explain affordance to dashboard income, expenses, net
+and bills, each bill amount, account/card/person/provider balances and month-lock totals.
+The panel lists the source rows, effective-dated changes, rules and arithmetic, and links to
+the ledger. It reuses the engine's existing breakdowns rather than adding a second
+calculation. Acceptance: the explained components sum to the figure for every month, and a
+locked month shows its snapshot as the source.
+
+**R9 — Reconciliation and rollback (delta only).** The transaction audit timeline, revert
+and deleted-transaction restore already ship and are out of scope. The audit core also
+records accounts, bills, people and cards, but no UI surfaces those sections yet; a
+cross-section history view is not part of this release. Remaining: optional
+`cleared`/`reconciledAt` fields on `Tx`; a statement closing balance per account with a
+difference indicator and a zero-difference-or-note gate before locking; import batch IDs on
+generated rows and an “undo this import” action that removes only that batch. Acceptance:
+clearing rows never changes a balance; rollback leaves every other row untouched; a lock
+cannot be taken with an unexplained difference.
+
+### 24.4 Priority 7–12: R4, R10, R11, R12, R13, R14
+
+**R4 — Recurring and subscription detection.** Detect weekly, 4-weekly, monthly and annual
+charges from normalised merchants, with amount tolerance and confidence, price-change
+detection, suppression when a bill already exists, dismiss/ignore, suggestions in Bills and
+after an import, and a prefilled “add as bill” action. Nothing is created without
+confirmation. Out of scope: cancellation, negotiation and bank direct-debit APIs.
+
+**R10 — Forecast and what-if.** A 12-month forward view from bills, income schedules, debt
+payments, savings contributions and people owed, with an assumptions panel and no new money
+model. What-if scenarios are temporary in-memory overrides compared side by side and never
+written to the budget. Acceptance: month one equals the current open-month projection; a
+closed scenario leaves the dataset unchanged apart from audit metadata.
+
+**R11 — Progress pack.** Debt snowball and avalanche with interest, extra payments, payoff
+date and interest saved; savings on-track with target date and required monthly
+contribution; year-over-year comparisons for month, category and provider using locks.
+Acceptance: planner totals equal the debts ledger, and nothing is written unless the owner
+applies a plan.
+
+**R12 — Onboarding pack.** A template library (blank, UK household, single, benefits) with
+sample accounts, bills, categories and provider ledgers that never overwrites an existing
+budget; and a CSV column-mapping wizard with saved bank profiles for date, amount,
+description, type, delimiter and sign convention. The existing parser and blank/demo
+onboarding stay. Acceptance: a template starts a valid budget that passes data health, and a
+mapped import produces the same rows as the built-in parser.
+
+**R13 — Household pack.** A revocable, read-only whole-budget link with server-side share
+tokens, owner-scoped reads and revocation. The people portal is device-local — a local
+password hash and a saved statement snapshot — so its pattern cannot be reused for a remote
+link. Also bill splitting that creates linked People rows for equal or custom splits.
+Acceptance: a revoked link cannot read the budget; a link can only read its owner's budget;
+split rows reconcile exactly to the bill amount.
+
+**R14 — Evidence packs.** Three printable/Excel packs: provider dispute (statement,
+payments, balance, contract terms, notes), month close (balances, locks, reconciliation
+notes) and benefits (PIP/UC schedule versus received, annual totals). Existing transaction
+and statement extracts are reused. Acceptance: pack totals equal the ledger; no vault
+secrets, tokens or full account numbers are exported.
+
+### 24.5 Priority 13–18: R15, R5, R16, R6, R17, R18
+
+**R15 — Price history and expiries.** A per-bill timeline from `billChanges` with previous
+and new amounts, percentage change, next scheduled change and annualised cost; a
+consolidated expiry list (contract ends, fixed-rate maturities, insurance, MOT, tenancy)
+with lead-time reminders. The bill-change table and contract end dates already exist; this
+adds the timeline, the list and the reminders. Acceptance: the timeline reproduces every
+stored change, and inactive items produce no reminders.
+
+**R5 — Global search and reports.** Cross-entity search over transactions, bills, people,
+providers and holidays with a keyboard shortcut; saved filters per view; category and tag
+spend by month and year with trend and CSV/Excel export. Transaction search and filters
+already exist and are reused, not rebuilt. Out of scope: a custom report builder and a
+dashboard designer.
+
+**R16 — Categories and cleanup.** Report-only category targets stored separately from the
+engine with progress on the dashboard and reports; bulk edit for selected transactions; and
+duplicate merge that keeps one row, links the other and writes an audit entry. Categories,
+tags and duplicate detection already exist. Acceptance: targets never move a balance; a
+merge preserves totals and can be reverted.
+
+**R6 — Email bill reminders.** A transactional email provider with a server-side key, a daily
+scheduled function that recomputes due bills with the same core, per-channel preferences,
+unsubscribe, and no financial detail in subject lines. In-app alerts already exist; this is
+delivery only. Out of scope: SMS and web push until email proves useful. Acceptance: a test
+digest matches the in-app alerts, and every recipient has a working unsubscribe path.
+
+**R17 — Operations.** Client-side encrypted backup upload to Supabase storage with a restore
+list and retention, plus one-click data-health fixes with a preview of every change before
+it is applied. Encrypted export, restore points, restore and read-only health checks already
+exist. Acceptance: an encrypted backup round-trips; fixes preview before applying; no
+plaintext budget leaves the device.
+
+**R18 — Mobile write.** Quick-add expense on the phone with an offline queue and
+conflict-safe retry, then web-push notifications through the service worker for the existing
+bill, balance and card alerts. Acceptance: an offline entry syncs exactly once, and repeated
+taps cannot double-post.
+
+### 24.6 Explicitly skipped
+
+| Candidate | Decision | Reason |
+| --- | --- | --- |
+| Native iOS/Android | Skip for now | PWA first; native needs macOS/Xcode and store review. Revisit only if the PWA cannot meet install or offline needs |
+| Credit score and rent reporting | Skip | Regulated data and partnerships; no fit with local-first, no-ads positioning |
+| Bill negotiation and subscription cancellation | Skip | Commercial partnerships, fee model and support burden; §19.3 already records this |
+| Cashback and energy switching | Skip | Affiliate/commercial model, contradicts the no-ads position |
+| Envelope or zero-based budgeting | Skip | A second, contradictory model that would rewrite the engine and verified figures; R16 targets are report-only |
+| AI assistant over the finances | Skip | External model provider, new privacy story and per-request cost |
+| Live investment and crypto prices | Skip | Market-data licensing and a new failure mode; manual valuation in R2 is enough |
+| Payments, round-ups and auto-save | Skip | FCA/PSD2 and money movement; read-only is a feature, not a gap |
+| Multi-currency | Skip | Architecture-wide for a UK-only launch |
+| Public API and webhooks | Skip | Security surface with no demonstrated demand |
+| Receipt OCR and attachments | Later | Storage, privacy and mobile camera work; after the current remaining list |
+| Split transactions | Later | Touches every balance and total; defer until rules prove demand |
+| Shared household write access | Later | XL per-record sync; the read-only mobile companion is the cheaper first step |
+
+### 24.7 Gates for every release in this plan
+
+- The full suite and `tsc` pass, and no money rule changes without a test that proves the
+  old figures are unchanged.
+- The release command owns the version and changelog; no hand-edited headings.
+- R1 passes 390px and 768px checks on iOS Safari and Android Chrome, and proves the service
+  worker never caches Supabase responses.
+- R2 proves net worth reconciles to existing totals and that old backups and locks still
+  load.
+- R3 and R4 prove rules and suggestions cannot move a balance, and that nothing posts
+  without confirmation.
+- R7 proves safe-to-spend reconciles to `starlingBreakdown`; R8 proves every explanation
+  sums to the displayed figure.
+- R9 proves reconciliation never changes a balance and that an import rollback removes only
+  its own batch.
+- R10 proves a scenario leaves the budget untouched, and R11 proves applying a plan is the
+  only write.
+- R13 proves a revoked link cannot read the budget and that a link is scoped to its owner,
+  and R14 proves exports contain no secrets or full account numbers.
+- R6 has a processor entry, a privacy-notice update and an unsubscribe path before it is
+  enabled for the owner.
+- R17 proves the backup round-trips and that no plaintext budget leaves the device.
+
+### 24.8 Delivered — ranks 6–10 (2026-11-18)
+
+Implemented locally in one release; not committed or deployed. Every item below is additive:
+no money rule changed and the parity suite is unchanged.
+
+- **R9 — reconciliation and rollback.** `core/reconciliation.ts`: per-account and per-card statement
+  closing balances on Month end, pre-filled from the calculated balance. A zero difference locks
+  immediately; a difference disables Lock until a written note explains it, and the checks plus the
+  note are stored on the lock. `Tx.cleared` and `reconciledAt` are evidence only and never enter a
+  total. The statement figures use `engine.throughFor(year, month)` — the same cutoff the lock's
+  snapshot uses — so a month closed mid-month is checked against the balances it actually stores,
+  not against month end. Every import path (a CSV, a saved column profile, the Starling feed and
+  Open Banking) commits through `commitImportBatch`, which assigns one `importBatchId`, records the
+  feed name and the rows' real destination account(s), and appends to `dataset.importBatches`.
+  Import → Recent imports can then undo one batch, and an undo is refused entirely when any row in
+  the batch sits in a locked month.
+- **R4 — recurring detection.** `core/recurring.ts`: three or more regular expense rows for the same
+  normalised merchant, intervals inside the cadence band, the last charge within one interval plus
+  14 days (45 days for monthly), and amounts within 15% or £1. Bills → Possible subscriptions shows
+  cadence, count, last charge, amount, next expected date, confidence and any price change. Add as
+  bill prefills the existing form; Ignore hides that merchant in this budget; a bill that already
+  covers the merchant suppresses the suggestion. Nothing is created without confirmation.
+- **R10 — forecast.** `core/forecast.ts`: 12 months of cash from scheduled bills, scheduled PIP/UC,
+  debt payments and savings contributions. The first row is the remainder of the As-of month, so
+  nothing already in the balance is counted twice; later months use the engine's own scheduled bill
+  total. Savings contributions leave the current account but remain the owner's money, so each row
+  tracks the savings balance and a **Position** of cash plus savings; a contribution lowers cash and
+  leaves position unchanged. Owed money is shown per row and never treated as cash. A what-if (bills
+  %, extra debt, extra savings, income override, one-off expense) is a second in-memory calculation,
+  compared side by side and never written.
+- **R11 — progress pack.** `core/progress.ts`: snowball and avalanche payoff with interest, extra
+  payments, payoff dates and interest saved; savings on track using a new optional `targetDate` on a
+  savings account; month or whole-year comparison with the previous year by total, category and
+  provider link. Applying a payoff plan writes only each debt's starting monthly payment, after a
+  confirmation that lists every change; balances are untouched.
+- **R12 — onboarding pack.** `core/templates.ts`: three structure-only templates (UK household,
+  single, benefits) that refuse to run over an existing budget, download a backup first, and seed
+  accounts, bills, categories, savings and debts with example amounts and zero balances but no
+  transactions and no provider ledgers. `core/csvMapping.ts`: one mapper shared by the built-in
+  import and the column wizard, saved per-budget bank profiles, delimiter and date-format detection,
+  and a sign convention. `dataset.categories` feeds the category picker without carrying any money.
+
+Deliberate deviations from the earlier draft, recorded rather than hidden:
+
+- The statement check pre-fills the calculated balance (owner choice, 2026-11-18), so an untouched
+  field always agrees; only an edited figure can show a difference.
+- The forecast's first row is the rest of the As-of month rather than a full-month restatement,
+  because a full-month figure would double-count payments already inside the balance. The view shows
+  the engine's own full-month summary beside it.
+- Templates seed no provider ledgers: an empty ledger would render as real statement history.
+  Provider ledgers are added from Guided setup when statements exist.
+- Forecast income is scheduled PIP/UC only (owner choice), not an average of recorded pay.
+
+Checks: `npm test` **372/372**, `tsc` clean, hosted build clean. Not checked: a real bank statement
+import, a template applied to a live budget, and a physical phone.

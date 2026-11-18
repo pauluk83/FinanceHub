@@ -10,6 +10,7 @@ import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames,
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
+import { CADENCES, billPrefill, recurringSuggestions, type RecurringSuggestion } from '../../../core/recurring';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
@@ -90,7 +91,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     : 0;
 
   useEffect(() => setPage(0), [q, account, type, mFilter, categoryFilter, tagFilter]);
-  const categories = useMemo(() => categoryOptions(ds.transactions), [ds.transactions]);
+  const categories = useMemo(() => categoryOptions(ds.transactions, ds.categories ?? []), [ds.transactions, ds.categories]);
   const tags = useMemo(() => tagOptions(ds.transactions), [ds.transactions]);
   const category = normaliseCategory(form.category);
   const formTags = normaliseTags(form.tags);
@@ -101,10 +102,22 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const history = historyRow === null ? [] : recordHistory(ds, 'transactions', String(historyRow));
   const deleted = deletedTransactions(ds);
 
+  /** Evidence only: clearing a row records a tick and a time, never a total. */
+  const toggleCleared = (tx: typeof ds.transactions[number]) => {
+    const next = tx.cleared !== true;
+    update((d) => {
+      const row = d.transactions.find((entry) => entry.row === tx.row);
+      if (!row) return;
+      row.cleared = next;
+      if (next) row.reconciledAt = new Date().toISOString();
+      else delete row.reconciledAt;
+    });
+  };
+
   const exportRows = () => {
     download('financehub-transactions.csv', toCsv([
-      ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status'],
-      ...rows.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.category ?? '', tagsText(t.tags), t.budgetTreatment, t.status]),
+      ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared'],
+      ...rows.map((t) => [t.date, t.account, t.type, (t.amountPence / 100).toFixed(2), t.comments, t.category ?? '', tagsText(t.tags), t.budgetTreatment, t.status, t.cleared ? 'Yes' : '']),
     ]));
     notify(`Exported ${rows.length} transactions`);
   };
@@ -115,7 +128,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       buildExcelWorkbook([{
         name: 'Transactions',
         rows: [
-          ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status'],
+          ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared'],
           ...rows.map((t) => [
             t.date,
             t.account,
@@ -126,6 +139,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
             tagsText(t.tags),
             t.budgetTreatment,
             t.status,
+            t.cleared ? 'Yes' : '',
           ]),
         ],
       }]),
@@ -571,7 +585,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           </div>
         )}
 
-        <Table head={['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Actions']} numHead={[3]}>
+        <Table head={['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared', 'Actions']} numHead={[3]}>
           {pageRows.map((t) => (
             <tr key={t.row}>
               <td className="nowrap muted">{dateUk(t.date)}</td>
@@ -589,6 +603,15 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
               <td className="muted small">{(t.tags ?? []).length ? t.tags!.join(', ') : '—'}</td>
               <td>{t.budgetTreatment ? <Badge tone={t.budgetTreatment === 'Transfer' ? 'blue' : 'violet'}>{t.budgetTreatment}</Badge> : <span className="faint">Normal</span>}</td>
               <td>{t.status ? <Badge tone="amber">{t.status}</Badge> : <Badge tone="green">Open</Badge>}</td>
+              <td>
+                <input
+                  type="checkbox"
+                  aria-label={`Cleared ${t.date} ${t.comments || 'transaction'}`}
+                  title="Evidence only: clearing a row records a tick and a time, and never changes a balance"
+                  checked={t.cleared === true}
+                  onChange={() => toggleCleared(t)}
+                />
+              </td>
               <td className="nowrap">
                 <button className="btn ghost sm" onClick={() => setHistoryRow(t.row)}>History</button>{' '}
                 <button className="btn ghost sm" onClick={() => startEdit(t)}>Edit</button>{' '}
@@ -929,6 +952,37 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   const planAmount = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.amountOverridePence ?? engine.billAmount(bill, year, 1);
   const planDueDay = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.dueDayOverride ?? bill.dueDay;
 
+  const recurring = useMemo(() => recurringSuggestions(ds), [ds]);
+  const suggested = recurring.filter((entry) => !entry.suppressedBy && !entry.dismissed);
+  const coveredCount = recurring.filter((entry) => entry.suppressedBy).length;
+  const hiddenCount = (ds.recurringDismissed ?? []).length;
+  const [suggestedFor, setSuggestedFor] = useState<RecurringSuggestion | null>(null);
+
+  const prefillBill = (entry: RecurringSuggestion) => {
+    const prefill = billPrefill(entry);
+    setBillDraft((current) => ({
+      name: prefill.name,
+      amount: (prefill.amountPence / 100).toFixed(2),
+      due: String(prefill.dueDay),
+      method: prefill.paymentMethod,
+      sheet: '',
+      account: current.account,
+    }));
+    setSuggestedFor(entry);
+    notify(`Bill form prefilled from ${entry.merchant} — nothing has been saved yet`);
+  };
+
+  const dismissSuggestion = (key: string) => {
+    update((d) => { d.recurringDismissed = [...new Set([...(d.recurringDismissed ?? []), key])]; });
+    setSuggestedFor(null);
+    notify('Suggestion hidden — nothing was added to the budget');
+  };
+
+  const restoreSuggestions = () => {
+    update((d) => { d.recurringDismissed = []; });
+    notify('Hidden suggestions restored');
+  };
+
   const addSheet = () => {
     const name = sheetDraft.trim();
     if (!name) return notify('Give the link sheet a name');
@@ -1021,6 +1075,63 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
             </tr>
           ))}
         </Table>
+      </Section>
+
+      <Section
+        title="Possible subscriptions"
+        sub="Repeated expense rows with a regular rhythm. Nothing reaches the budget until you choose Add as bill."
+        actions={<Badge tone={suggested.length ? 'blue' : 'neutral'}>{suggested.length} to review</Badge>}
+      >
+        {suggested.length > 0 ? (
+          <Table head={['Merchant', 'Cadence', 'Charges', 'Last seen', 'Amount', 'Next expected', '']} numHead={[4]}>
+            {suggested.map((entry) => (
+              <tr key={entry.key}>
+                <td>
+                  <strong>{entry.merchant}</strong>
+                  <div className="muted small">{entry.confidence === 'high' ? 'High confidence' : 'Check this one'} · {entry.account}</div>
+                </td>
+                <td>{CADENCES[entry.cadence].label}</td>
+                <td className="num">{entry.occurrences}</td>
+                <td className="muted nowrap">{dateUk(entry.lastDate)}</td>
+                <td className="num">
+                  {gbp(entry.amountPence)}
+                  {entry.priceChangePence !== undefined && (
+                    <div className="small muted">
+                      {entry.priceChangePence > 0 ? '+' : '−'}{gbp(Math.abs(entry.priceChangePence))} since {gbp(entry.previousAmountPence ?? 0)}
+                    </div>
+                  )}
+                </td>
+                <td className="muted nowrap">{dateUk(entry.nextExpectedDate)}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn ghost sm" onClick={() => prefillBill(entry)}>Add as bill</button>
+                    <button className="btn ghost sm" onClick={() => dismissSuggestion(entry.key)}>Ignore</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        ) : (
+          <Empty>
+            No recurring charges found yet. Detection needs three or more regular expense rows for the same merchant, with the latest in the last 45 days.
+            {coveredCount > 0 ? ` ${coveredCount} merchant${coveredCount === 1 ? ' is' : 's are'} already covered by a bill.` : ''}
+          </Empty>
+        )}
+        {suggestedFor && (
+          <div style={{ padding: '0 16px 16px' }}>
+            <div className="notice info">
+              Prefilled the add-bill form for {suggestedFor.merchant} ({CADENCES[suggestedFor.cadence].label.toLowerCase()}).
+              FinanceHub schedules bills monthly, so check the amount before pressing Add bill.
+            </div>
+          </div>
+        )}
+        {hiddenCount > 0 && (
+          <div className="toolbar" style={{ borderBottom: 0 }}>
+            <span className="muted small">{hiddenCount} hidden suggestion{hiddenCount === 1 ? '' : 's'}.</span>
+            <div className="toolbar-spacer" />
+            <button className="btn ghost sm" onClick={restoreSuggestions}>Restore hidden suggestions</button>
+          </div>
+        )}
       </Section>
 
       <Section title="Bill link sheets" sub="Create, rename or remove the options in every Linked sheet dropdown. Provider-linked sheets keep their automatic amount; custom sheets use the bill base amount.">

@@ -114,6 +114,70 @@ export const USER_GUIDE: GuideEntry[] = [
     ],
   },
   {
+    id: 'netWorth',
+    group: 'Overview',
+    title: 'Net worth',
+    summary: 'Bank accounts, savings, manual assets, cards and debts in one total, with a trend built from recorded month locks.',
+    steps: [
+      'Read the headline total: bank accounts + savings + assets − cards − debts. Provider ledgers stay out because the bills already account for them.',
+      'Add a manual asset with its type, full valuation and ownership share. A £300,000 home at 50% counts as £150,000.',
+      'Use What counts to exclude an account, savings account or asset that would otherwise be counted twice. Excluded items are listed on the page, not deleted.',
+      'Review the 12-month trend. The current month is live; earlier points come from month locks and are marked partial when that lock did not record savings, debts or assets.',
+    ],
+    notes: [
+      'Valuations are manual. FinanceHub does not fetch live prices, holdings or performance.',
+      'Every figure has an Explain button listing the components and arithmetic behind it.',
+    ],
+  },
+  {
+    id: 'calendar',
+    group: 'Overview',
+    title: 'Calendar and safe to spend',
+    summary: 'A month grid of bills, income, debt payments, savings contributions and holidays, with a safe-to-spend figure and .ics export.',
+    steps: [
+      'Use the month selector to move the grid. Days with bills, income, debt, savings or holidays carry a marker; select a day for its detail.',
+      'Read safe to spend as cleared cash across active current accounts, minus bills due before the next scheduled income, minus savings contributions in that window. With no income scheduled, the window runs to month end.',
+      'Choose Explain figure to see the exact cash, bill and savings rows behind the total.',
+      'Choose Export .ics to import the next 12 months into Google or Apple Calendar. Stable UIDs mean re-importing updates events instead of duplicating them.',
+    ],
+    notes: [
+      'The calendar bill total is the same scheduled-bill total the Bills ledger uses.',
+      'Card balances are not subtracted twice: only the bills and contributions in the window reduce the figure.',
+    ],
+  },
+  {
+    id: 'forecast',
+    group: 'Overview',
+    title: 'Forecast and what-if',
+    summary: 'Twelve months of cash from scheduled bills, PIP and Universal Credit, debt payments and savings contributions, with a scenario you can compare.',
+    steps: [
+      'Read the projection from your As-of date. The first row covers only what is left of that month, so a payment already reflected in the balance is not counted twice.',
+      'Check the lowest month end, the months below zero and the assumptions list. Income is scheduled PIP and Universal Credit only; recorded pay is not extrapolated.',
+      'Choose Start a scenario to change bills by a percentage, add an extra debt or savings payment, override income or add a one-off expense.',
+      'Compare the What-if column with the real figure, then choose Clear scenario. A scenario exists only on this page and never edits the budget.',
+    ],
+    notes: [
+      'Owed to you is shown on each row but is never treated as cash.',
+      'The forecast starts at the As-of date, so move that date forward after reconciling to keep it accurate.',
+    ],
+  },
+  {
+    id: 'progress',
+    group: 'Overview',
+    title: 'Debt, savings and year over year',
+    summary: 'Plan a debt payoff, see whether each savings target is on track, and compare this month or year with the same period last year.',
+    steps: [
+      'Choose Snowball to clear the smallest balance first or Avalanche to clear the highest interest rate first, then enter any extra monthly payment.',
+      'Read the payoff date, interest paid and interest saved. Nothing is written until you choose Apply planned payments, and then only each debt monthly payment changes.',
+      'Review savings on track: the balance, target, target date, required monthly amount and whether the current contribution reaches it.',
+      'Switch between this month and the whole year to compare income, expenses, categories and provider spend with the previous year.',
+    ],
+    notes: [
+      'A savings account with no target date still shows a projection, but there is no required monthly figure to compare against.',
+      'Year-over-year comparisons need an earlier year in the budget; a fresh budget shows a clear no-history notice rather than invented figures.',
+    ],
+  },
+  {
     id: 'transactions',
     group: 'Ledger',
     title: 'Transactions',
@@ -392,6 +456,23 @@ export const USER_GUIDE: GuideEntry[] = [
       'File size and row limits are shown before an import starts.',
       'The Starling feed is Starling’s own personal API, not Open Banking. Its token stays in the Windows encrypted store; pending items are excluded and you can forget or revoke the token. Rows dated up to today can be added even when the As-of date lags behind; adding one moves the As-of date forward, up to today.',
       'The Open Banking feed uses Enable Banking, an authorised provider, and only returns accounts you link yourself. Consent and bank authentication happen in your browser; the key stays in the Windows encrypted store and nothing is posted until you review it.',
+    ],
+  },
+  {
+    id: 'rules',
+    group: 'Tools',
+    title: 'Import rules',
+    summary: 'Merchant rules that suggest a category and tags during import review — they can never move a balance or total.',
+    steps: [
+      'Add a rule: choose description, account or amount, a condition and a pattern, then the category, tags and optional import account it should suggest.',
+      'Give lower priority numbers to rules that should win. The first enabled match is used; suggestions are not merged.',
+      'Choose Test to count matching rows and their money against your existing history without changing anything.',
+      'Open Import and load a CSV. Matching rows show their category, tags and the rule name; edit any row before adding it, or use Apply rule suggestions in bulk.',
+    ],
+    notes: [
+      'Rules set descriptive fields only. Transfer and Refund treatment stays manual because it changes totals.',
+      'Rules run only in the import review grid; manual entry and bank sync are untouched.',
+      'Merchant normalisation strips card references, statement dates and reference numbers of four digits or more. The page shows a live before/after example.',
     ],
   },
   {

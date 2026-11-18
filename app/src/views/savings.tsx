@@ -5,7 +5,7 @@ import { Badge, Empty, Field, Section, Table } from '../components';
 import { gbp, parseMoney } from '../format';
 
 const TYPES = ['Cash ISA', 'Stocks and shares ISA', 'Easy access savings', 'Fixed-rate savings', 'Regular saver', 'Premium bonds', 'Other'];
-const BLANK = { name: '', provider: '', type: TYPES[2], sortCode: '', accountNumber: '', balance: '', target: '', monthly: '', contributionDay: '1', interest: '', notes: '' };
+const BLANK = { name: '', provider: '', type: TYPES[2], sortCode: '', accountNumber: '', balance: '', target: '', targetDate: '', monthly: '', contributionDay: '1', interest: '', notes: '' };
 
 /** Savings and ISA accounts with balances, account details, targets and regular contributions. */
 export function Savings({ ds, update, notify }: ViewProps) {
@@ -34,6 +34,7 @@ export function Savings({ ds, update, notify }: ViewProps) {
       accountNumber: form.accountNumber.trim(),
       balancePence: balance,
       targetPence: parseMoney(form.target),
+      targetDate: /^\d{4}-\d{2}-\d{2}$/.test(form.targetDate) ? form.targetDate : undefined,
       monthlyContributionPence: parseMoney(form.monthly),
       contributionDay: Math.min(31, Math.max(1, Number(form.contributionDay) || 1)),
       interestRatePct: Number(form.interest) || 0,
@@ -60,6 +61,7 @@ export function Savings({ ds, update, notify }: ViewProps) {
       accountNumber: account.accountNumber ?? '',
       balance: (account.balancePence / 100).toFixed(2),
       target: account.targetPence ? (account.targetPence / 100).toFixed(2) : '',
+      targetDate: account.targetDate ?? '',
       monthly: account.monthlyContributionPence ? (account.monthlyContributionPence / 100).toFixed(2) : '',
       contributionDay: String(account.contributionDay ?? 1),
       interest: account.interestRatePct ? String(account.interestRatePct) : '',
@@ -135,6 +137,9 @@ export function Savings({ ds, update, notify }: ViewProps) {
         <Field label="Account number"><input className="input" value={form.accountNumber} onChange={(event) => setForm({ ...form, accountNumber: event.target.value })} /></Field>
         <Field label="Balance £"><input className="input" inputMode="decimal" value={form.balance} onChange={(event) => setForm({ ...form, balance: event.target.value })} /></Field>
         <Field label="Target £"><input className="input" inputMode="decimal" value={form.target} onChange={(event) => setForm({ ...form, target: event.target.value })} /></Field>
+        <Field label="Target date" hint="Optional — used by Progress to work out the required monthly amount.">
+          <input className="input" type="date" value={form.targetDate} onChange={(event) => setForm({ ...form, targetDate: event.target.value })} />
+        </Field>
         <Field label="Monthly contribution £"><input className="input" inputMode="decimal" value={form.monthly} onChange={(event) => setForm({ ...form, monthly: event.target.value })} /></Field>
         <Field label="Contribution day"><input className="input" type="number" min={1} max={31} value={form.contributionDay} onChange={(event) => setForm({ ...form, contributionDay: event.target.value })} /></Field>
         <Field label="Interest rate %"><input className="input" inputMode="decimal" value={form.interest} onChange={(event) => setForm({ ...form, interest: event.target.value })} /></Field>

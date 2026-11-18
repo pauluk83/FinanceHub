@@ -5,6 +5,7 @@ import { dateUk, download, gbp, parseMoney } from '../format';
 import { blankDataset } from '../store';
 import { billSheetsFor } from '../billSheets';
 import { ProviderSetupSection } from './providerSetup';
+import { BUDGET_TEMPLATES, applyTemplate, templateProblem } from '../../../core/templates';
 
 const METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
@@ -71,6 +72,33 @@ export function OnboardingView({ ds, engine, update, notify, go, setMonth, works
     update((d) => { Object.assign(d, fresh); });
     setMonth(Number(basics.asOf.slice(5, 7)) || 1);
     notify(`Blank budget ready for ${basics.main}`);
+  };
+
+  const templateBlock = templateProblem(ds);
+
+  const applyBudgetTemplate = (id: string) => {
+    const problem = templateProblem(ds);
+    if (problem) return notify(problem);
+    const template = BUDGET_TEMPLATES.find((entry) => entry.id === id);
+    if (!template) return;
+    const agreed = confirm([
+      `Start the ${template.name} template?`,
+      '',
+      `${template.accounts.length} account${template.accounts.length === 1 ? '' : 's'}, ${template.bills.length} bills and ${template.savings.length} savings account${template.savings.length === 1 ? '' : 's'} with example amounts and zero balances.`,
+      'No transactions are created. A JSON backup downloads first, and an existing budget is never overwritten.',
+    ].join('\n'));
+    if (!agreed) return;
+    download(`financehub-before-template-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(ds, null, 2), 'application/json');
+    const next = applyTemplate(ds, id, {
+      year: Number(basics.year) || ds.settings.targetYear,
+      asOf: basics.asOf,
+      anchor: basics.anchor || basics.asOf,
+      currency: basics.currency,
+    });
+    if (!next) return notify('That template could not be built');
+    update((d) => { Object.assign(d, next); });
+    setMonth(Number(basics.asOf.slice(5, 7)) || 1);
+    notify(`${template.name} template ready — replace the example amounts with your own`);
   };
 
   const addAccount = () => {
@@ -197,6 +225,35 @@ export function OnboardingView({ ds, engine, update, notify, go, setMonth, works
           </div>
         </Section>
       )}
+
+      <Section
+        title="Start from a template"
+        sub="Structure only: example accounts, bills and categories with zero balances. No transactions, no provider ledgers, and an existing budget is never overwritten."
+        actions={<Badge tone={templateBlock ? 'neutral' : 'blue'}>{BUDGET_TEMPLATES.length} templates</Badge>}
+      >
+        <div className="workspace-choice">
+          {BUDGET_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              className="workspace-choice-card"
+              onClick={() => applyBudgetTemplate(template.id)}
+              disabled={Boolean(templateBlock)}
+            >
+              <span className="workspace-choice-icon" aria-hidden="true">▤</span>
+              <strong>{template.name}</strong>
+              <span>{template.description}</span>
+              <small>{template.accounts.length} accounts · {template.bills.length} bills · {template.savings.length} savings</small>
+            </button>
+          ))}
+        </div>
+        <div style={{ padding: '0 16px 16px' }}>
+          <div className={`notice ${templateBlock ? 'warn' : 'info'}`}>
+            {templateBlock ?? 'Templates run only on an empty budget. A JSON backup downloads before anything changes.'}
+          </div>
+        </div>
+      </Section>
+
       <Section
         title="Where should this budget live?"
         sub="Choose an account for browser sync, or keep this workspace local to this device."

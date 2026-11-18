@@ -14,6 +14,10 @@ import { findInternalTransferRows } from './internalTransfers.ts';
 import { accountClassifier } from './accounts.ts';
 import { providerRowsKey, rowsForYear } from './providerYears.ts';
 import { allRentEntries } from './rent.ts';
+import type { Asset } from './assets.ts';
+import type { ImportRule } from './importRules.ts';
+import type { ImportBatch, StatementCheck } from './reconciliation.ts';
+import type { CsvProfile } from './csvMapping.ts';
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
@@ -40,9 +44,21 @@ export interface Tx {
   autoBill?: boolean;
   /** Stable bill+month identity for a generated row, so re-running never duplicates. */
   billKey?: string;
+  /** Evidence only: the owner has ticked this row off against a statement. */
+  cleared?: boolean;
+  /** When the row was marked cleared; never used in a balance. */
+  reconciledAt?: string;
+  /** The CSV or bank-feed import that created this row, for one-click undo. */
+  importBatchId?: string;
 }
 
-export interface Account { name: string; targetPence: number; openingPence: number; sortOrder: number; active: boolean }
+export interface Account {
+  name: string; targetPence: number; openingPence: number; sortOrder: number; active: boolean;
+  /** Leave this balance out of the net-worth total to avoid double counting. */
+  excludeFromNetWorth?: boolean;
+  /** Leave this balance out of the safe-to-spend cash figure. */
+  excludeFromSafeToSpend?: boolean;
+}
 export interface Person { shortName: string; fullName: string; openingPence: number; sortOrder: number; active: boolean; trackOwed?: boolean; row?: number }
 export interface Card { name: string; limitPence: number; openingPence: number; sortOrder: number; active: boolean }
 export interface Bill {
@@ -76,6 +92,14 @@ export interface MonthLock {
   bills?: { name: string; amountPence: number }[];
   /** Provider ledger closes and statement references captured at the same close. */
   providers?: import('./providerSnapshot.ts').ProviderBalanceSnapshot[];
+  /** Savings, debts and assets recorded from this release onward for the net-worth trend. */
+  savings?: { name: string; balancePence: number }[];
+  debts?: { name: string; balancePence: number }[];
+  assets?: { name: string; valuePence: number }[];
+  /** Closing balances typed against statements when the month was closed. */
+  statement?: StatementCheck[];
+  /** The written reason recorded when a checked balance did not agree. */
+  reconciledNote?: string;
 }
 export interface ScheduleRow { month: string; year2026: { date: string; amountPence: number }; year2027: { date: string; amountPence: number }; year2028: { date: string; amountPence: number } }
 
@@ -106,8 +130,12 @@ export interface SavingsAccount {
   monthlyContributionPence?: number;
   contributionDay?: number;
   interestRatePct?: number;
+  /** The date the target should be reached, used by the savings on-track check. */
+  targetDate?: string;
   notes?: string;
   active?: boolean;
+  /** Leave this balance out of the net-worth total to avoid double counting. */
+  excludeFromNetWorth?: boolean;
 }
 
 export interface Dataset {
@@ -131,6 +159,18 @@ export interface Dataset {
   providers: Record<string, any>;
   debts?: Debt[];
   savings?: SavingsAccount[];
+  /** Manual property, vehicle, pension and investment valuations (R2). */
+  assets?: Asset[];
+  /** Review-only import rules (R3). */
+  importRules?: ImportRule[];
+  /** Import batches, newest last, so one import can be undone (R9). */
+  importBatches?: ImportBatch[];
+  /** Merchants the owner has dismissed from recurring suggestions (R4). */
+  recurringDismissed?: string[];
+  /** Saved CSV column mappings for other banks (R12). */
+  csvProfiles?: CsvProfile[];
+  /** Extra category names supplied by a template; they never carry money. */
+  categories?: string[];
   holidays?: Record<string, any[]>;
   guides?: { monthEnd: string[]; newYear: string[] };
   changelog?: any[];

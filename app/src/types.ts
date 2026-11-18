@@ -59,4 +59,9 @@ export interface ViewProps {
   syncHealth?: { phase?: string; pending?: number; message?: string; lastSyncedAt?: string | null };
   /** Opens the demo workspace from guided setup. */
   onOpenDemo?: () => void;
+  /**
+   * The phone companion is read-only (R1). Mutating controls are hidden or
+   * blocked; mobile write lands later as R18.
+   */
+  readOnly?: boolean;
 }

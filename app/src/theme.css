@@ -893,3 +893,173 @@ tr.locked td { color: var(--muted); }
   .update-stats, .update-live { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+
+/* ------------------------------------------------------- explanations (R8) */
+
+.explain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.62);
+}
+.explain-panel {
+  width: min(680px, 100%);
+  max-height: 86vh;
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.explain-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.explain-head h2 { margin: 0; font-size: 18px; }
+.explain-head p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.explain-source { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.explain-panel table { width: 100%; border-collapse: collapse; }
+.explain-panel td, .explain-panel th { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.explain-panel .num { text-align: right; }
+.explain-panel tfoot th { border-top: 2px solid var(--line-strong); border-bottom: 0; }
+.explain-trigger { white-space: nowrap; }
+.hero-figure .explain-trigger { margin-top: 4px; padding: 1px 6px; font-size: 10px; opacity: 0.75; }
+
+/* ------------------------------------------------------ net worth (R2) */
+
+.networth-chart { padding: 8px 16px 0; }
+.networth-chart svg { display: block; width: 100%; height: auto; }
+.chart-zero { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 4; }
+.chart-area { fill: var(--accent-soft); }
+.chart-line { stroke: var(--accent); stroke-width: 2.5; }
+.chart-dot { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
+.chart-labels { display: flex; justify-content: space-between; padding: 0 4px 8px; color: var(--faint); font-size: 11px; }
+
+.input.compact, .select.compact { min-height: 0; padding: 4px 6px; font-size: 12px; }
+.input.compact.num { text-align: right; }
+.asset-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+}
+.asset-form .field { margin: 0; }
+.check-inline { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.rule-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ------------------------------------------------------- calendar (R7) */
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.calendar-weekday {
+  padding: 8px 6px;
+  background: var(--panel-2);
+  color: var(--faint);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 96px;
+  padding: 6px;
+  border: 0;
+  background: var(--panel);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.calendar-day:hover { background: var(--panel-2); }
+.calendar-day.blank { background: var(--bg-2); cursor: default; }
+.calendar-day.today { box-shadow: inset 0 0 0 2px var(--accent-2); }
+.calendar-day.selected { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.calendar-day-number { color: var(--muted); font-size: 12px; font-weight: 600; }
+.calendar-chip {
+  overflow: hidden;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-chip.bill { background: var(--violet-soft); color: var(--violet); }
+.calendar-chip.income { background: var(--accent-soft); color: var(--accent); }
+.calendar-chip.out { background: var(--danger-soft); color: var(--danger); }
+.calendar-chip.holiday { background: var(--accent-2-soft); color: var(--accent-2); }
+.calendar-chip.more { background: transparent; color: var(--faint); }
+.calendar-detail { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.calendar-detail .amount { margin-left: auto; }
+
+/* -------------------------------------------------- phone shell (R1) */
+
+.mobile-tabs { display: none; }
+.mobile-readonly { margin: 12px 18px 0; }
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { display: none; }
+  .main { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
+  .topbar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .topbar-right .month-select { display: none; }
+  .view-title { font-size: 18px; }
+  .content { padding: 0 0 8px; }
+  .mobile-tabs {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+  }
+  .mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    padding: 6px 2px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+  }
+  .mobile-tab.active { color: var(--accent); }
+  .mobile-tab-icon { font-size: 18px; line-height: 1; }
+  .hero { padding: 16px 12px; }
+  .hero-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.cols-2, .two-col { grid-template-columns: minmax(0, 1fr); }
+  .calendar-day { min-height: 64px; padding: 4px; }
+  .calendar-chip { display: none; }
+  .calendar-day.has-events::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    margin-top: auto;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .asset-form { grid-template-columns: minmax(0, 1fr); }
+  .explain-panel { width: 100%; max-height: 90vh; }
+}

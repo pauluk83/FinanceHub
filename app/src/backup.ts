@@ -1,4 +1,5 @@
 import type { Dataset } from '../../core/engine';
+import { isCalendarDate } from '../../core/dates.ts';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,7 +12,33 @@ function finiteNumber(value: unknown): boolean {
 }
 
 function dateString(value: unknown): boolean {
-  return typeof value === 'string' && DATE.test(value);
+  return typeof value === 'string' && DATE.test(value) && isCalendarDate(value);
+}
+
+function named(value: unknown): boolean {
+  return record(value) && typeof value.name === 'string' && value.name.trim() !== '';
+}
+
+function person(value: unknown): boolean {
+  return record(value) && typeof value.shortName === 'string' && typeof value.fullName === 'string';
+}
+
+function identified(value: unknown): boolean {
+  return record(value) && typeof value.id === 'string' && value.id !== '';
+}
+
+/** A row the engine dereferences directly: a bad one must not reach a dataset. */
+function transactionRow(value: unknown): boolean {
+  return record(value)
+    && isCalendarDate(value.date)
+    && typeof value.account === 'string' && value.account !== ''
+    && (value.type === 'Income' || value.type === 'Expense')
+    && finiteNumber(value.amountPence)
+    && finiteNumber(value.row);
+}
+
+function everyRecord(list: unknown[]): boolean {
+  return list.every(record);
 }
 
 /**
@@ -83,8 +110,31 @@ export function decodeBackupDataset(value: unknown): Dataset | null {
   }
   if (parsed.monthLocks !== undefined && !record(parsed.monthLocks)) return null;
 
+  // A null or half-written row used to pass the shape check and then crash the
+  // engine after it had replaced the live budget, so every row is checked here.
+  if (!(parsed.transactions as unknown[]).every(transactionRow)) return null;
+  if (!(parsed.accounts as unknown[]).every(named)) return null;
+  if (!(parsed.cards as unknown[]).every(named)) return null;
+  if (!(parsed.bills as unknown[]).every(named)) return null;
+  if (!(parsed.people as unknown[]).every(person)) return null;
+  if (!(parsed.billChanges as unknown[]).every(record)) return null;
+  for (const key of ['debts', 'savings', 'importBatches', 'csvProfiles']) {
+    const list = parsed[key];
+    if (list !== undefined && (!Array.isArray(list) || !list.every(identified))) return null;
+  }
+  for (const key of ['recurringDismissed', 'categories']) {
+    const list = parsed[key];
+    if (list !== undefined && (!Array.isArray(list) || !list.every((entry) => typeof entry === 'string'))) return null;
+  }
+  if (parsed.monthLocks !== undefined) {
+    for (const lock of Object.values(parsed.monthLocks)) {
+      if (!record(lock) || typeof lock.lockedAt !== 'string') return null;
+    }
+  }
+
   const incomeSchedules = parsed.incomeSchedules as Record<string, unknown>;
   if (!Array.isArray(incomeSchedules.pip) || !Array.isArray(incomeSchedules.uc)) return null;
+  if (!everyRecord(incomeSchedules.pip) || !everyRecord(incomeSchedules.uc)) return null;
   if (findUnsafeUrlField(parsed)) return null;
 
   return structuredClone({

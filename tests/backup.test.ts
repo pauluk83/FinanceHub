@@ -81,6 +81,37 @@ test('a backup with missing or malformed data is rejected', () => {
   }), null);
 });
 
+test('a backup with a malformed row is rejected before it can crash the engine', () => {
+  assert.equal(decodeBackupDataset({ ...valid, transactions: [null] }), null);
+  assert.equal(decodeBackupDataset({
+    ...valid,
+    transactions: [{ row: 1, date: '2026-02-31', account: 'Current', type: 'Expense', amountPence: 100 }],
+  }), null, 'an impossible calendar date is refused');
+  assert.equal(decodeBackupDataset({
+    ...valid,
+    transactions: [{ row: 1, date: '2026-11-01', account: 'Current', type: 'Expense', amountPence: Number.POSITIVE_INFINITY }],
+  }), null, 'a non-finite amount is refused');
+  assert.equal(decodeBackupDataset({ ...valid, accounts: [{ openingPence: 0 }] }), null);
+  assert.equal(decodeBackupDataset({ ...valid, bills: [null] }), null);
+  assert.equal(decodeBackupDataset({ ...valid, debts: 'not a list' }), null);
+  assert.equal(decodeBackupDataset({ ...valid, monthLocks: { '2026-11': {} } }), null);
+});
+
+test('a backup carrying the newer optional collections is accepted', () => {
+  const decoded = decodeBackupDataset({
+    ...valid,
+    debts: [{ id: 'd1', name: 'Card', balancePence: 10_000, monthlyPaymentPence: 500 }],
+    savings: [],
+    importBatches: [{ id: 'b1', source: 'Starling' }],
+    csvProfiles: [],
+    recurringDismissed: ['spotify'],
+    categories: ['Food'],
+    monthLocks: { '2026-10': { lockedAt: '2026-11-01T09:00:00.000Z' } },
+  });
+  assert.ok(decoded);
+  assert.equal(decoded.debts?.length, 1);
+});
+
 test('an automatic backup is created at most once a day', () => {
   const now = Date.parse('2026-11-13T12:00:00.000Z');
   assert.equal(shouldCreateAutomaticBackup(null, now), true);
