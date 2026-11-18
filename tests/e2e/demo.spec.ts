@@ -70,7 +70,7 @@ test('an Excel statement downloads', async ({ page }) => {
 });
 
 test('a bank CSV is staged and only added after confirmation', async ({ page }) => {
-  await page.getByRole('button', { name: /Import/ }).click();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles('tests/e2e/fixtures/bank.csv');
 
   await expect(page.getByText('E2E CSV import')).toBeVisible();

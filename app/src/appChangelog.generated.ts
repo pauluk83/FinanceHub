@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.18",
-  "buildId": "8592d6366ae0",
+  "version": "2026.11.19",
+  "buildId": "6c8b322d2a8d",
   "builtAt": "2026-11-18",
   "releases": [
+    {
+      "version": "2026.11.19",
+      "date": "18 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Publish the Windows installer for the ranked budget delivery and audit fixes"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.18",
       "date": "18 November 2026",

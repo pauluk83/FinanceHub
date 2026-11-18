@@ -51,6 +51,47 @@ function canDeploy() {
   return deployReady;
 }
 
+/** The commit a local tag points at, or null when that tag is not present. */
+function taggedCommit(version) {
+  try {
+    return execFileSync('git', ['rev-parse', '--verify', '--quiet', `refs/tags/v${version}^{commit}`], {
+      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function headCommit() {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * A same-day rebuild keeps the dated version, but a published tag is immutable.
+ * If the tag already points at an older commit, deploying would serve new code
+ * while the download link kept the previous installer. Refuse both the build and
+ * the deploy, and point the owner at the explicit bump.
+ */
+export function versionTagProblem(version, taggedSha, headSha) {
+  if (!taggedSha) return null;
+  if (!headSha) return `v${version} exists but HEAD could not be read; refusing to build or deploy.`;
+  if (taggedSha === headSha) return null;
+  return `v${version} already tags ${taggedSha.slice(0, 7)}, but HEAD is ${headSha.slice(0, 7)}. `
+    + 'A same-day rebuild cannot reuse a published tag, so nothing was built or deployed. '
+    + `Run npm run release:bump -- patch "<note>" for a new version, then push its tag.`;
+}
+
+function assertVersionTagFree(version) {
+  const problem = versionTagProblem(version, taggedCommit(version), headCommit());
+  if (problem) throw new Error(problem);
+}
+
 export function compareVersions(a, b) {
   const left = a.split('.').map(Number);
   const right = b.split('.').map(Number);
@@ -180,6 +221,12 @@ async function localChecks({ requireUpdateAssets = false } = {}) {
   } else {
     pass(`newest release is ${pkg.version}`);
   }
+  const tagSha = taggedCommit(pkg.version);
+  const tagIssue = versionTagProblem(pkg.version, tagSha, headCommit());
+  if (tagIssue) fail(tagIssue);
+  else if (tagSha) pass(`tag v${pkg.version} matches HEAD`);
+  else console.log(`SKIP  tag v${pkg.version} — not created yet`);
+
   const versions = releases.map((release) => release.version);
   if (new Set(versions).size !== versions.length) fail('release versions are not unique');
   for (let index = 1; index < versions.length; index += 1) {
@@ -362,6 +409,7 @@ function release(note, deploy) {
   }
   const pkg = JSON.parse(read('package.json'));
   const version = releaseVersion();
+  assertVersionTagFree(version);
   const previous = pkg.version;
   writeFileSync(CHANGELOG, addNote(prepareRelease(read('CHANGELOG.md'), version), version, text));
   if (pkg.version !== version) {
@@ -386,6 +434,7 @@ function bump(kind, note, deploy) {
   }
   const pkg = JSON.parse(read('package.json'));
   const next = bumpVersion(pkg.version, kind);
+  assertVersionTagFree(next);
   const changelog = read('CHANGELOG.md');
   if (parseChangelog(changelog).some((entry) => entry.version === next)) throw new Error(`${next} already has a release section`);
   writeFileSync(CHANGELOG, addRelease(changelog, next, text));

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { APP_CHANGELOG } from '../app/src/appChangelog.generated.ts';
 import { buildId, parseChangelog } from '../scripts/app-changelog.mjs';
-import { addNote, prepareRelease, releaseVersion } from '../scripts/release.mjs';
+import { addNote, prepareRelease, releaseVersion, versionTagProblem } from '../scripts/release.mjs';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
 
@@ -37,6 +37,15 @@ test('a release note appends to the current version without bumping it', () => {
   assert.match(updated, /- Old note\n- New note/);
   assert.equal((updated.match(/## \[/g) || []).length, 1, 'the version section is reused, not duplicated');
   assert.match(updated, /## \[0\.1\.0\]/);
+});
+
+test('a published tag on an older commit blocks a same-day rebuild', () => {
+  assert.equal(versionTagProblem('2026.11.18', null, 'b'.repeat(40)), null, 'an untagged version is normal');
+  assert.equal(versionTagProblem('2026.11.18', 'a'.repeat(40), 'a'.repeat(40)), null, 'the same commit is fine');
+  const problem = versionTagProblem('2026.11.18', 'c'.repeat(40), 'd'.repeat(40));
+  assert.match(problem ?? '', /v2026\.11\.18 already tags ccccccc/);
+  assert.match(problem ?? '', /nothing was built or deployed/);
+  assert.match(problem ?? '', /release:bump/);
 });
 
 test('the version is the release date, without padding', () => {

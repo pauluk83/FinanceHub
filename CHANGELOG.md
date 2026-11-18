@@ -5,6 +5,12 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.19] — 18 November 2026
+
+### Changed
+
+- Publish the Windows installer for the ranked budget delivery and audit fixes
+
 ## [2026.11.18] — 18 November 2026
 
 ### Changed
