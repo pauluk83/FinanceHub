@@ -5,6 +5,8 @@ import { advanceAsOfToLatestTransaction, latestTransactionDate, type Dataset } f
 import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
+import { repairDataset } from '../../core/datasetSchema';
+import { mergeProviderSeed } from '../../core/providerMerge';
 import { todayIso } from './format';
 import type { EncryptedVault } from './vault';
 
@@ -222,26 +224,13 @@ function hydrateProviderDetails(state: AppState): AppState {
   for (const [key, seedProvider] of Object.entries(seedProviders)) {
     const current = providers[key];
     if (!current) continue;
-    const next = { ...current };
-    const preserveRentEdits = key === 'rent' && current.detailsEdited === true;
-    const preserveWaterEdits = key === 'water' && current.detailsEdited === true;
-    let providerChanged = false;
-    for (const [field, value] of Object.entries(seedProvider)) {
-      if (field === 'contract' || Array.isArray(value) || (value !== null && typeof value === 'object')) continue;
-      if (preserveRentEdits && RENT_EDITABLE_FIELDS.has(field)) continue;
-      if (preserveWaterEdits && WATER_EDITABLE_FIELDS.has(field)) continue;
-      if (next[field] !== value) {
-        next[field] = value;
-        providerChanged = true;
-      }
-    }
-    const nextContract = seedProvider.contract;
-    // O2/Virgin totals are derived from the ledger, so a saved contract that has
-    // been recalculated must not be overwritten with the seed's original figures.
-    if (nextContract && !current.contractEdited && JSON.stringify(current.contract) !== JSON.stringify(nextContract)) {
-      next.contract = structuredClone(nextContract);
-      providerChanged = true;
-    }
+    // A-08: the seed fills a gap, never replaces a saved value.
+    const preserved = key === 'rent'
+      ? RENT_EDITABLE_FIELDS
+      : key === 'water'
+        ? WATER_EDITABLE_FIELDS
+        : new Set<string>();
+    const { next, changed: providerChanged } = mergeProviderSeed(current, seedProvider, preserved);
     if (providerChanged) {
       providers[key] = next;
       changed = true;
@@ -359,7 +348,11 @@ function decodeState(raw: string | null): AppState | null {
   try {
     const parsed = JSON.parse(raw) as AppState;
     if (parsed?.version !== 1 || !parsed.dataset?.settings) return null;
-    return ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails({ ...parsed, theme: parsed.theme === 'light' ? 'light' : 'dark' }))))));
+    // A-07: repair the shape instead of refusing to open a damaged document.
+    const repaired = repairDataset(parsed.dataset);
+    if (!repaired) return null;
+    const base: AppState = { ...parsed, dataset: repaired.dataset, theme: parsed.theme === 'light' ? 'light' : 'dark' };
+    return ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails(base))))));
   } catch {
     return null;
   }
