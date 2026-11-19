@@ -1387,6 +1387,21 @@ Open items:
   monthly summary, year transactions and month locks in one Excel file; a bounded, redacted
   local crash journal (`app/src/crashJournal.ts`) records window errors and render failures
   and reaches the support bundle as a count and timestamp only. 8 new tests pass.
+- 2026-11-19: Step 5: `core/datasetSchema.ts` repairs a saved document instead of refusing
+  to open it — missing collections and maps are created, unreadable rows and providers are
+  dropped, unusable settings are reset, and every repair is recorded in `meta.schemaRepairs`.
+  `core/providerMerge.ts` makes seed hydration fill only missing provider fields, so a saved
+  edit can no longer be reverted by the bundled seed. 5 tests pass, `tsc` clean.
+- 2026-11-19: Step 6: the hosted build keeps its documents in IndexedDB (`app/src/idbStore.ts`),
+  hydrating an in-memory map at boot so the store stays synchronous and migrating existing
+  `localStorage` keys only after their IndexedDB write succeeds; sign-out clears the
+  IndexedDB copy with the same unsynced-outbox exception. A module-level 800 ms tap guard on
+  the transaction form stops a phone double tap from posting twice. 3 tests pass, the 13 UI
+  smoke checks still pass, `tsc` clean. Not verified: a signed-in hosted session in a browser.
+- 2026-11-19: Step 7: `core/backupUpload.ts` adds the R17 upload half behind a storage
+  adapter: encrypted format-v2 envelopes only (a plaintext dataset is refused), chronological
+  names, newest-seven retention and list/read helpers, proven against the in-memory adapter.
+  4 tests pass. The live Supabase bucket and UI stay in step 8 (owner input).
 - 2026-11-19: Checked the one-click fixes in a browser against a throwaway copy of the
   workbook seeded into the dev server's shared store, not the live budget. With one dead bill
   change the panel offered "1 available"; Preview listed Fix/Record/Before/After ("Removed
