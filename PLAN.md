@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-18
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17; the owner then chose Enable Banking's free restricted production mode and a desktop Open Banking feed was built for the owner's own linked accounts. G1–G5 remain open for any public or third-party use and no provider contract exists. A desktop-only owner Starling personal feed was implemented separately (not Open Banking) and awaits a real-token test. The owner confirms exposed provider passwords are rotated; GitHub releases through `v2026.11.19` are published with matching source archives and checksums; the hosted build moved to Cloudflare Pages at `https://financehub-uk.pages.dev/` on 2026-11-17 after InfinityFree suspended the account, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2. The §24 ranked delivery (R1–R12) and its audit fixes shipped as `2026.11.19` from commit `6c5f7e4`, with a CI-built installer whose published SHA-256 matches and a verified live build; §24 now lists only the remaining eight releases.**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17; the owner then chose Enable Banking's free restricted production mode and a desktop Open Banking feed was built for the owner's own linked accounts. G1–G5 remain open for any public or third-party use and no provider contract exists. A desktop-only owner Starling personal feed was implemented separately (not Open Banking) and awaits a real-token test. The owner confirms exposed provider passwords are rotated; GitHub releases through `v2026.11.19` are published with matching source archives and checksums; the hosted build moved to Cloudflare Pages at `https://financehub-uk.pages.dev/` on 2026-11-17 after InfinityFree suspended the account, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2. The §24 ranked delivery (R1–R12) and its audit fixes shipped as `2026.11.19` from commit `6c5f7e4`; the next five ranked releases (R15, R5, R14, R16, R6) shipped in the same version from commit `35a09e7`, with a rebuilt CI installer whose published SHA-256 matches and a verified live build; §24 now lists only R17's encrypted cloud upload, R13 and R18, and R17's one-click data-health fixes shipped on 2026-11-19.**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -1166,7 +1166,7 @@ External dependencies that code changes cannot satisfy: legal review, Apple hard
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** run the packaged-app security checks, publish the support and security contacts, and record the ICO fee position. Deletion, two-device sync, backup restore, the delta update and the live passkey ceremony are owner-attested; Supabase email confirmation is deliberately off by decision 7. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.19`, build `6c8b322d2a8d`, with matching local/live hashes; the GitHub `v2026.11.19` tag and its release assets are published with matching checksums. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. The §24 ranked delivery (R1–R12), its audit fixes and the same-day tag guard are recorded in §24.5; §24 now lists only the eight remaining releases. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
+**Immediate next:** run the packaged-app security checks, publish the support and security contacts, and record the ICO fee position. Deletion, two-device sync, backup restore, the delta update and the live passkey ceremony are owner-attested; Supabase email confirmation is deliberately off by decision 7. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.19`, build `7441098da7b8`, with matching local/live hashes; the moved `v2026.11.19` tag and its rebuilt release assets are published with matching checksums. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. The §24 ranked delivery (R1–R12), its audit fixes and the same-day tag guard are recorded in §24.4, as are the five later releases (R15, R5, R14, R16, R6); §24 now lists only R17's encrypted cloud upload, R13 and R18. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1365,6 +1365,11 @@ Open items:
 - 2026-11-18: Delivered §24 ranks 1–10 in one body of work — read-only mobile PWA, net worth and manual assets, import rules, bill calendar and safe-to-spend, “explain this number”, statement reconciliation with per-import rollback, recurring detection, 12-month forecast and what-if, debt/savings/year-over-year progress, and onboarding templates with CSV column mapping. `npm test` **372/372**, `tsc` and the hosted build clean. Not checked: a real bank statement import, a template applied to a live budget and a physical phone.
 - 2026-11-18: Audit fixes: debt payoff now holds a constant monthly budget and rolls freed payments forward (18 → 8 months; no £250 against a £150 budget); CSV dates reject impossible calendar days and amounts reject overflowing pence; backup restore validates every row before touching the budget; rule regexes reject nested repetition over 120 characters (0.9 s freeze → under 1 ms). Regression tests added; `npm test` **383/383**, `tsc` clean. Commit `ce102a9` pushed. CI E2E failed only because the new **Import rules** button made the `Import` locator ambiguous; fixed with `{ name: 'Import', exact: true }`.
 - 2026-11-18: Added the same-day tag guard to `scripts/release.mjs`: build and deploy are refused when `v<version>` already points at a different commit, `release:check` reports it, and it was verified refusing the real `v2026.11.18`/`cee91c7` mismatch. Released `2026.11.19` (patch bump because `v2026.11.18` is immutable) from commit `6c5f7e4` and pushed the tag. The Release workflow attached a 122,707,697-byte installer with SHA-256 `25b87b154b5cc5bd683ef21f24503914eb0bf08620eeb95e6eeb66f8d874d969`, matching `SHA256SUMS.txt` and GitHub's digest. Hosted build `6c8b322d2a8d`, bundle `index-uSGv7wyq.js`; `npm test` **383/383**, E2E **8/8**, `release:check` **9/9**, CI and Release green. An incognito live check showed the version, build, new changelog note and installer link.
+- 2026-11-18: Delivered the next five §24 releases — R15 bill price history and expiries, R5 global search, R14 evidence packs, R16 category targets and cleanup, and R6 email reminder preferences and digest — with duplicate merge, saved transaction filters, bulk edit, guide chapters and an opt-in Knock sender. Released in the owner-chosen `2026.11.19` version by moving the tag to commit `35a09e7` and republishing: installer 122,716,727 bytes with SHA-256 `e177bdeff026d0eaa1492688e6aae122c31156a93c19a2bb8c0d8ca8168ec6fb` matching `SHA256SUMS.txt` and GitHub's digest, hosted build `1f9e457c1444`, bundle `index-OqIOekQX.js`. `npm test` **407/407**, Playwright **8/8**, `tsc` clean, `release:check` **9/9**, CI and Release green. Not live-tested: a real email send (no provider key), a real statement import, a physical phone and a click-through of the new screens. Delivery remains disabled until the email provider and privacy gate are configured.
+
+- 2026-11-19: Delivered R17's **one-click data-health fixes**: `core/dataHealthFixes.ts` plus the Data health panel preview orphaned bill changes, bills linked to a link sheet that no longer exists, and generated bill-log rows for deleted bills, then apply them in one save. `tests/data-health-fixes.test.ts` proves each repair leaves the Starling balance and monthly expenses unchanged, that live records are never touched, and that a second apply does nothing; the live budget currently offers 0 fixes. `npm test` **423/423**, `tsc` clean, `release:check` 9/9; build `7441098da7b8`, hosted bundle `index-DwgrY06o.js`, local installer SHA-256 prefix `a1704d9e1d5a`. Not viewed: the new panel in a browser.
+
+---
 
 ## 18. Notes and constraints
 
@@ -1909,10 +1914,11 @@ Ship only when every PR-0 to PR-7 gate has passed, every exception is recorded i
 
 ## 24. Remaining releases — current priority plan (2026-11-18)
 
-Status: **ranks 1–10 (R1–R12) are delivered, committed and published as `2026.11.19`; the
-eight remaining releases are R15, R5, R14, R16, R6, R17, R13 and R18 in the new order
-below.** This revision supersedes the earlier §24: delivered work has been removed from
-the plan, its record is kept in §24.5 and §17, and the remainder is re-ranked. Effort is
+Status: **every ranked release is delivered and published as `2026.11.19` except R17's
+encrypted cloud upload, R13 and R18; R17's one-click data-health fixes shipped on
+2026-11-19, so the remaining work is that upload (deferred by the owner until a Supabase
+Storage bucket exists), then R13 and R18 in the order below.** This revision supersedes the earlier §24: delivered work has been removed from
+the plan, its record is kept in §24.4 and §17, and the remainder is re-ranked. Effort is
 focused development time for one experienced developer with agent support; it excludes
 review, release packaging (about half a day per release), device testing and store work.
 Every release still ships through `npm run release`, keeps the parity suite green and
@@ -1925,8 +1931,10 @@ month locks, the device-local read-only people portal, provider ledgers and host
 real-budget sync — are **not** listed as work. Nor are the ranked releases delivered on
 2026-11-18: the read-only mobile PWA, net worth and assets, import rules, bill calendar,
 “explain this number”, statement reconciliation with import rollback, recurring detection,
-forecast and what-if, debt/savings/year-over-year progress, and onboarding templates with
-CSV mapping. Where a release builds on one, only the remaining delta is scoped.
+forecast and what-if, debt/savings/year-over-year progress, onboarding templates with CSV
+mapping, and the later five releases (bill price history and expiries, global search,
+evidence packs, category targets and cleanup, and email reminder preferences). Where a
+release builds on one, only the remaining delta is scoped.
 
 ### 24.1 Remaining releases, reprioritised
 
@@ -1934,66 +1942,23 @@ Release IDs stay stable for traceability; the rank column is the new order.
 
 | Rank | ID | Remaining scope | Effort | Value | Depends on |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | R15 | Bill price timeline, consolidated expiry list, reminders | 2–3 days | Medium–high | `billChanges`, contract dates and recurring detection (exist) |
-| 2 | R5 | Global search, saved filters, category reports | 3–5 days | Medium | Transaction search and filters (exist) |
-| 3 | R14 | Evidence packs: provider dispute, month close, benefits | 4–6 days | High | Exports, locks and reconciliation (exist) |
-| 4 | R16 | Category targets, bulk edit, duplicate merge | 5–6 days | Medium | Categories, import rules and duplicate detection (exist) |
-| 5 | R6 | Email bill reminders and preferences | 4–6 days | Medium–high | In-app alerts (exist) plus a provider |
-| 6 | R17 | Cloud backup upload and one-click data-health fixes | 5–7 days | Medium | Backups, restore points and health checks (exist) |
-| 7 | R13 | Partner read-only link and bill splitting | 7–10 days | High | Hosted sync and auth (exist); new server-side share tokens |
-| 8 | R18 | Mobile quick-add and web-push notifications | 4–6 days | Medium | Mobile PWA (shipped); R6 |
+| 1 | R17 | Encrypted cloud backup upload — the one-click data-health fixes shipped 2026-11-19 | 3–4 days | Medium | Backups, restore points and health checks (exist); a Supabase Storage bucket |
+| 2 | R13 | Partner read-only link and bill splitting | 7–10 days | High | Hosted sync and auth (exist); new server-side share tokens |
+| 3 | R18 | Mobile quick-add and web-push notifications | 4–6 days | Medium | Mobile PWA (shipped); R6 preferences (shipped) |
 
-**Sequencing rationale:** R15 finishes the bill lifecycle cheaply and makes the new
-recurring detection and price-change data visible. R5 follows for daily speed and reuses
-the existing transaction search. R14 is the highest-value remaining item that needs no new
-infrastructure, and it reuses the locks and reconciliation evidence added in R9. R16 then
-cleans up the data those reports expose. R6 and R17 add delivery and operations
-infrastructure — an email processor and cloud storage — so each needs its privacy and
-retention work first. R13 is the largest item and the only one that adds a remote access
-surface; it can wait until household demand is confirmed. R18 is last because it depends
-on R6's push-permission and preference work as well as the shipped mobile shell.
+**Sequencing rationale:** R17 comes first because it adds operational resilience — an
+encrypted cloud backup and previewed data-health fixes — using the existing Supabase
+storage and backup format, and it closes the last backup gap. R13 is the largest item and
+the only one that adds a remote access surface, so it waits until household demand is
+confirmed and needs its own token, revocation and privacy review. R18 follows because
+quick-add depends on the shipped sync conflict handling and R6's preference groundwork,
+and web push needs a server-side sender and key before it can be offered.
 
-**Total:** roughly 34–49 focused dev-days for the remaining eight releases (±50%), or about
-two to three months for one full-time developer. The delivered foundation removes about
-40–60 days from the earlier 75–110 estimate.
+**Total:** roughly 16–23 focused dev-days for the remaining three releases (±50%), or about
+three to four weeks for one full-time developer. The delivered foundation removes about
+60–80 days from the earlier 75–110 estimate.
 
-### 24.2 Priority 1–4: R15, R5, R14, R16
-
-**R15 — Price history and expiries.** A per-bill timeline from `billChanges` with previous
-and new amounts, percentage change, next scheduled change and annualised cost; a
-consolidated expiry list (contract ends, fixed-rate maturities, insurance, MOT, tenancy)
-with lead-time reminders. The bill-change table and contract end dates already exist, and
-recurring detection now supplies price-change signals; this adds the timeline, the list and
-the reminders. Acceptance: the timeline reproduces every stored change, and inactive items
-produce no reminders.
-
-**R5 — Global search and reports.** Cross-entity search over transactions, bills, people,
-providers and holidays with a keyboard shortcut; saved filters per view; category and tag
-spend by month and year with trend and CSV/Excel export. Transaction search and filters
-already exist and are reused, not rebuilt. Out of scope: a custom report builder and a
-dashboard designer. Acceptance: search results and report totals reconcile to the ledger,
-and saving a filter changes no amount.
-
-**R14 — Evidence packs.** Three printable/Excel packs: provider dispute (statement,
-payments, balance, contract terms, notes), month close (balances, locks, reconciliation
-notes) and benefits (PIP/UC schedule versus received, annual totals). Existing transaction
-and statement extracts are reused. Acceptance: pack totals equal the ledger; no vault
-secrets, tokens or full account numbers are exported.
-
-**R16 — Categories and cleanup.** Report-only category targets stored separately from the
-engine with progress on the dashboard and reports; bulk edit for selected transactions; and
-duplicate merge that keeps one row, links the other and writes an audit entry. Categories,
-tags, import rules and duplicate detection already exist. Acceptance: targets never move a
-balance; a merge preserves totals and can be reverted.
-
-### 24.3 Priority 5–6: R6, R17
-
-**R6 — Email bill reminders.** A transactional email provider with a server-side key, a
-daily scheduled function that recomputes due bills with the same core, per-channel
-preferences, unsubscribe, and no financial detail in subject lines. In-app alerts already
-exist; this is delivery only. Out of scope: SMS and web push until email proves useful.
-Acceptance: a test digest matches the in-app alerts, and every recipient has a working
-unsubscribe path.
+### 24.2 Priority 1: R17
 
 **R17 — Operations.** Client-side encrypted backup upload to Supabase storage with a
 restore list and retention, plus one-click data-health fixes with a preview of every change
@@ -2001,7 +1966,17 @@ before it is applied. Encrypted export, restore points, restore and read-only he
 already exist. Acceptance: an encrypted backup round-trips; fixes preview before applying;
 no plaintext budget leaves the device.
 
-### 24.4 Priority 7–8: R13, R18
+**Delivered 2026-11-19 — the fixes half.** `core/dataHealthFixes.ts` previews and applies
+three deterministic repairs: bill changes whose bill no longer exists, bills linked to a link
+sheet that no longer exists, and generated bill-log rows left by a deleted bill. Data health
+lists every change before it applies and applies them in one save, so the budget changelog and
+per-record audit record it. Every repair touches only records no balance or total counts, and
+the tests prove the Starling balance and monthly expenses are unchanged. A bill linked to a
+ledger that is merely hidden keeps its link — that stays a manual review. The upload half is
+deferred: the owner chose on 2026-11-19 to skip it until a Supabase Storage bucket and its RLS
+policies have been applied, and the round-trip acceptance gate still stands for it.
+
+### 24.3 Priority 2–3: R13, R18
 
 **R13 — Household pack.** A revocable, read-only whole-budget link with server-side share
 tokens, owner-scoped reads and revocation. The people portal is device-local — a local
@@ -2015,7 +1990,7 @@ conflict-safe retry, then web-push notifications through the service worker for 
 bill, balance and card alerts. The read-only mobile PWA already ships. Acceptance: an
 offline entry syncs exactly once, and repeated taps cannot double-post.
 
-### 24.5 Delivered and removed from this plan (2026-11-18)
+### 24.4 Delivered and removed from this plan (2026-11-18)
 
 **Ranks 1–10 were delivered in one body of work and published as `2026.11.19`.** That
 version number is a patch bump, not a future date: `v2026.11.18` was already tagged to the
@@ -2033,11 +2008,6 @@ the 18 November heading.
   strict CSV calendar dates and amount bounds, row-by-row backup validation and bounded
   rule regexes.
 
-Deviations retained from the earlier draft: the statement check pre-fills the calculated
-balance, so only an edited figure can show a difference; the forecast's first row is the
-rest of the As-of month; templates seed no provider ledgers; forecast income is scheduled
-PIP/UC only.
-
 Release evidence: commit `6c5f7e4`, tag `v2026.11.19` (locally and remotely); CI-built
 Windows installer 122,707,697 bytes with SHA-256
 `25b87b154b5cc5bd683ef21f24503914eb0bf08620eeb95e6eeb66f8d874d969` matching
@@ -2045,15 +2015,57 @@ Windows installer 122,707,697 bytes with SHA-256
 `6c8b322d2a8d`, live at `https://financehub-uk.pages.dev/`. `npm test` 383/383, Playwright
 8/8, `npm run release:check` 9/9, CI and Release workflows green.
 
+Deviations retained from the earlier draft: the statement check pre-fills the calculated
+balance, so only an edited figure can show a difference; the forecast's first row is the
+rest of the As-of month; templates seed no provider ledgers; forecast income is scheduled
+PIP/UC only.
+
+**R15, R5, R14, R16 and R6 were delivered in the next body of work and published in the
+same `2026.11.19` version**, after the owner authorised moving the tag and republishing:
+
+- R15 bill price timeline, consolidated expiry list and in-app expiry reminders.
+- R5 global Ctrl+K search over transactions, bills, people, accounts, cards, debts,
+  savings, providers and holidays.
+- R14 provider-dispute, month-close and benefits evidence packs with print/PDF and Excel.
+- R16 report-only category targets, twelve-month trend, bulk edit, duplicate merge with
+  exact undo and saved transaction filters.
+- R6 email reminder preferences, digest builder and a server-side sender with suppression;
+  delivery remains disabled until a provider key and the §24.6 privacy gate are in place.
+
+Release evidence: commit `35a09e7`, tag `v2026.11.19` force-moved to it; CI-built Windows
+installer 122,716,727 bytes with SHA-256
+`e177bdeff026d0eaa1492688e6aae122c31156a93c19a2bb8c0d8ca8168ec6fb` matching
+`SHA256SUMS.txt` and GitHub's published digest; hosted bundle `index-OqIOekQX.js`, build
+`1f9e457c1444`, live at `https://financehub-uk.pages.dev/`. `npm test` 407/407, Playwright
+8/8, `tsc` clean, `release:check` 9/9, CI and Release workflows green. Not live-tested: a
+real email send (no provider key), a real statement import, a physical phone and a
+click-through of the new screens.
+
 A same-day tag guard now prevents a web deploy without a matching installer:
 `scripts/release.mjs` refuses to build or deploy when `v<version>` already points at a
 different commit, and `release:check` reports the guard. CI's Playwright step was also
 fixed — the new **Import rules** button made the non-exact `Import` locator ambiguous.
 
-The earlier revision recorded only ranks 6–10; ranks 1–5 were delivered in the same body
-of work and are recorded here rather than repeated. Full checks and deviations are in §17.
+**R17's fixes half was delivered on 2026-11-19 and republished in the same version**, after the
+owner authorised another tag move:
 
-### 24.6 Explicitly skipped
+- Data health gained **One-click fixes**: orphaned bill changes, bills linked to a missing link
+  sheet and generated rows for deleted bills are previewed per record (before → after) and
+  applied together in one save.
+- Owner decision on 2026-11-19: skip the encrypted cloud backup upload this round; it needs a
+  Supabase Storage bucket and RLS policies the owner has not created, so the upload stays
+  unbuilt rather than shipped behind a dead button.
+
+Release evidence: build `7441098da7b8`, hosted bundle `index-DwgrY06o.js` live at
+`https://financehub-uk.pages.dev/`, local installer SHA-256 prefix `a1704d9e1d5a` with
+`update-manifest.json` matching `FinanceHub-app.asar` (`19c6629b19b8`). `npm test` 423/423,
+`tsc` clean, `release:check` 9/9 after Pages propagated. The CI build of the tagged commit
+publishes the matching dated installer and delta assets.
+
+The earlier revision recorded only ranks 6–10; ranks 1–5 were delivered in the same body of
+work and are recorded here rather than repeated. Full checks and deviations are in §17.
+
+### 24.5 Explicitly skipped
 
 | Candidate | Decision | Reason |
 | --- | --- | --- |
@@ -2071,22 +2083,12 @@ of work and are recorded here rather than repeated. Full checks and deviations a
 | Split transactions | Later | Touches every balance and total; defer until rules prove demand |
 | Shared household write access | Later | XL per-record sync; the read-only mobile companion is the cheaper first step |
 
-### 24.7 Gates for every release in this plan
+### 24.6 Gates for every release in this plan
 
 - The full suite and `tsc` pass, and no money rule changes without a test that proves the
   old figures are unchanged.
 - The release command owns the version and changelog; no hand-edited headings, and the
   tag guard must pass before any build or deploy.
-- R15 proves the timeline reproduces every stored change, and inactive items produce no
-  reminders.
-- R5 proves search results and category reports reconcile to the ledger and that saved
-  filters change no amount.
-- R14 proves pack totals equal the ledger and that exports contain no secrets or full
-  account numbers.
-- R16 proves targets never move a balance and that a merge preserves totals and can be
-  reverted.
-- R6 has a processor entry, a privacy-notice update and an unsubscribe path before it is
-  enabled for the owner.
 - R17 proves the encrypted backup round-trips and that no plaintext budget leaves the
   device; fixes preview every change before applying.
 - R13 proves a revoked link cannot read the budget and that a link is scoped to its owner.

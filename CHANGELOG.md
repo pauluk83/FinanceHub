@@ -13,6 +13,7 @@ and the build time.
 - Add bill price history and expiry reminders, Ctrl+K budget search, spending reports with report-only targets, evidence packs, and opt-in email reminder digests
 - Count a bill once when its payment is already in the transaction log, and mark that bill Paid from log
 - Tolerate a bill paid under its guessed amount so it still settles once
+- Preview and apply one-click data-health fixes for dead bill changes, missing link sheets and generated rows left by deleted bills
 
 ## [2026.11.18] — 18 November 2026
 

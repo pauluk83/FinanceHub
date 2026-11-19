@@ -527,14 +527,16 @@ export const USER_GUIDE: GuideEntry[] = [
     id: 'health',
     group: 'Tools',
     title: 'Data health',
-    summary: 'A read-only integrity centre that flags account names, duplicates, provider year-chain breaks, linked bills, locked-month drift, dormant accounts and sync conflicts.',
+    summary: 'An integrity centre that flags account names, duplicates, provider year-chain breaks, linked bills, locked-month drift, dormant accounts and sync conflicts, and repairs the dead records in one save.',
     steps: [
       'Open Tools → Data health after an import, a restore, a year rollover or a month close.',
       'Read critical and warning findings first, then open the screen named by the finding to review the underlying rows.',
+      'Use One-click fixes to preview every dead record — a bill change with no bill, a bill linked to a missing link sheet, a generated row left by a deleted bill — then apply them together.',
       'Use the Checks run table to confirm which rules passed. Reopen the page after an edit to recalculate every finding.',
     ],
     notes: [
-      'Data health never deletes, merges or rewrites anything. It only reads the loaded budget and points you to the review screen.',
+      'The checks never delete, merge or rewrite anything; they only read the loaded budget. One-click fixes are the only place this page changes data, and they list every change before it applies.',
+      'A one-click fix only touches records no balance or total counts, so applying one cannot move a figure. Anything that needs a decision — an unknown account, a duplicate, a drifted lock, a hidden provider ledger — stays a finding you review yourself.',
       'A lock that no longer matches live balances means history changed after the month was closed. Unlock it only when the close itself is wrong.',
     ],
   },
