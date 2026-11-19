@@ -160,7 +160,14 @@ async function main() {
   if (!existsSync(updateManifest)) throw new Error(`${updateManifest} is missing — run npm run dist:win first.`);
   if (!existsSync(updateAsar)) throw new Error(`${updateAsar} is missing — run npm run dist:win first.`);
 
-  const result = await publishInstaller({ version, files: [installer, checksums, updateManifest, updateAsar], token });
+  // SBOM and claims travel with the installer so a download can be audited.
+  const evidence = [join(ROOT, 'release', 'SBOM.json'), join(ROOT, 'release', 'RELEASE_CLAIMS.md')]
+    .filter((file) => existsSync(file));
+  const result = await publishInstaller({
+    version,
+    files: [installer, checksums, updateManifest, updateAsar, ...evidence],
+    token,
+  });
   console.log(`github release ${result.tag}: ${result.uploaded.map((asset) => `${asset.name} (${(asset.bytes / 1024 / 1024).toFixed(1)} MB)`).join(', ')}`);
 }
 

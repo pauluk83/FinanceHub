@@ -41,6 +41,9 @@ jobs:
           "$hash  FinanceHub-Setup-$version.exe" | Out-File -Encoding ascii release/SHA256SUMS.txt
           Write-Output "sha256 $hash"
 
+      - name: Generate release evidence
+        run: node scripts/release-evidence.mjs
+
       - name: Publish GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

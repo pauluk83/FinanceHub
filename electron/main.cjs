@@ -7,6 +7,7 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const { createSecureStore } = require('./secure-store.cjs');
+const { parseOAuthCallback } = require('./oauthCallback.cjs');
 const { signEnableBankingJwt } = require('./enable-banking-jwt.cjs');
 const {
   buildBlockPlan,
@@ -123,21 +124,31 @@ function registerOAuthCallback() {
   });
 
   oauthServer = http.createServer((req, res) => {
-    const host = req.headers.host ?? '';
-    if (host !== `127.0.0.1:${OAUTH_PORT}` && host !== `localhost:${OAUTH_PORT}`) {
+    // The loopback callback is a forgery target, so every decision (host, method,
+    // path, payload bounds) lives in a pure module with its own tests.
+    const callback = parseOAuthCallback({
+      host: req.headers.host ?? '',
+      method: req.method,
+      url: req.url ?? '/',
+      port: OAUTH_PORT,
+    });
+    if (callback.status === 403) {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Forbidden');
       return;
     }
-    if (req.method !== 'GET' || req.url?.split('?')[0] !== '/auth/callback') {
+    if (callback.status === 404) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Not found');
       return;
     }
+    if (callback.status === 400) {
+      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end('Bad request');
+      return;
+    }
 
-    const url = new URL(req.url ?? '/', OAUTH_CALLBACK);
-    const code = url.searchParams.get('code');
-    const error = url.searchParams.get('error_description') || url.searchParams.get('error');
+    const { code, error } = callback;
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('oauth:callback', { code, error });
     }

@@ -391,6 +391,8 @@ function buildAndDeploy(deploy) {
   } else {
     console.log('skip deploy (--no-deploy)');
   }
+  console.log('generating release evidence (SBOM, claims, hashes)…');
+  run('node scripts/release-evidence.mjs');
   console.log(`Windows installer: release/FinanceHub-Setup-${appVersion()}.exe`);
   console.log(`Publish it with: git tag v${appVersion()} && git push origin v${appVersion()} (GitHub Actions builds and attaches it)`);
 }
