@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.19",
-  "buildId": "23bd22ae5577",
+  "buildId": "99533abc4182",
   "builtAt": "2026-11-19",
   "releases": [
     {
@@ -23,7 +23,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Phone companion editing with its own month and year control; a quieter budget changelog",
             "Test the desktop OAuth callback and ship SBOM, claims and packaged smoke evidence",
             "Holiday search, an accountant pack and a redacted local crash journal",
-            "Repair damaged budgets, cache in IndexedDB with a double-tap guard, and upload encrypted backups through a storage adapter"
+            "Repair damaged budgets, cache in IndexedDB with a double-tap guard, and upload encrypted backups through a storage adapter",
+            "Data health reports saved-document repairs, and the plan closes steps 1-7"
           ]
         }
       ]
