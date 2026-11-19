@@ -34,6 +34,7 @@ Effort (roadmap sections only): **S** small · **M** medium · **L** large · **
 22. Progress scorecard and competitor refresh — 2026-11-08
 23. Production-readiness and legal launch plan — 2026-11-14
 24. Remaining releases — current priority plan (2026-11-18)
+25. Backlog-clearing plan — 10 steps (2026-11-19)
 
 ---
 
@@ -376,10 +377,10 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [x] **Statements expose the target year and All years.** The top-bar year selector and the Statements “All years” option are delivered.
 - [x] **Month-end snapshots include provider balances.** Locks now record provider closes and statement references alongside the existing totals.
 - [x] **Per-record audit history, revert and trash.** Transactions, accounts, people, cards, bills and bill changes are diffed at the update boundary; Transactions exposes history, revert and recently deleted restore.
-- [ ] **Imported transactions have no import-run provenance.** A row knows its source row number but not which CSV, import batch or file created it. Add an `import_run` ID, source filename, imported-at timestamp and a one-click import undo.
+- [x] **Imported transactions have import-run provenance.** Delivered with R9 on 2026-11-18: every import is committed as a batch (`commitImportBatch`) with source filename, imported-at timestamp and per-row batch id, and the Import screen rolls a whole batch back in one action.
 - [x] **Backups have a version and checksum.** Encrypted format v2 records the format version and SHA-256 checksum and refuses a tampered payload; plain JSON restore remains available.
 - [~] **Data Health screen — expanded.** Tools → Data health now includes failed-sync/pending-change and backup-age checks alongside account names, duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved conflicts. Direct statement-vs-snapshot comparison still relies on the locked-month balance check.
-- [ ] **No “Explain this number” drill-down.** Every KPI should show its source rows, formula, month, account and overrides so users can understand why a figure differs from the workbook or an earlier month.
+- [x] **“Explain this number” drill-down.** Delivered with R8 on 2026-11-18: every KPI and reconciliation row opens a panel with its source rows, formula, month, account and overrides.
 - [ ] **No session/device management.** Cloud accounts cannot see active devices, last sync, revoke a device or sign out all sessions. Add this alongside MFA/passkeys.
 - [ ] **No accountant/tax-year export.** Add a pack containing transaction CSV, statement PDFs, income/expense summaries, locked-month snapshots, provider balances and a reconciliation note.
 
@@ -392,7 +393,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [ ] **Property-based ledger tests:** assert invariants such as total owed equals the sum of people, statement closing equals cumulative balance, and account totals equal dashboard totals.
 - [ ] **Import fuzz tests:** malformed CSV, huge files, odd dates, duplicate rows and formula-injection strings.
 - [~] **Security regression tests:** credential scanning, URL-scheme rejection and CSV neutralisation are covered. Exact CSP-origin and OAuth state/callback tests remain.
-- [ ] **Accessibility and scaling tests:** keyboard-only use, screen-reader labels and 125–200% Windows scaling.
+- [x] **Accessibility and scaling pass:** run on the live build 2026-11-17 — labels, image alternatives, landmarks, heading order, keyboard reachability and 125–200% scaling. The one defect (icon-only sidebar buttons losing their accessible name below ~1000 px) was fixed in `2026.11.17` and re-verified at 640 px (see §23.6).
 
 ### Features for later
 
@@ -1901,7 +1902,7 @@ Counsel must mark each item **applicable**, **not applicable with reason**, or *
 - [ ] Packaged-app navigation, CSP, external-link blocking, secure storage and OAuth callback checks.
 - [x] Owner-attested: deletion and export drills completed, and a backup restore was run on the `2026.11.16` build (2026-11-17). No instrumented artifact.
 - [x] Owner-attested: two-account isolation and two-device conflict/realtime behaviour confirmed (2026-11-17). No instrumented artifact.
-- [~] Client verification gate implemented; Supabase “Confirm email” is currently enabled, but custom SMTP is disabled and the live signup/resend test remains open. The recorded decision says it was deliberately left off (decision 7); reconcile the setting before any public signup claim.
+- [ ] Client verification gate implemented, but the Supabase “Confirm email” setting is unverified: the recorded decision (decision 7) is that it is deliberately **off** because custom SMTP is disabled, while this checklist previously said enabled. Record the actual dashboard value and run the live signup/resend test before any public signup claim. Owner input needed.
 - [x] Hosted demo-only gate built, deployed and live-checked on 2026-11-16, then withdrawn by the owner on 2026-11-17 so the hosted app serves a real budget again.
 - [x] RA-3 signed by the owner on 2026-11-17: plaintext browser storage for the hosted budget, with the confirmed-email rule retained.
 - [ ] Exact-origin CSP and forged/replayed OAuth callback tests.
@@ -1970,6 +1971,9 @@ and web push needs a server-side sender and key before it can be offered.
 **Total:** roughly 16–23 focused dev-days for the remaining three releases (±50%), or about
 three to four weeks for one full-time developer. The delivered foundation removes about
 60–80 days from the earlier 75–110 estimate.
+
+The ten-step execution order that supersedes this table — including the §6/§7/§8 and §23
+backlog — is §25.
 
 ### 24.2 Priority 1: R17
 
@@ -2064,6 +2068,9 @@ fixed — the new **Import rules** button made the non-exact `Import` locator am
 **R17's fixes half was delivered on 2026-11-19 and republished in the same version**, after the
 owner authorised another tag move:
 
+- Phone companion editing shipped on 2026-11-19, together with its own month/year row and the
+  Budget-changelog filter that hides app-generated “App update” placeholders (see §17).
+
 - Data health gained **One-click fixes**: orphaned bill changes, bills linked to a missing link
   sheet and generated rows for deleted bills are previewed per record (before → after) and
   applied together in one save.
@@ -2108,3 +2115,115 @@ work and are recorded here rather than repeated. Full checks and deviations are 
   device; fixes preview every change before applying.
 - R13 proves a revoked link cannot read the budget and that a link is scoped to its owner.
 - R18 proves an offline entry syncs exactly once and repeated taps cannot double-post.
+
+---
+
+## 25. Backlog-clearing plan — 10 steps (2026-11-19)
+
+Goal: clear §24's remaining releases and the §6, §7, §8 and §23 backlog in ten steps. The order
+puts the quickest, most local and least error-prone work first, so the longest unattended
+stretch needs no owner input at all. New server surfaces and money-model changes are last,
+and the one owner setup session sits late enough that everything before it can run without
+anyone watching.
+
+Rules for every step: one commit per step with the step number in the message; one release
+per pair of steps (packaging is about half a day each); `npm test`, `npx tsc -p
+app/tsconfig.json --noEmit` and `npm run release:check` gate each release; no money rule
+changes without a test that proves the old figures are unchanged.
+
+| Step | Work | Effort | Risk | Owner input | Unattended |
+| ---: | --- | ---: | --- | --- | --- |
+| 1 | Plan truth and stale checkboxes | 0.5 d | None | None | Yes |
+| 2 | Release and security evidence automation | 1.5 d | Very low | None | Yes |
+| 3 | Renderer, seed and build hygiene | 1.5 d | Low | None | Yes |
+| 4 | Small user-visible backlog | 2.5 d | Low | None | Yes |
+| 5 | Data-load resilience (A-07, A-08) | 2.5 d | Medium | None | Yes |
+| 6 | Mobile offline queue and web storage (R18 part 1) | 3.5 d | Medium | None | Yes |
+| 7 | R17 encrypted backup upload, adapter-first | 2.5 d | Medium | None yet | Yes |
+| 8 | One owner setup session, then wire it up | 2 d + 20–30 min | Medium | Bucket, keys, one SQL run | No, then yes |
+| 9 | R13 household pack | 8 d | High | Review before enabling | No |
+| 10 | Launch evidence and final gate | 2.5 d | Low | Legal, support, sign-off | No |
+
+**Total: about 27 focused dev-days plus one short owner session, external legal review and a
+penetration test.** Steps 1–7 can run as one unattended block; only step 8 needs the owner.
+
+### Step 1 — Plan truth (0.5 d, no risk, no input)
+
+Close checkboxes that are already delivered (§7 accessibility, §6 “Explain this number” and
+import provenance via R9), reconcile the email-verification decision against the checklist,
+record the phone-editing delivery in §24, and delete superseded text. Exit: `PLAN.md`
+matches the shipped app, no code change.
+
+### Step 2 — Release and security evidence automation (1.5 d, very low risk)
+
+Exact Supabase-origin CSP test, forged/replayed OAuth callback tests, a regression test for
+the sensitive-file ignore rules, and a script that writes the SBOM, installer hashes and claims
+list into the release assets. Add an Electron smoke script for the packaged app: navigation,
+CSP enforcement, external-link blocking, secure-store write/read and the OAuth callback route.
+This clears the packaged-app checks, A-01, A-12, A-13 and the SBOM gate with tests that need
+no live account. Exit: every open §23.6 item that can be proven locally is a passing check.
+
+### Step 3 — Renderer, seed and build hygiene (1.5 d, low risk)
+
+Lazy-load the larger views to cut the 1.46 MB renderer chunk, add the dataset-size warning and
+measure an edit-latency budget, and prove the distributable build contains no personal workbook
+(A-10) with a test instead of an ignore rule alone. Exit: build stays green, bundle shrinks,
+measurements recorded in §17.
+
+### Step 4 — Small user-visible backlog (2.5 d, low risk)
+
+Holiday search and filtering, the accountant/tax-year export pack (locked-month snapshots,
+provider balances and a reconciliation note), and an opt-in local crash journal that is
+redacted and included in the support bundle — no third-party crash service, so no key or
+consent gate. Exit: each feature has a test and appears in the user guide.
+
+### Step 5 — Data-load resilience (2.5 d, medium risk)
+
+A-07 and A-08: validate the provider schema, hydrate malformed documents through a migration
+instead of blanking the app, and prove with tests that a damaged or older document cannot
+overwrite good edits. No money rule is touched; the work is in the load and migration path.
+Exit: recovery tests pass and Data health reports the migration outcome.
+
+### Step 6 — Mobile offline queue and web storage (3.5 d, medium risk)
+
+R18's write half: move the hosted cache and outbox to IndexedDB (A-09), queue phone edits
+offline with exactly-once retry and a duplicate-tap guard, and reconcile on reconnect through
+the existing sync cursors. Acceptance from §24.6: an offline entry syncs exactly once and
+repeated taps cannot double-post. Exit: tests plus a 420 px click-through.
+
+### Step 7 — R17 upload, adapter-first (2.5 d, medium risk)
+
+Build encrypted backup upload, the restore list and retention behind a storage adapter with a
+local implementation and tests, so the round-trip and “no plaintext leaves the device” gate are
+proven before any bucket exists. UI stays hidden until step 8 supplies credentials. Exit:
+round-trip test passes against the local adapter; the live path is one flag away.
+
+### Step 8 — One owner setup session, then wire it (2 d + 20–30 min owner)
+
+One sitting covers everything that needs the owner: create the Supabase Storage bucket and its
+RLS policies, run the pending SQL migrations (device/session management, share tokens), add the
+transactional-email key and the web-push VAPID keys. Then, unattended: switch on R17 upload
+end-to-end, device/session management with revoke, web push through the service worker, and
+email reminder delivery behind the §24.6 privacy gate. Exit: each live integration verified
+with a real round-trip, and a signed-out request still refused.
+
+### Step 9 — R13 household pack (8 d, high risk)
+
+Share tokens with owner-scoped reads and revocation, plus bill splitting into linked People
+rows. Build behind a flag, add two-account isolation and revocation tests, and keep it off
+until the review in the same step is signed. Exit: a revoked link cannot read the budget, a
+link reads only its owner's budget, and split rows reconcile exactly to the bill amount.
+
+### Step 10 — Launch evidence and final gate (2.5 d + owner/legal)
+
+Run the packaged checks against the published installer, re-run the accessibility pass,
+finalise the privacy notice, retention/DSAR/breach pack, ICO position, support/incident
+contacts and the processor register, file the penetration-test report, then take the signed
+go/no-go. Exit: every §23.6 gate is either passing evidence or a signed, dated acceptance;
+final release tagged and verified.
+
+### Explicitly outside this plan
+
+Split/merge transactions is excluded because it changes money rules across every balance and
+total and deserves its own release with a parity proof. Native iOS, secure bank linking (C-4),
+receipt OCR and shared household write access stay deferred for the reasons in §24.5.
