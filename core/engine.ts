@@ -524,13 +524,14 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
    * Every due date already settled from the log, per bill account and name.
    *
    * A payment only settles a bill when the description names it in full as a run
-   * of whole words ("O2 Bill" for O2, "Council Tax") and it covers at least nine
-   * tenths of that month's amount. A stray word in an unrelated purchase, or a
-   * small charge that happens to name a large bill, therefore leaves the plan in
-   * place and cannot silently cancel it.
+   * of whole words ("O2 Bill" for O2, "Council Tax") and it covers at least four
+   * fifths of that month's planned amount. The plan is a guess, so a bill paid
+   * slightly under it (PureGym planned at £9.50, paid £8.50) still settles once;
+   * a stray word in an unrelated purchase, or a token charge that happens to name
+   * a large bill, stays well short and cannot silently cancel it.
    */
   const NO_DUE_DATES: ReadonlySet<string> = new Set<string>();
-  const BILL_PAYMENT_COVERAGE = 0.9;
+  const BILL_PAYMENT_COVERAGE = 0.8;
   let loggedBillDueDates: Map<string, Set<string>> | null = null;
   function loggedBillDueDatesFor(billName: string, account: string): ReadonlySet<string> {
     if (!loggedBillDueDates) {

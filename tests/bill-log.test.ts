@@ -276,3 +276,39 @@ test('the scheduled bill reports when the log already pays it', () => {
   assert.equal(scheduled.find((b) => b.name === 'Water')?.paidFromLog, true, 'the bill says the log pays it');
   assert.equal(scheduled.find((b) => b.name === 'Broadband')?.paidFromLog, false, 'other bills are unaffected');
 });
+
+test('a bill paid slightly under its planned amount still settles once', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('PureGym', 950, 6)];
+  const planned = buildEngine(ds).starlingBalance('2026-11-20');
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-06',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 850,
+    comments: 'PureGym',
+    status: '',
+    budgetTreatment: '',
+  });
+  const engine = buildEngine(ds);
+  assert.equal(engine.starlingBalance('2026-11-20'), planned - 850 + 950, 'the £9.50 guess is released and the £8.50 payment counted once');
+  assert.equal(engine.scheduledBills(2026, 11).find((b) => b.name === 'PureGym')?.paidFromLog, true);
+});
+
+test('a payment well under the plan leaves the bill in place', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('Rent', 50000, 15)];
+  const planned = buildEngine(ds).starlingBalance('2026-11-20');
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-15',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 20000,
+    comments: 'Rent part payment',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned - 20000, 'a £200 payment does not cancel a £500 bill');
+});
