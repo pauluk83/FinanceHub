@@ -16,6 +16,7 @@ and the build time.
 - Preview and apply one-click data-health fixes for dead bill changes, missing link sheets and generated rows left by deleted bills
 - Phone companion editing with its own month and year control; a quieter budget changelog
 - Test the desktop OAuth callback and ship SBOM, claims and packaged smoke evidence
+- Holiday search, an accountant pack and a redacted local crash journal
 
 ## [2026.11.18] — 18 November 2026
 

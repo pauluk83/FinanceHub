@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.19",
-  "buildId": "1d765779879a",
+  "buildId": "d4a1eed71c1a",
   "builtAt": "2026-11-19",
   "releases": [
     {
@@ -21,7 +21,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Tolerate a bill paid under its guessed amount so it still settles once",
             "Preview and apply one-click data-health fixes for dead bill changes, missing link sheets and generated rows left by deleted bills",
             "Phone companion editing with its own month and year control; a quieter budget changelog",
-            "Test the desktop OAuth callback and ship SBOM, claims and packaged smoke evidence"
+            "Test the desktop OAuth callback and ship SBOM, claims and packaged smoke evidence",
+            "Holiday search, an accountant pack and a redacted local crash journal"
           ]
         }
       ]
