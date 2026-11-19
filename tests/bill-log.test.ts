@@ -133,3 +133,146 @@ test('only the current month onward is generated, and removed bills clean up aft
   syncBillTransactions(ds);
   assert.equal(autoRows(ds).length, 0);
 });
+
+test('a logged bill payment and its scheduled bill never both leave the Starling balance', () => {
+  const planned = buildEngine(dataset('2026-11-20')).starlingBalance('2026-11-20');
+
+  const ds = dataset('2026-11-20');
+  const payment: Tx = {
+    row: 1,
+    date: '2026-11-14',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 4500,
+    comments: 'Water direct debit',
+    status: '',
+    budgetTreatment: '',
+  };
+  ds.transactions.push(payment);
+  const engine = buildEngine(ds, { today: '2026-11-20' });
+
+  assert.equal(engine.starlingBalance('2026-11-20'), planned, 'the bill leaves once, through the logged row');
+  assert.equal(
+    engine.statement('Starling', 2026, 11).closingPence,
+    engine.starlingBalance('2026-11-20'),
+    'the statement still closes on the dashboard balance',
+  );
+  assert.equal(
+    engine.statement('Starling', 2026, 11).lines.filter((line) => line.comments === 'Scheduled bill: Water').length,
+    0,
+    'the scheduled bill line is gone, so the statement does not show it twice',
+  );
+});
+
+test('a direct debit taken before the due date pays that bill once, not the one before it', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('Water', 4500, 2)];
+  const planned = buildEngine(ds).starlingBalance('2026-11-20');
+
+  // 30 October is within a week before the 2 November bill, so it settles November.
+  ds.transactions.push({
+    row: 1,
+    date: '2026-10-30',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 4500,
+    comments: 'Water',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned, 'October still owes its own bill; November is paid once');
+});
+
+test('a payment that does not name a bill leaves the plan untouched', () => {
+  const planned = buildEngine(dataset('2026-11-20')).starlingBalance('2026-11-20');
+  const ds = dataset('2026-11-20');
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-14',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 4500,
+    comments: 'Tesco',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned - 4500);
+});
+
+test('a generated bill row does not cancel the scheduled bill it mirrors', () => {
+  const planned = buildEngine(dataset('2026-11-20')).starlingBalance('2026-11-20');
+  const ds = dataset('2026-11-20');
+  syncBillTransactions(ds);
+  assert.ok(autoRows(ds).length > 0);
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned);
+});
+
+test('a word that merely contains a bill name does not cancel the bill', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('Rent', 50000, 15)];
+  const planned = buildEngine(ds).starlingBalance('2026-11-20');
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-15',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 10000,
+    comments: 'Mum xmas prent sue, paid cash',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned - 10000, 'the Rent bill is still deducted');
+});
+
+test('a small charge that names a large bill cannot cancel it', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('Rent', 50000, 15)];
+  const planned = buildEngine(ds).starlingBalance('2026-11-20');
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-15',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 5000,
+    comments: 'Rent top-up',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned - 5000, 'the £500 bill still leaves the balance');
+});
+
+test('a bill name must appear as whole words in order', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('Council Tax', 30000, 15)];
+  const planned = buildEngine(ds).starlingBalance('2026-11-20');
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-15',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 30000,
+    comments: 'Tax council payment',
+    status: '',
+    budgetTreatment: '',
+  });
+  assert.equal(buildEngine(ds).starlingBalance('2026-11-20'), planned - 30000, 'the names must run together, not just appear');
+});
+
+test('the scheduled bill reports when the log already pays it', () => {
+  const ds = dataset('2026-11-20');
+  ds.bills = [bill('Water', 4500, 14), bill('Broadband', 3000, 25)];
+  assert.equal(buildEngine(ds).scheduledBills(2026, 11).find((b) => b.name === 'Water')?.paidFromLog, false);
+  ds.transactions.push({
+    row: 1,
+    date: '2026-11-14',
+    account: 'Starling',
+    type: 'Expense',
+    amountPence: 4500,
+    comments: 'Water direct debit',
+    status: '',
+    budgetTreatment: '',
+  });
+  const scheduled = buildEngine(ds).scheduledBills(2026, 11);
+  assert.equal(scheduled.find((b) => b.name === 'Water')?.paidFromLog, true, 'the bill says the log pays it');
+  assert.equal(scheduled.find((b) => b.name === 'Broadband')?.paidFromLog, false, 'other bills are unaffected');
+});

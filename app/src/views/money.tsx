@@ -1177,7 +1177,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
 
   return (
     <>
-      <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid from midnight on the due date and taken from the balance; inactive bills stay in history">
+      <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid from midnight on the due date and taken from the balance; a bill whose payment is already in the transaction log says Paid from log and is counted once; inactive bills stay in history">
         <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
           {scheduled.map((b) => (
             <tr key={b.name}>
@@ -1187,7 +1187,17 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
               <td className="muted small">{b.account || '—'}</td>
               <td className="muted small">{b.linkedSheet || '—'}</td>
               <td className="num"><strong>{gbp(b.amountPence)}</strong></td>
-              <td>{b.paid ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}</td>
+              <td>
+                {b.paid ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}
+                {b.paidFromLog && (
+                  <div
+                    title="This bill's payment is already in the transaction log, so the Starling balance counts it once"
+                    style={{ marginTop: 4 }}
+                  >
+                    <Badge tone="blue">Paid from log</Badge>
+                  </div>
+                )}
+              </td>
             </tr>
           ))}
         </Table>

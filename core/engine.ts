@@ -434,14 +434,17 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
       .filter((b) => billVisible(b, mStart) && !billSkipped(b, mStart) && (b.dueDay > 0 || !!b.linkedSheet))
       .map((b) => {
         const dueDate = billDueDate(b, year, month);
+        const account = b.account || primaryAccount;
         return {
           name: b.name,
           amountPence: billAmount(b, year, month),
           dueDate,
           paid: b.dueDay > 0 && dueDate <= paidThrough,
+          /** True when the log already records this bill, so the balance counts it once. */
+          paidFromLog: billPaymentLogged(b.name, account, dueDate),
           paymentMethod: b.paymentMethod,
           linkedSheet: b.linkedSheet,
-          account: b.account || primaryAccount,
+          account,
         };
       })
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.name.localeCompare(b.name));
@@ -468,11 +471,100 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
     return payments;
   }
 
+  /** Whole words only, so "Mum xmas prent" never matches a "Rent" bill. */
+  const words = (value: unknown) => String(value ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+  /**
+   * Real bill payments already recorded in the transaction log.
+   *
+   * A scheduled bill is deducted from the Starling balance on its due date. When
+   * the owner also logs the actual debit from the bank ("O2 Bill", "Water"), the
+   * two are the same money and deducting both counts it twice. A logged payment
+   * is a real Expense on the bill's account whose description names the bill.
+   * Generated bill rows (`autoBill`) never qualify: they mirror the scheduled
+   * bill, so treating them as a payment would cancel it instead.
+   */
+  let loggedBillPaymentRowsCache: { account: string; date: string; phrase: string; amountPence: number }[] | null = null;
+  function loggedBillPaymentRows() {
+    if (loggedBillPaymentRowsCache) return loggedBillPaymentRowsCache;
+    loggedBillPaymentRowsCache = ds.transactions
+      .filter((t) => t.autoBill !== true && t.starlingPosted !== false && t.type === 'Expense')
+      .filter((t) => !!t.account && /^\d{4}-\d{2}-\d{2}$/.test(t.date))
+      .map((t) => ({
+        account: t.account,
+        date: t.date,
+        phrase: ` ${words(t.comments).join(' ')} `,
+        amountPence: Math.abs(t.amountPence),
+      }))
+      .filter((row) => row.phrase.trim().length > 0);
+    return loggedBillPaymentRowsCache;
+  }
+
+  /**
+   * The due date a logged payment settles. A payment belongs to the bill in its
+   * own month, unless it arrives within a week before next month's due date (a
+   * direct debit taken early), in which case that is the bill it pays. One
+   * payment therefore settles exactly one due date, and one scheduled bill can
+   * never be cancelled twice.
+   */
+  function paymentDueDate(bill: Bill | undefined, date: string): string {
+    if (!bill) return '';
+    const year = yearOf(date);
+    const month = monthIndexOf(date);
+    const nextYear = month === 12 ? year + 1 : year;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextDue = billDueDate(bill, nextYear, nextMonth);
+    const at = Date.parse(`${date}T00:00:00Z`);
+    const nextAt = Date.parse(`${nextDue}T00:00:00Z`);
+    if (at >= nextAt - 7 * 86_400_000 && at < nextAt) return nextDue;
+    return billDueDate(bill, year, month);
+  }
+
+  /**
+   * Every due date already settled from the log, per bill account and name.
+   *
+   * A payment only settles a bill when the description names it in full as a run
+   * of whole words ("O2 Bill" for O2, "Council Tax") and it covers at least nine
+   * tenths of that month's amount. A stray word in an unrelated purchase, or a
+   * small charge that happens to name a large bill, therefore leaves the plan in
+   * place and cannot silently cancel it.
+   */
+  const NO_DUE_DATES: ReadonlySet<string> = new Set<string>();
+  const BILL_PAYMENT_COVERAGE = 0.9;
+  let loggedBillDueDates: Map<string, Set<string>> | null = null;
+  function loggedBillDueDatesFor(billName: string, account: string): ReadonlySet<string> {
+    if (!loggedBillDueDates) {
+      loggedBillDueDates = new Map<string, Set<string>>();
+      for (const bill of ds.bills) {
+        const nameWords = words(bill.name);
+        if (nameWords.length === 0 || nameWords.some((word) => word.length < 2)) continue;
+        const phrase = ` ${nameWords.join(' ')} `;
+        const billAccount = bill.account || primaryAccount;
+        const dueDates = new Set<string>();
+        for (const row of loggedBillPaymentRows()) {
+          if (row.account !== billAccount || !row.phrase.includes(phrase)) continue;
+          const dueDate = paymentDueDate(bill, row.date);
+          const amount = billAmount(bill, yearOf(dueDate), monthIndexOf(dueDate));
+          if (amount <= 0) continue;
+          if (row.amountPence < Math.ceil(amount * BILL_PAYMENT_COVERAGE)) continue;
+          dueDates.add(dueDate);
+        }
+        loggedBillDueDates.set(`${billAccount}|${bill.name}`, dueDates);
+      }
+    }
+    return loggedBillDueDates.get(`${account}|${billName}`) ?? NO_DUE_DATES;
+  }
+
+  /** True when the log already holds this bill's payment, so the plan must not deduct it again. */
+  function billPaymentLogged(billName: string, account: string, dueDate: string): boolean {
+    return loggedBillDueDatesFor(billName, account).has(dueDate);
+  }
+
   /** Scheduled bills strictly after the Balance Anchor Date (Monthly_Overview!U19). */
   function scheduledBillsPostAnchor(year: number, month: number, anchor: string, cutoff: string): number {
     const from = anchor > `${year}-${pad(month)}-01` ? anchor : `${year}-${pad(month)}-01`;
     return scheduledBills(year, month)
-      .filter((b) => b.dueDate > from && b.dueDate <= cutoff)
+      .filter((b) => b.dueDate > from && b.dueDate <= cutoff && !billPaymentLogged(b.name, b.account, b.dueDate))
       .reduce((s, b) => s + b.amountPence, 0);
   }
 
@@ -690,7 +782,7 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
       for (let month = 1; month <= 12; month++) {
         if (monthStart(year, month) > through) continue;
         total += scheduledBills(year, month)
-          .filter((b) => b.dueDate > anchor && b.dueDate <= through)
+          .filter((b) => b.dueDate > anchor && b.dueDate <= through && !billPaymentLogged(b.name, b.account, b.dueDate))
           .reduce((s, b) => s + b.amountPence, 0);
       }
     }
@@ -751,6 +843,7 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
         if (monthStart(year, month) > billThrough) continue;
         for (const bill of scheduledBills(year, month)) {
           if (bill.dueDate <= anchor) continue;
+          if (billPaymentLogged(bill.name, bill.account, bill.dueDate)) continue;
           push(bill.dueDate, -bill.amountPence, `Scheduled bill: ${bill.name}`, 'Expense', --syntheticRow, billThrough);
         }
       }

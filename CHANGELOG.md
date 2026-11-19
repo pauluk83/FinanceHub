@@ -11,6 +11,7 @@ and the build time.
 
 - Publish the Windows installer for the ranked budget delivery and audit fixes
 - Add bill price history and expiry reminders, Ctrl+K budget search, spending reports with report-only targets, evidence packs, and opt-in email reminder digests
+- Count a bill once when its payment is already in the transaction log, and mark that bill Paid from log
 
 ## [2026.11.18] — 18 November 2026
 
