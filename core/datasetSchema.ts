@@ -103,18 +103,42 @@ export function repairDataset(value: unknown): RepairResult | null {
     }
   }
 
-  // Rows the engine dereferences directly must carry the fields it reads.
-  const transactions = dataset.transactions.filter((transaction: any) => (
+  // Rows the engine dereferences directly must carry the fields it reads. A
+  // missing row number is repairable — dropping a readable payment would lose
+  // real spending — so only rows without a date, account or amount go.
+  const readable = dataset.transactions.filter((transaction: any) => (
     DATE.test(String(transaction.date ?? ''))
     && typeof transaction.account === 'string'
     && transaction.account !== ''
     && Number.isFinite(transaction.amountPence)
-    && Number.isFinite(transaction.row)
   ));
-  if (transactions.length !== dataset.transactions.length) {
-    repairs.push(`${dataset.transactions.length - transactions.length} transaction row(s) lacked a date, account, amount or row number and were removed`);
-    dataset.transactions = transactions;
+  if (readable.length !== dataset.transactions.length) {
+    repairs.push(`${dataset.transactions.length - readable.length} transaction row(s) lacked a date, account or amount and were removed`);
   }
+  const usedRows = new Set<number>();
+  const needsNumber: any[] = [];
+  let highestRow = 0;
+  for (const transaction of readable) {
+    const row = transaction.row;
+    if (Number.isInteger(row) && row > 0 && !usedRows.has(row)) {
+      usedRows.add(row);
+      highestRow = Math.max(highestRow, row);
+      continue;
+    }
+    // Missing, non-integer or duplicated: give it a fresh number below.
+    needsNumber.push(transaction);
+  }
+  let nextRow = highestRow + 1;
+  for (const transaction of needsNumber) {
+    while (usedRows.has(nextRow)) nextRow += 1;
+    transaction.row = nextRow;
+    usedRows.add(nextRow);
+    nextRow += 1;
+  }
+  if (needsNumber.length > 0) {
+    repairs.push(`${needsNumber.length} transaction row(s) had no usable row number and were numbered instead of removed`);
+  }
+  if (readable.length !== dataset.transactions.length) dataset.transactions = readable;
 
   const bills = dataset.bills.filter((bill: any) => typeof bill.name === 'string' && bill.name !== '');
   if (bills.length !== dataset.bills.length) {

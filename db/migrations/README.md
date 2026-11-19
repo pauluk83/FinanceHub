@@ -38,6 +38,10 @@ order:
 1. `postgres/0001_initial.sql` — tables, RLS policies, tombstones.
 2. `postgres/0002_sync.sql` — `settings.state_json`, server clock, revision
    triggers and the push/pull functions.
+3. `postgres/0003_account_deletion.sql` — the deletion routine used by self-serve
+   account deletion.
+4. `postgres/0004_backup_storage.sql` — the private `financehub-backups` bucket and its
+   owner-scoped policies (applied 2026-11-19).
 
 The runner in `db/migrations.ts` only manages SQLite; Postgres migrations are
 deliberately explicit because they also carry policies and functions that need a

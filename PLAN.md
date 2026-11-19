@@ -1402,6 +1402,16 @@ Open items:
   adapter: encrypted format-v2 envelopes only (a plaintext dataset is refused), chronological
   names, newest-seven retention and list/read helpers, proven against the in-memory adapter.
   4 tests pass. The live Supabase bucket and UI stay in step 8 (owner input).
+- 2026-11-19: Schema repair no longer drops a readable payment for a missing row number.
+  `repairDataset` keeps every row with a date, account and amount, assigns the next free
+  numbers to rows whose number is missing, duplicated or non-integer, and records how many
+  were numbered; only rows without a date, account or amount are removed. A test proves four
+  payments (one unnumbered, one duplicated and one with a string row) all survive with
+  unique rows. Step 8's Supabase side is applied: the private bucket `financehub-backups`
+  carries four owner-scoped `storage.objects` policies, verified as 4 policies in Storage and
+  recorded in `db/migrations/postgres/0004_backup_storage.sql`; a VAPID pair is generated into
+  gitignored `tmp/vapid-keys.json`, and the one-sitting checklist is `docs/STEP8_SETUP.md`.
+  The custom-SMTP key is the only owner-supplied secret left.
 - 2026-11-19: Checked the one-click fixes in a browser against a throwaway copy of the
   workbook seeded into the dev server's shared store, not the live budget. With one dead bill
   change the panel offered "1 available"; Preview listed Fix/Record/Before/After ("Removed

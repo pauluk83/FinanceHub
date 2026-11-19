@@ -56,6 +56,23 @@ test('unreadable rows and providers are removed instead of reaching the engine',
   assert.ok(result!.repairs.some((repair) => /provider ovo was unreadable/.test(repair)));
 });
 
+test('a readable payment without a row number is numbered, never dropped', () => {
+  const result = repairDataset(documentWith({
+    transactions: [
+      { row: 3, date: '2026-11-01', account: 'Starling', type: 'Expense', amountPence: 100 },
+      { date: '2026-11-02', account: 'Starling', type: 'Expense', amountPence: 200 },
+      { row: 3, date: '2026-11-03', account: 'Starling', type: 'Expense', amountPence: 300 },
+      { row: 'x', date: '2026-11-04', account: 'Starling', type: 'Expense', amountPence: 400 },
+    ],
+  }));
+  assert.ok(result);
+  const amounts = result!.dataset.transactions.map((transaction) => transaction.amountPence).sort((a, b) => a - b);
+  assert.deepEqual(amounts, [100, 200, 300, 400]);
+  const rows = result!.dataset.transactions.map((transaction) => transaction.row).sort((a, b) => a - b);
+  assert.deepEqual(rows, [3, 4, 5, 6]);
+  assert.ok(result!.repairs.some((repair) => /3 transaction row\(s\) had no usable row number and were numbered/.test(repair)));
+});
+
 test('usable values, including settings, are left exactly as saved', () => {
   const input = documentWith({
     transactions: [{ row: 1, date: '2026-11-19', account: 'Starling', type: 'Expense', amountPence: 1234 }],
