@@ -14,6 +14,7 @@ and the build time.
 - Count a bill once when its payment is already in the transaction log, and mark that bill Paid from log
 - Tolerate a bill paid under its guessed amount so it still settles once
 - Preview and apply one-click data-health fixes for dead bill changes, missing link sheets and generated rows left by deleted bills
+- Phone companion editing with its own month and year control; a quieter budget changelog
 
 ## [2026.11.18] — 18 November 2026
 

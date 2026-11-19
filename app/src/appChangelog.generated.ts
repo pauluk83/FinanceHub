@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.19",
-  "buildId": "7441098da7b8",
+  "buildId": "1e7145d81631",
   "builtAt": "2026-11-19",
   "releases": [
     {
@@ -19,7 +19,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Add bill price history and expiry reminders, Ctrl+K budget search, spending reports with report-only targets, evidence packs, and opt-in email reminder digests",
             "Count a bill once when its payment is already in the transaction log, and mark that bill Paid from log",
             "Tolerate a bill paid under its guessed amount so it still settles once",
-            "Preview and apply one-click data-health fixes for dead bill changes, missing link sheets and generated rows left by deleted bills"
+            "Preview and apply one-click data-health fixes for dead bill changes, missing link sheets and generated rows left by deleted bills",
+            "Phone companion editing with its own month and year control; a quieter budget changelog"
           ]
         }
       ]
