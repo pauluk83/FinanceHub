@@ -3,6 +3,7 @@ import type { ViewProps } from '../types';
 import { Badge, Bar, Empty, Section, Table } from '../components';
 import { download, gbp, MONTH_LONG, parseMoney, pct, toCsv } from '../format';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
+import { buildAccountantPack } from '../../../core/accountantPack';
 import { categoryTargets, spendReport, targetProgress } from '../../../core/reports';
 import { printHtml } from '../print';
 import { normaliseCategory } from '../../../core/categories';
@@ -12,7 +13,7 @@ import { normaliseCategory } from '../../../core/categories';
  * comes from ordinary expense rows; targets are stored separately and never
  * reach the calculation engine.
  */
-export function Reports({ ds, year, month, update, notify }: ViewProps) {
+export function Reports({ ds, engine, year, month, update, notify }: ViewProps) {
   const [wholeYear, setWholeYear] = useState(false);
   const periodMonth = wholeYear ? null : month;
   const report = useMemo(() => spendReport(ds, year, periodMonth), [ds, year, periodMonth]);
@@ -33,6 +34,11 @@ export function Reports({ ds, year, month, update, notify }: ViewProps) {
       d.categoryTargets = next;
     });
     notify(pence > 0 ? `Target for ${name} set to ${gbp(pence)} a month` : `Target for ${name} removed`);
+  };
+
+  const exportAccountantPack = () => {
+    download(`financehub-accountant-${year}.xls`, buildExcelWorkbook(buildAccountantPack(ds, engine, year)), 'application/vnd.ms-excel');
+    notify(`Exported the ${year} accountant pack`);
   };
 
   const exportCsv = () => {
@@ -113,6 +119,7 @@ export function Reports({ ds, year, month, update, notify }: ViewProps) {
             </button>
             <button className="btn" onClick={exportCsv}>Export CSV</button>
             <button className="btn" onClick={exportExcel}>Export Excel</button>
+            <button className="btn" onClick={exportAccountantPack}>Accountant pack</button>
             <button className="btn" onClick={print}>Print / Save PDF</button>
           </div>
         }

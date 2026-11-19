@@ -1369,6 +1369,24 @@ Open items:
 - 2026-11-18: Delivered the next five §24 releases — R15 bill price history and expiries, R5 global search, R14 evidence packs, R16 category targets and cleanup, and R6 email reminder preferences and digest — with duplicate merge, saved transaction filters, bulk edit, guide chapters and an opt-in Knock sender. Released in the owner-chosen `2026.11.19` version by moving the tag to commit `35a09e7` and republishing: installer 122,716,727 bytes with SHA-256 `e177bdeff026d0eaa1492688e6aae122c31156a93c19a2bb8c0d8ca8168ec6fb` matching `SHA256SUMS.txt` and GitHub's digest, hosted build `1f9e457c1444`, bundle `index-OqIOekQX.js`. `npm test` **407/407**, Playwright **8/8**, `tsc` clean, `release:check` **9/9**, CI and Release green. Not live-tested: a real email send (no provider key), a real statement import, a physical phone and a click-through of the new screens. Delivery remains disabled until the email provider and privacy gate are configured.
 
 - 2026-11-19: Delivered R17's **one-click data-health fixes**: `core/dataHealthFixes.ts` plus the Data health panel preview orphaned bill changes, bills linked to a link sheet that no longer exists, and generated bill-log rows for deleted bills, then apply them in one save. `tests/data-health-fixes.test.ts` proves each repair leaves the Starling balance and monthly expenses unchanged, that live records are never touched, and that a second apply does nothing; the live budget currently offers 0 fixes. `npm test` **423/423**, `tsc` clean, `release:check` 9/9; build `7441098da7b8`, hosted bundle `index-DwgrY06o.js`, local installer SHA-256 prefix `a1704d9e1d5a`. Not viewed: the new panel in a browser.
+- 2026-11-19: Started the §25 backlog-clearing plan. Steps 1–2: `PLAN.md` now matches the
+  shipped app (stale accessibility, explain-this-number and import-provenance boxes closed;
+  the email-verification setting recorded as unresolved); the desktop OAuth loopback parser
+  moved into `electron/oauthCallback.cjs` with 5 tests covering foreign hosts, wrong
+  method/path, oversized codes and repeat requests; `scripts/release-evidence.mjs` writes a
+  CycloneDX SBOM (12 production components) plus `RELEASE_CLAIMS.md` and artifact hashes, and
+  the Release workflow now attaches both; `npm run smoke:packaged` starts the built app and
+  verifies the shared store's key namespace, foreign-key refusal, 404s and the production CSP.
+- 2026-11-19: Step 3: every view is lazy-loaded, cutting the renderer bundle from 1,459.55 kB
+  to 972.31 kB (gzip 377.83 → 248.92 kB); Data health gained a storage-headroom check from
+  `core/capacity.ts` (warn at 2.5 MB / 25k transactions, critical at 4.5 MB / 50k); the build
+  seed choice moved into `app/seedSource.ts` with a test proving a public build compiles the
+  blank seed. `tsc` clean, 6 new tests pass.
+- 2026-11-19: Step 4: holiday search filters trips by name, place, reference and dates; the
+  Reports screen exports an accountant pack (`core/accountantPack.ts`) with reconciliation,
+  monthly summary, year transactions and month locks in one Excel file; a bounded, redacted
+  local crash journal (`app/src/crashJournal.ts`) records window errors and render failures
+  and reaches the support bundle as a count and timestamp only. 8 new tests pass.
 - 2026-11-19: Checked the one-click fixes in a browser against a throwaway copy of the
   workbook seeded into the dev server's shared store, not the live budget. With one dead bill
   change the panel offered "1 available"; Preview listed Fix/Record/Before/After ("Removed

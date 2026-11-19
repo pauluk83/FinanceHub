@@ -6,6 +6,7 @@ import { applyHealthFixPlan, buildHealthFixPlan, type HealthFixPlan } from '../.
 import { billSheetsFor } from '../billSheets';
 import { lastBackupExportedAt, latestRestorePointAt } from '../backupStore';
 import { buildSupportBundle } from '../supportBundle';
+import { crashSummary } from '../crashJournal';
 import { APP_CHANGELOG } from '../appChangelog.generated';
 import { download, todayIso } from '../format';
 
@@ -61,6 +62,7 @@ export function DataHealthView({ ds, engine, go, notify, update, syncConflicts, 
       report,
       app: { version: APP_CHANGELOG.version, buildId: APP_CHANGELOG.buildId, builtAt: APP_CHANGELOG.builtAt },
       conflicts: syncConflicts.length,
+      crashes: crashSummary(),
       backup: {
         lastExportedAt: lastBackupExportedAt(userId),
         lastRestorePointAt: latestRestorePointAt(userId),

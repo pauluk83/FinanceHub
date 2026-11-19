@@ -102,12 +102,27 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   const [editing, setEditing] = useState<HolidayRow | null>(null);
   const [adding, setAdding] = useState(false);
   const [openTrips, setOpenTrips] = useState<Set<string>>(() => new Set());
+  const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<HolidayDraft>(() => emptyDraft(ds.settings.targetYear));
   const rows = collectRows(ds);
   const asOf = ds.settings.asOfDate;
   const trips = groupHolidayTrips(rows, (row) => row.holiday);
   const formOpen = adding || Boolean(editing);
   const upcoming = trips.filter((trip) => trip.start && trip.start >= asOf);
+  const query = search.trim().toLowerCase();
+  const visibleTrips = query
+    ? trips.filter((trip) => {
+      const rows = [trip.headline, ...trip.extras].map((row) => [
+        row.holiday.event,
+        row.holiday.address,
+        row.holiday.ref,
+        row.holiday.notes,
+        row.holiday.start,
+        row.holiday.end,
+      ].filter(Boolean).join(' '));
+      return rows.join(' ').toLowerCase().includes(query);
+    })
+    : trips;
   const totalNights = rows.reduce((sum, row) => sum + (typeof row.holiday.nights === 'number' ? row.holiday.nights : 0), 0);
   const totalSpend = rows.reduce((sum, row) => sum + (typeof row.holiday.totalPence === 'number' ? row.holiday.totalPence : 0), 0);
 
@@ -241,8 +256,21 @@ export function Holidays({ ds, update, notify }: ViewProps) {
         </div>
       )}
 
+      <div className="toolbar">
+        <input
+          className="input"
+          placeholder="Search holidays, places or references…"
+          aria-label="Search holidays"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <span className="muted small">{visibleTrips.length} of {trips.length} trip{trips.length === 1 ? '' : 's'}</span>
+      </div>
       <Table head={['Holiday', 'Dates', 'Nights', 'Payment', 'Total', 'Reference', '']} numHead={[2, 4]}>
-        {trips.map((trip) => {
+        {visibleTrips.length === 0 && (
+          <tr><td colSpan={7}><span className="muted">No holidays match that search.</span></td></tr>
+        )}
+        {visibleTrips.map((trip) => {
           const showCostLines = openTrips.has(trip.key);
           const visibleRows = showCostLines ? [trip.headline, ...trip.extras] : [trip.headline];
           return visibleRows.map((row, position) => {

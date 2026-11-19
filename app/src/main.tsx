@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { AppUpdatePrompt } from './views/appUpdate';
 import { hydrateBrowserStore } from './store';
+import { recordCrash } from './crashJournal';
 import './theme.css';
 
 type BoundaryProps = { children: React.ReactNode };
@@ -16,6 +17,7 @@ class AppErrorBoundary extends React.Component<BoundaryProps, { error: Error | n
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('FinanceHub render failed:', error, info.componentStack);
+    recordCrash('render', error);
   }
 
   render() {
@@ -37,6 +39,10 @@ class AppErrorBoundary extends React.Component<BoundaryProps, { error: Error | n
 }
 
 const rootElement = document.getElementById('root')!;
+
+// A local, redacted journal answers "it closed once" without sending anything.
+window.addEventListener('error', (event) => recordCrash('error', event.message));
+window.addEventListener('unhandledrejection', (event) => recordCrash('promise', event.reason));
 
 async function start() {
   try {

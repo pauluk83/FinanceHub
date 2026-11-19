@@ -25,6 +25,7 @@ export function buildSupportBundle({
   app,
   conflicts = 0,
   backup,
+  crashes,
   runtime = {},
   now = new Date().toISOString(),
 }: {
@@ -33,6 +34,8 @@ export function buildSupportBundle({
   app: SupportApp;
   conflicts?: number;
   backup?: { lastExportedAt?: string | null; lastRestorePointAt?: string | null };
+  /** Count and newest timestamp only; crash text itself never leaves the device. */
+  crashes?: { count: number; newestAt?: string | null };
   runtime?: SupportRuntime;
   now?: string;
 }) {
@@ -76,6 +79,10 @@ export function buildSupportBundle({
     backup: {
       lastExportedAt: backup?.lastExportedAt ?? null,
       lastRestorePointAt: backup?.lastRestorePointAt ?? null,
+    },
+    crashes: {
+      count: crashes?.count ?? 0,
+      newestAt: crashes?.newestAt ?? null,
     },
   };
 }
