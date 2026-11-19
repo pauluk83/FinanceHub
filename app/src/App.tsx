@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { buildEngine } from '../../core/engine';
 import { availableYears } from '../../core/yearRollover';
 import { syncBillTransactions } from '../../core/billTransactions';
@@ -23,25 +23,40 @@ import { providerDisplayName } from './providerSetup';
 import { Badge } from './components';
 import { APP_VERSION } from './version';
 import { GITHUB_REPO_URL } from './installer';
-import { Dashboard, Income, MonthEnd, Monthly } from './views/overview';
-import { Accounts, Bills, Cards, People, Transactions } from './views/money';
-import { Debts } from './views/debts';
-import { Savings } from './views/savings';
-import { ProviderView, Rent, Statements } from './views/providers';
-import { ChangelogView, GuidesView, ImportView, SettingsView } from './views/tools';
-import { NetWorth } from './views/netWorth';
-import { CalendarView } from './views/calendar';
-import { Forecast } from './views/forecast';
-import { Progress } from './views/progress';
-import { RulesView } from './views/rules';
-import { Reports } from './views/reports';
-import { Evidence } from './views/evidence';
+// Screens load on demand so the first paint carries only the shell, the engine
+// and the dashboard. The import lists stay explicit so a missing view fails the
+// build rather than silently rendering an empty screen.
+const Dashboard = lazy(() => import('./views/overview').then((m) => ({ default: m.Dashboard })));
+const Income = lazy(() => import('./views/overview').then((m) => ({ default: m.Income })));
+const MonthEnd = lazy(() => import('./views/overview').then((m) => ({ default: m.MonthEnd })));
+const Monthly = lazy(() => import('./views/overview').then((m) => ({ default: m.Monthly })));
+const Accounts = lazy(() => import('./views/money').then((m) => ({ default: m.Accounts })));
+const Bills = lazy(() => import('./views/money').then((m) => ({ default: m.Bills })));
+const Cards = lazy(() => import('./views/money').then((m) => ({ default: m.Cards })));
+const People = lazy(() => import('./views/money').then((m) => ({ default: m.People })));
+const Transactions = lazy(() => import('./views/money').then((m) => ({ default: m.Transactions })));
+const Debts = lazy(() => import('./views/debts').then((m) => ({ default: m.Debts })));
+const Savings = lazy(() => import('./views/savings').then((m) => ({ default: m.Savings })));
+const ProviderView = lazy(() => import('./views/providers').then((m) => ({ default: m.ProviderView })));
+const Rent = lazy(() => import('./views/providers').then((m) => ({ default: m.Rent })));
+const Statements = lazy(() => import('./views/providers').then((m) => ({ default: m.Statements })));
+const ChangelogView = lazy(() => import('./views/tools').then((m) => ({ default: m.ChangelogView })));
+const GuidesView = lazy(() => import('./views/tools').then((m) => ({ default: m.GuidesView })));
+const ImportView = lazy(() => import('./views/tools').then((m) => ({ default: m.ImportView })));
+const SettingsView = lazy(() => import('./views/tools').then((m) => ({ default: m.SettingsView })));
+const NetWorth = lazy(() => import('./views/netWorth').then((m) => ({ default: m.NetWorth })));
+const CalendarView = lazy(() => import('./views/calendar').then((m) => ({ default: m.CalendarView })));
+const Forecast = lazy(() => import('./views/forecast').then((m) => ({ default: m.Forecast })));
+const Progress = lazy(() => import('./views/progress').then((m) => ({ default: m.Progress })));
+const RulesView = lazy(() => import('./views/rules').then((m) => ({ default: m.RulesView })));
+const Reports = lazy(() => import('./views/reports').then((m) => ({ default: m.Reports })));
+const Evidence = lazy(() => import('./views/evidence').then((m) => ({ default: m.Evidence })));
 import { globalSearch } from '../../core/search';
 import { AppChangelogPage, AppChangelogView } from './views/appChangelog';
-import { Holidays } from './views/holidays';
-import { OnboardingView } from './views/onboarding';
-import { DataHealthView } from './views/health';
-import { NotificationsView } from './views/notifications';
+const Holidays = lazy(() => import('./views/holidays').then((m) => ({ default: m.Holidays })));
+const OnboardingView = lazy(() => import('./views/onboarding').then((m) => ({ default: m.OnboardingView })));
+const DataHealthView = lazy(() => import('./views/health').then((m) => ({ default: m.DataHealthView })));
+const NotificationsView = lazy(() => import('./views/notifications').then((m) => ({ default: m.NotificationsView })));
 import { PeoplePortalPage } from './views/peoplePortal';
 import { FeedbackDialog } from './views/feedback';
 import { PORTAL_FEEDBACK_EVENT, readFeedbackForOwner, refreshPortalStatements, type PortalFeedback } from './portal';
@@ -906,7 +921,11 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
               {saveError} Keep this window open and resolve device storage before closing.
             </div>
           )}
-          <div className="view" key={view}>{renderView()}</div>
+          <div className="view" key={view}>
+            <Suspense fallback={<div className="muted" style={{ padding: 18 }}>Loading {current.label}…</div>}>
+              {renderView()}
+            </Suspense>
+          </div>
         </main>
       </div>
 

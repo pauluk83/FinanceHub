@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { connectSources } from './csp.ts';
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from './publicSupabase.ts';
+import { workbookAlias } from './seedSource.ts';
 
 const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -50,7 +51,7 @@ export default defineConfig(({ command, mode }) => {
   const hosted = mode === 'hosted' || env.VITE_HOSTED_WEB === '1';
   const publicSeed = hosted || !hasPrivateWorkbook;
   const dataAliases = [
-    { find: '@workbook', replacement: publicSeed ? webSeed : privateWorkbook },
+    workbookAlias(hasPrivateWorkbook && !hosted, { webSeed, privateWorkbook }),
     ...(publicSeed
       ? [{ find: './dataFixes', replacement: fileURLToPath(new URL('./src/dataFixes.web.ts', import.meta.url)) }]
       : []),

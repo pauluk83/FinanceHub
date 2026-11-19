@@ -11,6 +11,7 @@ import { duplicateGroups } from './importDedupe.ts';
 import { providerBlockYear, providerRowsKey } from './providerYears.ts';
 import { providerBalancesForYear } from './providerSnapshot.ts';
 import { monthEnd } from './engine.ts';
+import { capacityReport } from './capacity.ts';
 
 export type HealthSeverity = 'ok' | 'info' | 'warning' | 'critical';
 
@@ -475,6 +476,19 @@ function backupAgeCheck(backup: DataHealthOptions['backup']): HealthCheck {
   };
 }
 
+/** A-09: warn before a growing document fills the browser cache. */
+function capacityCheck(ds: Dataset): HealthCheck {
+  const report = capacityReport(ds);
+  return {
+    id: 'capacity',
+    title: 'Storage headroom',
+    severity: report.level === 'ok' ? 'ok' : report.level,
+    summary: report.message,
+    items: [],
+    action: { label: 'Open backups', view: 'settings' },
+  };
+}
+
 export function buildDataHealth(ds: Dataset, engine: Engine, options: DataHealthOptions = {}): DataHealthReport {
   const checks = [
     unknownAccountCheck(ds),
@@ -487,6 +501,7 @@ export function buildDataHealth(ds: Dataset, engine: Engine, options: DataHealth
     syncConflictCheck(options.syncConflicts ?? 0),
     syncStateCheck(options.sync),
     backupAgeCheck(options.backup),
+    capacityCheck(ds),
   ];
 
   const counts: Record<HealthSeverity, number> = { ok: 0, info: 0, warning: 0, critical: 0 };
