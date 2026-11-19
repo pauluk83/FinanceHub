@@ -68,9 +68,6 @@ const PHONE_TABS = [
   { id: 'transactions', label: 'Transactions', icon: '≡' },
 ] as const;
 
-/** The views the phone shell opens read-only until mobile write (R18). */
-const PHONE_READ_ONLY_VIEWS = new Set<string>(PHONE_TABS.map((tab) => tab.id));
-
 const SUBTITLES: Record<string, string> = {
   setup: 'Onboarding and clean-start help — ongoing changes live in Settings',
   dashboard: 'Year-to-date position, balances and model checks',
@@ -183,6 +180,9 @@ function changeSummary(before: Dataset, after: Dataset): ChangeSummary | null {
   const affectsBalances = labels.some((label) => ['Settings', 'Accounts', 'People', 'Cards', 'Bills', 'Bill changes', 'Transactions', 'Income schedules', 'Provider ledgers'].includes(label));
   return {
     signature: labels.join('|'),
+    // Name the section instead of the old "App update" fallback, so the budget
+    // history never looks like an application changelog entry.
+    title: `Budget change — ${labels.join(', ')}`,
     description: `Updated ${labels.join(', ')}${affectsBalances ? '; balances recalculated' : ''}.`,
   };
 }
@@ -194,7 +194,7 @@ function appendChangeLog(dataset: Dataset, summary: ChangeSummary) {
   if (previous) {
     previous.date = todayIso();
     previous.at = new Date(at).toISOString();
-    previous.sheetCell = summary.title ?? 'App update';
+    previous.sheetCell = summary.title ?? 'Budget change';
     previous.description = summary.description;
     if (summary.details) previous.details = summary.details;
     else delete previous.details;
@@ -202,7 +202,7 @@ function appendChangeLog(dataset: Dataset, summary: ChangeSummary) {
   }
   dataset.changelog.unshift({
     date: todayIso(),
-    sheetCell: summary.title ?? 'App update',
+    sheetCell: summary.title ?? 'Budget change',
     description: summary.description,
     ...(summary.details ? { details: summary.details } : {}),
     signature: summary.signature,
@@ -277,7 +277,7 @@ function useToday(): string {
   return today;
 }
 
-/** The phone shell, used for the bottom tabs and the read-only guards. */
+/** The phone shell, used for the bottom tabs and the phone layout. */
 function usePhoneShell(): boolean {
   const [phone, setPhone] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches);
   useEffect(() => {
@@ -557,10 +557,19 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     );
   }
 
-  // The phone companion is read-only for the five daily views until R18 adds
-  // mobile write; every mutation funnels through update(), so guarding it here
-  // covers add, edit, delete, undo and bulk actions alike.
-  const phoneReadOnly = phoneShell && PHONE_READ_ONLY_VIEWS.has(view);
+  // The phone shell hides the desktop month and year selectors, so it gets its
+  // own row. Stepping past a year boundary only moves to a year the budget has.
+  const stepPhoneMonth = (delta: number) => {
+    const next = activeYear * 12 + (month - 1) + delta;
+    const nextYear = Math.floor(next / 12);
+    const nextMonth = (next % 12) + 1;
+    if (!yearOptions.includes(nextYear)) return;
+    setActiveYear(nextYear);
+    setMonth(nextMonth);
+  };
+
+  // The phone companion edits the same budget as the desktop: every mutation
+  // still funnels through update(), so the save, audit and changelog paths match.
   const props: ViewProps = {
     ds: state.dataset,
     engine,
@@ -569,10 +578,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     year: activeYear,
     setYear: setActiveYear,
     availableYears: yearOptions,
-    update: phoneReadOnly
-      ? () => notify('Read-only on the phone companion — open FinanceHub on a desktop to edit')
-      : update,
-    readOnly: phoneReadOnly,
+    update,
     theme: state.theme,
     setTheme,
     notify,
@@ -842,14 +848,43 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
               </button>
             )}
           </div>
+          {phoneShell && (
+            <div className="phone-month" role="group" aria-label="Month and year">
+              <button
+                className="btn ghost sm"
+                type="button"
+                aria-label="Previous month"
+                onClick={() => stepPhoneMonth(-1)}
+                disabled={activeYear === yearOptions[0] && month === 1}
+              >‹</button>
+              <select
+                className="month-select"
+                aria-label="Phone viewing month"
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+              >
+                {MONTHS.map((m, i) => <option value={i + 1} key={m}>{m} {activeYear}</option>)}
+              </select>
+              <select
+                className="month-select"
+                aria-label="Phone viewing year"
+                value={activeYear}
+                onChange={(e) => setActiveYear(Number(e.target.value))}
+              >
+                {yearOptions.map((option) => <option value={option} key={option}>{option}</option>)}
+              </select>
+              <button
+                className="btn ghost sm"
+                type="button"
+                aria-label="Next month"
+                onClick={() => stepPhoneMonth(1)}
+                disabled={activeYear === yearOptions[yearOptions.length - 1] && month === 12}
+              >›</button>
+            </div>
+          )}
         </header>
 
         <main className="content">
-          {phoneShell && (
-            <div className="notice info mobile-readonly" role="status">
-              <strong>Phone companion.</strong> Read-only for Dashboard, Bills, Accounts and Transactions; edit on a desktop.
-            </div>
-          )}
           {demo && (
             <div className="notice info demo-banner" role="status">
               <span><strong>Demo workspace.</strong> Sample data only — nothing is saved to your account.</span>

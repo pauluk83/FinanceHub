@@ -62,6 +62,21 @@ const APP_UPDATE_TITLE = /^app update$/i;
 const AUTO_UPDATES = /auto[\s-]?updates?/i;
 
 /**
+ * Automatic entries written before automatic changes carried a title all used the
+ * bare fallback "App update", so they say nothing about the money that moved.
+ * They stay in the saved document (and in backups) but are hidden from the Budget
+ * changelog; every new automatic entry names the section it changed.
+ */
+export function isAppUpdatePlaceholder(entry: { sheetCell?: string; auto?: boolean }): boolean {
+  return entry.auto === true && APP_UPDATE_TITLE.test(String(entry.sheetCell ?? '').trim());
+}
+
+/** Hide app-generated placeholder entries while keeping every named budget entry. */
+export function withoutAppUpdatePlaceholders<T extends { sheetCell?: string; auto?: boolean }>(entries: T[]): T[] {
+  return entries.filter((entry) => !isAppUpdatePlaceholder(entry));
+}
+
+/**
  * One legacy entry used the title "App update" and the text "Auto updates".
  * Remove only that pair (in either order), not every automatic budget entry
  * whose title once fell back to "App update".

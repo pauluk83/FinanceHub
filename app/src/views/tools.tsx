@@ -6,6 +6,7 @@ import { clearState } from '../store';
 import { PeopleAccessSection } from './peoplePortal';
 import { MenuLayoutSection } from './menuLayout';
 import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
+import { withoutAppUpdatePlaceholders } from '../budgetChangelog';
 import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
 import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { decodeBackupDataset } from '../backup';
@@ -2125,7 +2126,9 @@ export function ChangelogView({ ds, update, notify }: ViewProps) {
   const [q, setQ] = useState('');
   const [customOpen, setCustomOpen] = useState(false);
   const [custom, setCustom] = useState({ date: todayIso(), title: '', description: '' });
-  const all = ds.changelog ?? [];
+  // App-generated placeholders from older builds carry no money detail; new
+  // automatic entries name the section they changed, so history stays meaningful.
+  const all = withoutAppUpdatePlaceholders(ds.changelog ?? []);
   const entries = all.filter((c: any) => {
     const details = Array.isArray(c.details) ? c.details.join(' ') : '';
     return !q || `${c.date} ${c.sheetCell} ${c.description} ${details}`.toLowerCase().includes(q.toLowerCase());

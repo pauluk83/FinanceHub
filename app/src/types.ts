@@ -60,8 +60,8 @@ export interface ViewProps {
   /** Opens the demo workspace from guided setup. */
   onOpenDemo?: () => void;
   /**
-   * The phone companion is read-only (R1). Mutating controls are hidden or
-   * blocked; mobile write lands later as R18.
+   * Set by a view that must not mutate for its own reason, such as a locked
+   * month. The phone companion edits like the desktop and leaves this unset.
    */
   readOnly?: boolean;
 }

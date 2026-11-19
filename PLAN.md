@@ -1368,6 +1368,19 @@ Open items:
 - 2026-11-18: Delivered the next five §24 releases — R15 bill price history and expiries, R5 global search, R14 evidence packs, R16 category targets and cleanup, and R6 email reminder preferences and digest — with duplicate merge, saved transaction filters, bulk edit, guide chapters and an opt-in Knock sender. Released in the owner-chosen `2026.11.19` version by moving the tag to commit `35a09e7` and republishing: installer 122,716,727 bytes with SHA-256 `e177bdeff026d0eaa1492688e6aae122c31156a93c19a2bb8c0d8ca8168ec6fb` matching `SHA256SUMS.txt` and GitHub's digest, hosted build `1f9e457c1444`, bundle `index-OqIOekQX.js`. `npm test` **407/407**, Playwright **8/8**, `tsc` clean, `release:check` **9/9**, CI and Release green. Not live-tested: a real email send (no provider key), a real statement import, a physical phone and a click-through of the new screens. Delivery remains disabled until the email provider and privacy gate are configured.
 
 - 2026-11-19: Delivered R17's **one-click data-health fixes**: `core/dataHealthFixes.ts` plus the Data health panel preview orphaned bill changes, bills linked to a link sheet that no longer exists, and generated bill-log rows for deleted bills, then apply them in one save. `tests/data-health-fixes.test.ts` proves each repair leaves the Starling balance and monthly expenses unchanged, that live records are never touched, and that a second apply does nothing; the live budget currently offers 0 fixes. `npm test` **423/423**, `tsc` clean, `release:check` 9/9; build `7441098da7b8`, hosted bundle `index-DwgrY06o.js`, local installer SHA-256 prefix `a1704d9e1d5a`. Not viewed: the new panel in a browser.
+- 2026-11-19: Checked the one-click fixes in a browser against a throwaway copy of the
+  workbook seeded into the dev server's shared store, not the live budget. With one dead bill
+  change the panel offered "1 available"; Preview listed Fix/Record/Before/After ("Removed
+  Test Bill", "2026-09-01 to no end · £12.34", "Removed"); Cancel returned to the preview
+  button and left the store untouched (8 bill changes, 111 changelog entries); Apply removed
+  the record, wrote `Budget change — Bill changes` to the budget changelog and left the panel
+  at "Nothing to fix". Two small roadmap items shipped with the check: automatic changelog
+  entries now name the section they changed instead of falling back to "App update", and
+  older auto entries still titled "App update" are hidden from the Budget changelog (112 of
+  112 shown with one injected placeholder); the phone companion edits like the desktop (at
+  420 px, no read-only notice, **Add transaction** saved a £12.34 row and the auto entry).
+  `tests/budget-changelog.test.ts` 7/7, `tests/ui-smoke.test.mjs` 13/13, `tsc` clean. No
+  release was run, so `CHANGELOG.md`, the version and the hosted bundle are unchanged.
 
 ---
 
@@ -1985,10 +1998,12 @@ link. Also bill splitting that creates linked People rows for equal or custom sp
 Acceptance: a revoked link cannot read the budget; a link can only read its owner's budget;
 split rows reconcile exactly to the bill amount.
 
-**R18 — Mobile write.** Quick-add expense on the phone with an offline queue and
+**R18 — Mobile write.** The phone PWA now edits the whole budget (2026-11-19): the
+read-only guard and its banner are gone, so Dashboard, Bills, Accounts and Transactions use
+the same add, edit and delete paths as the desktop. Remaining: an offline queue with
 conflict-safe retry, then web-push notifications through the service worker for the existing
-bill, balance and card alerts. The read-only mobile PWA already ships. Acceptance: an
-offline entry syncs exactly once, and repeated taps cannot double-post.
+bill, balance and card alerts. Acceptance: an offline entry syncs exactly once, and repeated
+taps cannot double-post.
 
 ### 24.4 Delivered and removed from this plan (2026-11-18)
 

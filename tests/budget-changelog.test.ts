@@ -5,6 +5,7 @@ import {
   APP_FEATURE_NOTE_SIGNATURES,
   changedBudgetSections,
   withoutAppFeatureNotes,
+  withoutAppUpdatePlaceholders,
   withoutLegacyAppUpdateNotes,
 } from '../app/src/budgetChangelog.ts';
 import type { Dataset } from '../core/engine.ts';
@@ -55,6 +56,21 @@ test('the legacy App update / Auto updates entry is removed without touching bud
   assert.deepEqual(kept.map((entry) => `${entry.sheetCell}: ${entry.description}`), [
     'App update: Updated Bills; balances recalculated.',
     'Auto updates: Holiday paid',
+  ]);
+});
+
+test('app-generated App update placeholders are hidden but named budget entries stay', () => {
+  const kept = withoutAppUpdatePlaceholders([
+    { auto: true, sheetCell: 'App update', description: 'Updated Bills; balances recalculated.' },
+    { auto: true, sheetCell: 'App update', description: 'Updated Transactions.', details: ['12 rows'] },
+    { auto: true, sheetCell: 'Budget change — Transactions', description: 'Updated Transactions.' },
+    { auto: true, sheetCell: 'Month end closed — October 2026', description: 'Balances recorded.' },
+    { sheetCell: 'App update', description: 'My own note' },
+  ]);
+  assert.deepEqual(kept.map((entry) => entry.sheetCell), [
+    'Budget change — Transactions',
+    'Month end closed — October 2026',
+    'App update',
   ]);
 });
 

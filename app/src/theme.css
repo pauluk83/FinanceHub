@@ -1009,9 +1009,11 @@ tr.locked td { color: var(--muted); }
 /* -------------------------------------------------- phone shell (R1) */
 
 .mobile-tabs { display: none; }
-.mobile-readonly { margin: 12px 18px 0; }
+.phone-month { display: none; }
 
 @media (max-width: 720px) {
+  .phone-month { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .phone-month .month-select { flex: 1; min-width: 0; }
   .app { grid-template-columns: minmax(0, 1fr); }
   .sidebar { display: none; }
   .main { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
