@@ -19,6 +19,7 @@ and the build time.
 - Holiday search, an accountant pack and a redacted local crash journal
 - Repair damaged budgets, cache in IndexedDB with a double-tap guard, and upload encrypted backups through a storage adapter
 - Data health reports saved-document repairs, and the plan closes steps 1-7
+- Repair keeps unreadable transaction rows instead of dropping spending; step 8 backup bucket and policies applied
 
 ## [2026.11.18] — 18 November 2026
 

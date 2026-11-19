@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.19",
-  "buildId": "99533abc4182",
+  "buildId": "4897b612fa64",
   "builtAt": "2026-11-19",
   "releases": [
     {
@@ -24,7 +24,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Test the desktop OAuth callback and ship SBOM, claims and packaged smoke evidence",
             "Holiday search, an accountant pack and a redacted local crash journal",
             "Repair damaged budgets, cache in IndexedDB with a double-tap guard, and upload encrypted backups through a storage adapter",
-            "Data health reports saved-document repairs, and the plan closes steps 1-7"
+            "Data health reports saved-document repairs, and the plan closes steps 1-7",
+            "Repair keeps unreadable transaction rows instead of dropping spending; step 8 backup bucket and policies applied"
           ]
         }
       ]
