@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { AppUpdatePrompt } from './views/appUpdate';
 import { hydrateBrowserStore } from './store';
+import { hydrateIdbCache } from './idbStore';
+import { HOSTED_WEB } from './runtime';
 import { recordCrash } from './crashJournal';
 import './theme.css';
 
@@ -45,6 +47,10 @@ window.addEventListener('error', (event) => recordCrash('error', event.message))
 window.addEventListener('unhandledrejection', (event) => recordCrash('promise', event.reason));
 
 async function start() {
+  if (HOSTED_WEB) {
+    // IndexedDB holds the hosted cache; localStorage is the fallback.
+    try { await hydrateIdbCache(); } catch { /* fall back to localStorage */ }
+  }
   try {
     await hydrateBrowserStore();
   } catch (error) {

@@ -7,6 +7,7 @@ import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
+import { idbRemove, idbSet, idbValues } from './idbStore';
 import { todayIso } from './format';
 import type { EncryptedVault } from './vault';
 
@@ -109,7 +110,11 @@ function webStorage(): Storage {
 function readRaw(key: string): string | null {
   const native = nativeStorage();
   if (native) return native.getItem(key);
-  if (HOSTED_WEB) return webStorage().getItem(key);
+  if (HOSTED_WEB) {
+    const cache = idbValues();
+    if (cache?.has(key)) return cache.get(key) ?? null;
+    return webStorage().getItem(key);
+  }
   return requireBrowserStore().get(key) ?? null;
 }
 
@@ -120,6 +125,12 @@ function writeRaw(key: string, value: string) {
     return;
   }
   if (HOSTED_WEB) {
+    // A hydrated IndexedDB cache is authoritative; localStorage is the fallback
+    // for a browser that refuses IndexedDB.
+    if (idbValues()) {
+      idbSet(key, value);
+      return;
+    }
     webStorage().setItem(key, value);
     return;
   }
@@ -134,6 +145,11 @@ function removeRaw(key: string) {
     return;
   }
   if (HOSTED_WEB) {
+    if (idbValues()) {
+      idbRemove(key);
+      try { webStorage().removeItem(key); } catch { /* already gone */ }
+      return;
+    }
     webStorage().removeItem(key);
     return;
   }
@@ -167,6 +183,13 @@ export function hostedKeysToClear(keys: string[], outboxRaw: string | null): str
 export function clearHostedCache(userId: string): number {
   if (!HOSTED_WEB || typeof window === 'undefined') return 0;
   try {
+    const cache = idbValues();
+    if (cache) {
+      const outboxRaw = cache.get(`financehub.sync.outbox.v1:${userId}`) ?? null;
+      const doomed = hostedKeysToClear([...cache.keys()], outboxRaw);
+      for (const key of doomed) idbRemove(key);
+      return doomed.length;
+    }
     const store = webStorage();
     const keys: string[] = [];
     for (let index = 0; index < store.length; index += 1) {

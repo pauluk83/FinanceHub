@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ViewProps } from '../types';
+import { createTapGuard } from '../mutationGuard';
 import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
 import { dateUk, dateTimeUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
@@ -21,6 +22,9 @@ function auditActionLabel(entry: AuditEntry): string {
   if (entry.action === 'delete') return `Deleted · ${entry.label}`;
   return `Added · ${entry.label}`;
 }
+
+// R18: a double tap on a phone must not post the same new entry twice.
+const transactionTapGuard = createTapGuard();
 
 export function Transactions({ ds, engine, month, setMonth, update, notify }: ViewProps) {
   const [q, setQ] = useState('');
@@ -261,6 +265,10 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     const m = Number(form.date.slice(5, 7));
     if (engine.monthlySummary(y, m).locked) {
       notify('That month is locked — choose an open month or unlock it first');
+      return;
+    }
+    if (editing === null && !transactionTapGuard()) {
+      notify('That entry was just added — not posting it twice');
       return;
     }
     if (editing !== null) {
