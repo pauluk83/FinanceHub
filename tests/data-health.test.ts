@@ -97,6 +97,17 @@ test('a support bundle contains counts but no names, comments or amounts', () =>
   assert.equal(bundle.schema, 'financehub-support-v1');
 });
 
+test('a load-time repair is reported in Data health without changing the budget', () => {
+  const repaired = base() as Dataset & { meta?: { schemaRepairs?: string[] } };
+  repaired.meta = { schemaRepairs: ['transactions was missing and was reset to an empty list'] };
+  const check = finding(repaired, 'schema-repairs');
+  assert.equal(check?.severity, 'info');
+  assert.match(check!.summary, /1 repair was applied/);
+  assert.match(check!.items.join(' '), /transactions was missing/);
+  assert.equal(finding(base(), 'schema-repairs')?.severity, 'ok');
+  assert.equal(repaired.transactions.length, 1);
+});
+
 test('a healthy budget passes every check', () => {
   const result = report(base());
   assert.equal(result.status, 'ok');

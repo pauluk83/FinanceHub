@@ -476,6 +476,30 @@ function backupAgeCheck(backup: DataHealthOptions['backup']): HealthCheck {
   };
 }
 
+/** A-07: report what the load-time repair changed, rather than hiding it. */
+function schemaRepairCheck(ds: Dataset): HealthCheck {
+  const repairs = Array.isArray((ds as any).meta?.schemaRepairs)
+    ? (ds as any).meta.schemaRepairs.filter((entry: unknown): entry is string => typeof entry === 'string')
+    : [];
+  if (!repairs.length) {
+    return {
+      id: 'schema-repairs',
+      title: 'Saved document',
+      severity: 'ok',
+      summary: 'The saved budget opened without repairs.',
+      items: [],
+    };
+  }
+  return {
+    id: 'schema-repairs',
+    title: 'Saved document was repaired',
+    severity: 'info',
+    summary: `${repairs.length} repair${repairs.length === 1 ? ' was' : 's were'} applied when this budget loaded. Usable values were kept and nothing was recalculated.`,
+    items: repairs.slice(-5),
+    action: { label: 'Open backups', view: 'settings' },
+  };
+}
+
 /** A-09: warn before a growing document fills the browser cache. */
 function capacityCheck(ds: Dataset): HealthCheck {
   const report = capacityReport(ds);
@@ -501,6 +525,7 @@ export function buildDataHealth(ds: Dataset, engine: Engine, options: DataHealth
     syncConflictCheck(options.syncConflicts ?? 0),
     syncStateCheck(options.sync),
     backupAgeCheck(options.backup),
+    schemaRepairCheck(ds),
     capacityCheck(ds),
   ];
 

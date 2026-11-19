@@ -345,7 +345,7 @@ No secret values were read or printed during this review. Severity reflects the 
 - [~] Automated security regression tests. Built-artifact credential scanning, CSV formula neutralisation and HTTPS-only URL validation are covered. Remaining: exact Supabase CSP-origin and forged/replayed OAuth callback tests (A-01, A-12, A-13).
 - [~] Security hardening. CSV formula cells are neutralised, URL schemes are validated and the CSP now fails closed with only the exact HTTPS/WSS Supabase origin. Remaining: document/test OAuth state handling (A-12, A-13).
 - [ ] Provider schema validation and migration-based hydration so malformed data cannot blank the app and the seed cannot overwrite edits (A-07, A-08).
-- [ ] Capacity guard: dataset-size warning, IndexedDB for the web build and a measured edit-latency budget (A-09).
+- [~] Capacity guard: dataset-size warning and IndexedDB for the hosted build are delivered (§25 steps 3 and 6); a measured edit-latency budget remains open.
 - [ ] Separate the personal workbook seed from the distributable build (A-10).
 - [~] SQLCipher deferred by the owner on 2026-11-13; the accepted design keeps the DPAPI-backed value store rather than adding a native SQLite encryption dependency.
 - [ ] Keep hosted `/FinanceHub/` deployment blocked until P0-8 and browser storage are secured.
@@ -358,11 +358,11 @@ No secret values were read or printed during this review. Severity reflects the 
 
 ## 7. P2 — launch quality
 
-- [ ] Accessibility and 125–200% scaling pass.
-- [ ] Code splitting for the renderer bundle.
-- [ ] Crash reporting with opt-in and no financial payloads.
+- [x] Accessibility and 125–200% scaling pass. Delivered 2026-11-17: labelled controls, landmarks, keyboard traversal and no horizontal overflow at 640 px; the icon-only sidebar keeps every accessible name at 200% zoom.
+- [x] Code splitting for the renderer bundle. Delivered in §25 step 3: every view is lazy, cutting the chunk from 1,459.55 kB to 972.31 kB.
+- [x] Crash reporting with opt-in and no financial payloads. Delivered in §25 step 4 as a bounded, redacted local journal (`app/src/crashJournal.ts`) included in the support bundle as a count only — no third-party service and no financial payload.
 - [x] Excel exports for the filtered transaction log and statements (SpreadsheetML, no runtime spreadsheet dependency) plus **Print / Save PDF** reports for both. PDF uses the browser/Electron print dialog so no report data leaves the device.
-- [ ] Holiday search and filtering.
+- [x] Holiday search and filtering. Delivered in §25 step 4: trips filter by name, place, reference and dates.
 - [~] Privacy policy, terms and self-serve deletion delivered. Draft DPIA, retention schedule, DSAR procedure, breach runbook, privacy notice and evidence checklist are in `docs/compliance/`; the deletion SQL is applied; a throwaway-account deletion test and professional review of the drafts remain.
 - [x] Redacted support diagnostics bundle from Data health: app/build, environment, dataset counts, health check identifiers and backup/sync timestamps only — no names, comments, amounts, credentials or raw messages.
 
@@ -382,7 +382,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [~] **Data Health screen — expanded.** Tools → Data health now includes failed-sync/pending-change and backup-age checks alongside account names, duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved conflicts. Direct statement-vs-snapshot comparison still relies on the locked-month balance check.
 - [x] **“Explain this number” drill-down.** Delivered with R8 on 2026-11-18: every KPI and reconciliation row opens a panel with its source rows, formula, month, account and overrides.
 - [ ] **No session/device management.** Cloud accounts cannot see active devices, last sync, revoke a device or sign out all sessions. Add this alongside MFA/passkeys.
-- [ ] **No accountant/tax-year export.** Add a pack containing transaction CSV, statement PDFs, income/expense summaries, locked-month snapshots, provider balances and a reconciliation note.
+- [x] **Accountant/tax-year export.** Delivered in §25 step 4: one workbook with reconciliation, monthly summary, year transactions and month locks (`core/accountantPack.ts`).
 
 ### Improvements to add
 
@@ -2179,6 +2179,15 @@ changes without a test that proves the old figures are unchanged.
 
 **Total: about 27 focused dev-days plus one short owner session, external legal review and a
 penetration test.** Steps 1–7 can run as one unattended block; only step 8 needs the owner.
+
+**Status (2026-11-19): steps 1–7 are delivered and released as `2026.11.19`; step 8 is next and is
+the first step that needs the owner.** Step commits: 1–2 `556afd1`, 3 `534d01b`, 4 `deac1eb`,
+5 `8b28835`, 6 `7b8919d`, 7 `07d2890`, release `3c29c6c` with tag `v2026.11.19`. 458 tests, `tsc`,
+`release:check` 9/9, packaged smoke 5/5 and the Release workflow all passed; SBOM and claims are
+attached. Step 5's Data health exit is closed by the “Saved document was repaired” check. Stated
+rather than claimed: step 3's edit-latency budget is not measured; step 6's 420 px hosted
+click-through was not run because no signed-in session was used; step 7 has no live bucket by
+design, so its UI stays hidden until step 8.
 
 ### Step 1 — Plan truth (0.5 d, no risk, no input)
 
