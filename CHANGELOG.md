@@ -18,6 +18,7 @@ and the build time.
 - List signed-in devices and sign out everywhere
 - List signed-in devices and sign out everywhere
 - Let every Tools item be hidden or moved, except Settings
+- Share the provider rules, compare restore points and check statements against locks
 
 ## [2026.11.19] — 18 November 2026
 
