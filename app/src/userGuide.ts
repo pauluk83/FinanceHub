@@ -54,7 +54,7 @@ export const GUIDE_BASICS: GuideEntry[] = [
     summary: 'The sidebar groups the app into Overview, Ledger, Providers and Tools; every entry explains itself on hover.',
     steps: [
       'Hover or focus a sidebar entry to read a one-line description. Hover a group title to see what the group is for.',
-      'Open Settings → Menu layout to hide sidebar items or move them between Overview, Ledger and Providers. Tools is fixed and cannot be hidden or moved.',
+      'Open Settings → Menu layout to hide sidebar items or move them between Overview, Ledger, Providers and Tools. Every item can be hidden except Settings, which stays visible under Tools so the layout screen is always reachable.',
       'Press Ctrl+K and type to jump to any visible section. Press [ or ] to step through months.',
       'The topbar shows the current section, the selected month, whether it is Locked or Open, the theme and account controls, and a Feedback button available on every screen.',
     ],
@@ -557,7 +557,7 @@ export const USER_GUIDE: GuideEntry[] = [
       'Add a passkey under Account security, check the devices signed in to the account, mark one revoked or sign out everywhere, or delete the cloud account and its records permanently.',
     ],
     notes: [
-      'Menu layout hides items and moves them between sections; Tools is fixed and can never be hidden or moved.',
+      'Menu layout hides items and moves them between sections, Tools items included; only Settings is always shown, so the sidebar can never lose the way back to this screen.',
       'Provider credentials are encrypted with your vault passphrase; the app never stores them as plaintext. You can change the passphrase from the unlocked vault, and an optional hint is stored unencrypted so the locked screen can show it.',
       'The app lock is a screen barrier, not encryption. Its PIN is stored as a slow hash, cannot be recovered, and removing the lock does not delete anything; the budget data itself stays as protected as the device store.',
       'A device joins the list when it signs in and updates its last-seen time while it stays open. Revoking marks it here and deletes no budget record; Sign out everywhere ends every session through the auth service, including this one.',

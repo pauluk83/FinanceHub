@@ -4,14 +4,18 @@ import { PROVIDER_SETUP, isProviderEnabled, providerDisplayName } from './provid
 export const NAV_GROUPS = ['Overview', 'Ledger', 'Providers', 'Tools'] as const;
 export type NavGroup = (typeof NAV_GROUPS)[number];
 
-/** Tools is deliberately static: its items can never be hidden or moved. */
-export const STATIC_GROUP: NavGroup = 'Tools';
+/** Settings is the one item that always stays visible in Tools: every other item can be hidden or moved. */
+export const PINNED_NAV_IDS: readonly string[] = ['settings'];
+
+export function isPinnedItem(item: { id: string }): boolean {
+  return PINNED_NAV_IDS.includes(item.id);
+}
 
 export const NAV_GROUP_TIPS: Record<NavGroup, string> = {
   Overview: 'Where the budget stands: totals, one month in detail and the month-end close.',
   Ledger: 'The money itself: transactions, income, accounts, cards, people, bills and holidays.',
   Providers: 'Provider ledgers: statements, charges, payments and running balances.',
-  Tools: 'Fixed tools: setup, statements, import, data health, settings, the application and budget changelogs, and this guide.',
+  Tools: 'Setup, statements, import, data health, settings, the application and budget changelogs, and this guide.',
 };
 
 const PROVIDER_TIPS: Record<string, string> = {
@@ -99,9 +103,9 @@ export function defaultNavItems(ds: Dataset): NavItemDef[] {
 }
 
 export function effectiveGroup(item: NavItemDef, layout: NavLayout): NavGroup {
-  if (item.group === STATIC_GROUP) return STATIC_GROUP;
+  if (isPinnedItem(item)) return item.group;
   const target = layout.groups?.[item.id];
-  if (!target || target === STATIC_GROUP) return item.group;
+  if (!target) return item.group;
   return (NAV_GROUPS as readonly string[]).includes(target) ? (target as NavGroup) : item.group;
 }
 
@@ -115,7 +119,7 @@ export function buildNav(ds: Dataset, options: { hideSetup?: boolean } = {}): Na
       group,
       items: items
         .filter((item) => {
-          if (item.group === STATIC_GROUP) return group === STATIC_GROUP;
+          if (isPinnedItem(item)) return group === item.group;
           return !hidden.has(item.id) && effectiveGroup(item, layout) === group;
         })
         .map(({ id, label, icon, tip }) => ({ id, label, icon, tip })),

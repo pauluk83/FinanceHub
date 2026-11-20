@@ -2,25 +2,26 @@ import type { ViewProps } from '../types';
 import { Badge, Section, Table } from '../components';
 import {
   NAV_GROUPS,
-  STATIC_GROUP,
   defaultNavItems,
   effectiveGroup,
+  isPinnedItem,
   navLayout,
   type NavGroup,
 } from '../nav';
 
-const MOVABLE_GROUPS = NAV_GROUPS.filter((group) => group !== STATIC_GROUP);
+const MOVABLE_GROUPS = NAV_GROUPS;
 
 export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' | 'update' | 'notify'>) {
   const layout = navLayout(ds);
   const hidden = layout.hidden ?? [];
   const items = defaultNavItems(ds);
-  const movable = items.filter((item) => item.group !== STATIC_GROUP);
-  const fixed = items.filter((item) => item.group === STATIC_GROUP);
+  const movable = items.filter((item) => !isPinnedItem(item));
+  const pinned = items.filter(isPinnedItem);
   const hiddenCount = movable.filter((item) => hidden.includes(item.id)).length;
   const movedCount = movable.filter((item) => effectiveGroup(item, layout) !== item.group).length;
 
   const toggleVisible = (id: string) => {
+    if (isPinnedItem({ id })) return;
     update((dataset) => {
       const current = dataset.settings.navLayout?.hidden ?? [];
       const next = current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id];
@@ -29,6 +30,7 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
   };
 
   const move = (id: string, target: NavGroup) => {
+    if (isPinnedItem({ id })) return;
     update((dataset) => {
       const item = defaultNavItems(dataset).find((entry) => entry.id === id);
       const groups = { ...(dataset.settings.navLayout?.groups ?? {}) };
@@ -46,7 +48,7 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
   };
 
   const reset = () => {
-    if (!confirm('Reset the sidebar layout? Every item returns to its default section and becomes visible. Tools is unchanged.')) return;
+    if (!confirm('Reset the sidebar layout? Every item returns to its default section and becomes visible. Settings stays where it is.')) return;
     update((dataset) => {
       delete dataset.settings.navLayout;
     });
@@ -56,7 +58,7 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
   return (
     <Section
       title="Menu layout"
-      sub="Choose what appears in the sidebar and which section it sits in. Tools always stays fixed."
+      sub="Choose what appears in the sidebar and which section it sits in. Settings is the only item that always stays visible, under Tools."
       actions={<Badge tone={hiddenCount || movedCount ? 'amber' : 'green'}>{hiddenCount + movedCount ? `${hiddenCount} hidden · ${movedCount} moved` : 'Default layout'}</Badge>}
     >
       <div className="toolbar" style={{ borderBottom: 0 }}>
@@ -102,13 +104,13 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
       </Table>
 
       <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 8 }}>
-        <div className="muted small"><strong style={{ color: 'var(--text)' }}>Tools — fixed section.</strong> These items can’t be hidden or moved.</div>
+        <div className="muted small"><strong style={{ color: 'var(--text)' }}>Always shown.</strong> Settings cannot be hidden or moved, so there is always a way back to this screen.</div>
         <div className="menu-fixed-list">
-          {fixed.map((item) => (
+          {pinned.map((item) => (
             <span className="menu-fixed-item" key={item.id}>
               <span className="nav-icon" aria-hidden>{item.icon}</span>
               {item.label}
-              <Badge tone="neutral">Fixed</Badge>
+              <Badge tone="neutral">Always shown</Badge>
             </span>
           ))}
         </div>

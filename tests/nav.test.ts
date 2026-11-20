@@ -38,20 +38,35 @@ test('an item can be moved to another section and back', () => {
   assert.equal(groupOf(dataset(), 'people'), 'Ledger');
 });
 
-test('Tools is static: its items cannot be hidden or moved', () => {
-  const ds = dataset({ hidden: ['settings', 'guides'], groups: { settings: 'Overview', guides: 'Ledger' } });
-  const nav = buildNav(ds);
-  const tools = nav.find((group) => group.group === 'Tools');
-  assert.deepEqual(tools?.items.map((item) => item.id), ['setup', 'statements', 'evidence', 'import', 'rules', 'alerts', 'health', 'settings', 'appChangelog', 'changelog', 'guides']);
-  assert.equal(groupOf(ds, 'settings'), 'Tools');
-  assert.equal(groupOf(ds, 'guides'), 'Tools');
+test('Tools items can be hidden like any other item', () => {
+  const ds = dataset({ hidden: ['guides', 'statements', 'health'] });
+  const tools = buildNav(ds).find((group) => group.group === 'Tools');
+  assert.deepEqual(tools?.items.map((item) => item.id), ['setup', 'evidence', 'import', 'rules', 'alerts', 'settings', 'appChangelog', 'changelog']);
 });
 
-test('a group target of Tools is ignored for movable items', () => {
+test('Tools items can be moved to another section and back', () => {
+  const moved = dataset({ groups: { statements: 'Overview', guides: 'Ledger' } });
+  assert.equal(groupOf(moved, 'statements'), 'Overview');
+  assert.equal(groupOf(moved, 'guides'), 'Ledger');
+  const overview = buildNav(moved).find((group) => group.group === 'Overview');
+  assert.ok(overview?.items.some((item) => item.id === 'statements'));
+  assert.equal(groupOf(dataset(), 'statements'), 'Tools');
+});
+
+test('Settings stays visible under Tools even when a layout tries to hide or move it', () => {
+  const ds = dataset({ hidden: ['settings', 'guides'], groups: { settings: 'Overview' } });
+  assert.equal(groupOf(ds, 'settings'), 'Tools');
+  assert.equal(ids(ds).includes('settings'), true);
+  assert.equal(ids(ds).includes('guides'), false);
+});
+
+test('an item can be moved into Tools', () => {
   const item = defaultNavItems(dataset()).find((entry) => entry.id === 'people');
   assert.ok(item);
   const layout = { groups: { people: 'Tools' } } as ReturnType<typeof navLayout>;
-  assert.equal(effectiveGroup(item, layout), 'Ledger');
+  assert.equal(effectiveGroup(item, layout), 'Tools');
+  const tools = buildNav(dataset(layout)).find((group) => group.group === 'Tools');
+  assert.equal(tools?.items.some((entry) => entry.id === 'people'), true);
 });
 
 test('an unknown section falls back to the default group', () => {
