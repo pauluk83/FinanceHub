@@ -325,6 +325,17 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.match(html, /Next holiday/);
 });
 
+test('the monthly view shows the same income and holiday cards', async () => {
+  const { Monthly } = await server.ssrLoadModule('/src/views/overview.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const ds = dataset();
+  const html = render(Monthly, props(ds, { engine: buildEngine(ds) }));
+
+  assert.match(html, /Income due/);
+  assert.match(html, /Universal Credit \(UC\)/);
+  assert.match(html, /Next holiday/);
+});
+
 test('email verification is required for unconfirmed email accounts only', async () => {
   const { emailNeedsVerification } = await server.ssrLoadModule('/src/auth.ts');
 

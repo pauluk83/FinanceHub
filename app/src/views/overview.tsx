@@ -20,12 +20,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   const d = engine.dashboard(year, month);
   const categoryTargets = targetsSummary(ds, year, month);
   const today = todayIso();
-  // Both income sources carry their own next date, whichever month it falls in.
-  const nextIncome = nextIncomeDates(ds, year, today);
-  const nextIncomeTotal = nextIncome.reduce((sum, entry) => sum + (entry.date ? entry.amountPence : 0), 0);
-  const nextIncomeSoonest = nextIncome
-    .filter((entry) => entry.date)
-    .sort((a, b) => a.date!.localeCompare(b.date!))[0] ?? null;
+
   const ytd = d.ytd;
   const refMonths = (ds.reference?.months ?? []) as any[];
   // Reconciliation against the workbook uses the uncorrected ledger: the months
@@ -42,9 +37,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   const end = new Date(`${year}-12-31`).getTime();
   const now = new Date(ds.settings.asOfDate).getTime();
   const yearProgress = Math.max(0, Math.min(1, (now - start) / (end - start)));
-  const holidayTrips = groupHolidayTrips(engine.holidays(ds.settings.asOfDate), (holiday) => holiday).slice(0, 7);
-  // Trips arrive ongoing first, then upcoming by start, so the first match is the countdown target.
-  const nextHoliday = holidayTrips.find((trip) => trip.headline.ongoing || trip.headline.upcoming) ?? null;
+
   const needsReview = accountsNeedingReview(ds.transactions, ds, d.asOf);
   // The Dashboard warning is for the month on screen, not the whole history.
   const duplicateReview = duplicateGroups(ds.transactions.filter((t) =>
@@ -165,29 +158,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Card title="Account target" value={gbp(d.accounts.reduce((s, a) => s + a.targetPence, 0))} sub="Combined target" />
         <Card title="Card balance" value={gbp(d.cardBalancePence)} sub={`${pct(d.cardUtilisation)} of ${gbp(d.cardLimitPence)}`} tone={d.cardBalancePence > 0 ? 'warn' : 'neutral'} />
         <Card title="Bills this month" value={gbp(d.billsTotalPence)} sub={`${d.bills.length} scheduled bills`} />
-        <Card
-          title="Income due"
-          sub={nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
-          value={nextIncomeTotal > 0 ? gbp(nextIncomeTotal) : '—'}
-          tone={nextIncomeTotal > 0 ? 'pos' : 'neutral'}
-          actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
-        >
-          <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
-            {nextIncome.map((entry) => (
-              <div key={entry.key} className="card-sub" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span>{entry.label}</span>
-                <span>{entry.date ? `${dateUk(entry.date)} · ${gbp(entry.amountPence)}` : 'No date'}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card
-          title="Next holiday"
-          sub={nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
-          value={nextHoliday ? (nextHoliday.headline.ongoing ? 'Away now' : `${nextHoliday.headline.daysToGo} days`) : '—'}
-          tone={nextHoliday ? 'pos' : 'neutral'}
-          actions={<button className="btn ghost sm" type="button" onClick={() => go('holidays')}>Holidays</button>}
-        />
+        <IncomeAndHolidayCards ds={ds} engine={engine} year={year} go={go} />
       </div>
 
       <div className="grid cols-2">
@@ -389,6 +360,49 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
       )}
 
       <ExplainDialog explanation={explanation} onClose={() => setExplanation(null)} />
+    </>
+  );
+}
+
+/**
+ * The two small cards shared by Dashboard and Monthly: the next PIP and UC dates,
+ * and the days until the next holiday with where it is.
+ */
+export function IncomeAndHolidayCards({ ds, engine, year, go }: Pick<ViewProps, 'ds' | 'engine' | 'year' | 'go'>) {
+  const today = todayIso();
+  const nextIncome = nextIncomeDates(ds, year, today);
+  const nextIncomeTotal = nextIncome.reduce((sum, entry) => sum + (entry.date ? entry.amountPence : 0), 0);
+  const nextIncomeSoonest = nextIncome
+    .filter((entry) => entry.date)
+    .sort((a, b) => a.date!.localeCompare(b.date!))[0] ?? null;
+  // Trips arrive ongoing first, then upcoming by start, so the first match is the countdown target.
+  const nextHoliday = groupHolidayTrips(engine.holidays(ds.settings.asOfDate), (holiday) => holiday)
+    .find((trip) => trip.headline.ongoing || trip.headline.upcoming) ?? null;
+  return (
+    <>
+      <Card
+        title="Income due"
+        sub={nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
+        value={nextIncomeTotal > 0 ? gbp(nextIncomeTotal) : '—'}
+        tone={nextIncomeTotal > 0 ? 'pos' : 'neutral'}
+        actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
+      >
+        <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
+          {nextIncome.map((entry) => (
+            <div key={entry.key} className="card-sub" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <span>{entry.label}</span>
+              <span>{entry.date ? `${dateUk(entry.date)} · ${gbp(entry.amountPence)}` : 'No date'}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card
+        title="Next holiday"
+        sub={nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
+        value={nextHoliday ? (nextHoliday.headline.ongoing ? 'Away now' : `${nextHoliday.headline.daysToGo} days`) : '—'}
+        tone={nextHoliday ? 'pos' : 'neutral'}
+        actions={<button className="btn ghost sm" type="button" onClick={() => go('holidays')}>Holidays</button>}
+      />
     </>
   );
 }
@@ -679,6 +693,7 @@ export function Monthly({ ds, engine, year, month, setMonth, go }: ViewProps) {
         <Card title="Expenses" value={gbp(s.expensesPence)} tone="neg" />
         <Card title="Net" value={gbp(s.netPence, { sign: true })} tone={s.netPence < 0 ? 'neg' : 'pos'} />
         <Card title="% income spent" value={pct(s.percentIncomeSpent)} tone={s.percentIncomeSpent > 1 ? 'warn' : 'neutral'} />
+        <IncomeAndHolidayCards ds={ds} engine={engine} year={year} go={go} />
       </div>
 
       {s.locked ? (
