@@ -1556,6 +1556,14 @@ Open items:
   the dev-only `xlsx` package used by `import/extract.mjs` never reaches the bundle.
   Suite **530/530**, `tsc` clean. Not checked: a live pen test against the Supabase project.
 
+- 2026-11-20: **Fluid phone and tablet layout.** The phone shell no longer relies on fixed
+  pixel sizes: the top bar padding and gaps, title and select type, tab-bar height, tab
+  labels and calendar cells use `clamp()`, card grids reflow with `auto-fit`/`minmax`
+  instead of a hard-coded column count, the icon sidebar width is fluid between 64 and 82px,
+  scrollable tables cap at `min(620px, 72dvh)` and the shell is `100dvh` so mobile browser
+  chrome cannot clip the tab bar. Measured with no horizontal overflow at 320, 360, 390,
+  430, 600, 820 and 1280px. Suite **530/530**, `tsc` clean.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
