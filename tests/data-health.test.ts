@@ -225,3 +225,49 @@ test('unresolved sync conflicts are reported and the dataset is untouched', () =
   assert.equal(result.checks.find((check) => check.id === 'sync-conflicts')?.severity, 'warning');
   assert.equal(JSON.stringify(ds), before);
 });
+
+test('a locked month that still matches its statement is clean', () => {
+  const ds = base();
+  const engine = buildEngine(ds);
+  const closing = engine.statement('Current', 2026, 11).closingPence;
+  ds.monthLocks = {
+    '2026-11': {
+      lockedAt: '2026-11-30T10:00:00.000Z',
+      incomePence: 0,
+      expensesPence: 0,
+      netPence: 0,
+      owedPence: 0,
+      accounts: [{ name: 'Current', balancePence: closing }],
+      cards: [],
+      people: [],
+    },
+  };
+
+  const check = buildDataHealth(ds, buildEngine(ds)).checks.find((entry) => entry.id === 'statement-snapshot');
+  assert.equal(check?.severity, 'ok');
+  assert.equal(check?.items.length, 0);
+});
+
+test('a statement that no longer reproduces the locked balance is reported, not repaired', () => {
+  const ds = base();
+  const engine = buildEngine(ds);
+  const closing = engine.statement('Current', 2026, 11).closingPence;
+  ds.monthLocks = {
+    '2026-11': {
+      lockedAt: '2026-11-30T10:00:00.000Z',
+      incomePence: 0,
+      expensesPence: 0,
+      netPence: 0,
+      owedPence: 0,
+      accounts: [{ name: 'Current', balancePence: closing - 100 }],
+      cards: [],
+      people: [],
+    },
+  };
+  const before = JSON.stringify(ds.monthLocks);
+
+  const check = buildDataHealth(ds, buildEngine(ds)).checks.find((entry) => entry.id === 'statement-snapshot');
+  assert.equal(check?.severity, 'warning');
+  assert.match(check?.items.join(' ') ?? '', /Current: locked £.* vs statement £.*differs by £1\.00/);
+  assert.equal(JSON.stringify(ds.monthLocks), before, 'the snapshot is not rewritten');
+});

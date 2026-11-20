@@ -379,7 +379,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [x] **Per-record audit history, revert and trash.** Transactions, accounts, people, cards, bills and bill changes are diffed at the update boundary; Transactions exposes history, revert and recently deleted restore.
 - [x] **Imported transactions have import-run provenance.** Delivered with R9 on 2026-11-18: every import is committed as a batch (`commitImportBatch`) with source filename, imported-at timestamp and per-row batch id, and the Import screen rolls a whole batch back in one action.
 - [x] **Backups have a version and checksum.** Encrypted format v2 records the format version and SHA-256 checksum and refuses a tampered payload; plain JSON restore remains available.
-- [~] **Data Health screen — expanded.** Tools → Data health now includes failed-sync/pending-change and backup-age checks alongside account names, duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved conflicts. Direct statement-vs-snapshot comparison still relies on the locked-month balance check.
+- [~] **Data Health screen — expanded.** Tools → Data health now includes failed-sync/pending-change and backup-age checks alongside account names, duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved conflicts. Delivered 2026-11-20: a statement-versus-snapshot check reruns every locked month's account statement and names any closing balance that no longer reproduces the figure the lock recorded (`core/dataHealth.ts`, `statementSnapshotFindings`).
 - [x] **“Explain this number” drill-down.** Delivered with R8 on 2026-11-18: every KPI and reconciliation row opens a panel with its source rows, formula, month, account and overrides.
 - [x] **Session/device management.** Delivered 2026-11-20: `public.user_devices` (migration `0005`) records one row per install with a last-seen time, Settings → Account lists them with this-device, inactive and revoked badges, Revoke marks a device, and Sign out everywhere ends the sessions through the auth service.
 - [x] **Accountant/tax-year export.** Delivered in §25 step 4: one workbook with reconciliation, monthly summary, year transactions and month locks (`core/accountantPack.ts`).
@@ -389,7 +389,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [ ] **Transaction rules engine:** classify transfers, refunds, card payments and recurring merchants automatically.
 - [ ] **Split and merge transactions:** split one payment across categories/accounts and merge duplicates.
 - [ ] **Reconciliation assistant:** match imported CSV rows to existing ledger entries and flag differences, not just duplicates.
-- [~] **Backup versioning and restore points:** encrypted format v2 and seven dated restore points are delivered. Still open: a diff between two points and restoring individual sections.
+- [x] **Backup versioning and restore points:** encrypted format v2, thirty automatic daily points and seven manual points are delivered. Delivered 2026-11-20: `core/backupDiff.ts` compares a restore point with the live budget section by section and restores only the chosen sections, with settings and month locks compared but only replaced by a whole restore; Tools → Settings → Data has Compare per point.
 - [ ] **Property-based ledger tests:** assert invariants such as total owed equals the sum of people, statement closing equals cumulative balance, and account totals equal dashboard totals.
 - [ ] **Import fuzz tests:** malformed CSV, huge files, odd dates, duplicate rows and formula-injection strings.
 - [~] **Security regression tests:** credential scanning, URL-scheme rejection and CSV neutralisation are covered. Exact CSP-origin and OAuth state/callback tests remain.
@@ -1494,6 +1494,23 @@ Open items:
   hosted bundle `index-jZ3wk_P2.js`. Not proven: a second device in the list, Revoke and Sign
   out everywhere, which would end the owner's own session.
 
+- 2026-11-20: **A-11, the restore-point diff and the statement check.** The engine now reads
+  its rent, water and telco month rules from `core/rent.ts` (`rentPaymentPenceForMonth`),
+  `core/water.ts` (`waterPaymentPenceForMonth`) and `core/telco.ts` (`telcoBillPence`), and
+  its rent ledger from `rentLedgerThrough`. The three modules share
+  `core/providerLedger.ts` for baselines and running balances instead of keeping private
+  copies. `tests/provider-rules.test.ts` (11 tests) pins exact pence figures — a £2,000 rent
+  charging £550 a week after a £2,200 change, water's deliberate zero-payment months
+  surviving a payment change, telco contract totals and the overpayment floor — and proves
+  the engine's bills and rent ledger are those helpers' own output. `core/backupDiff.ts`
+  compares a restore point with the live budget section by section and restores chosen
+  sections only (Tools → Settings → Data → **Compare**; `tests/backup-diff.test.ts`, 7
+  tests). Data health gained a statement-versus-snapshot check that reruns each locked
+  month's statement and names any closing balance that no longer reproduces the lock
+  (`statementSnapshotFindings`; 2 tests). Suite **501/501**, UI smoke **14/14**, `tsc`
+  clean. Not viewed: the Compare panel in a browser, and no section restore was run against
+  the live budget.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
@@ -1771,7 +1788,7 @@ Added 2026-11-07 from a full code and data audit. This section is the work queue
 
 - [ ] **A-10 — Separate personal seed from distributable data.** Default build opens blank with demo data; the owner imports `data/workbook.json` through the validated restore path (or a build flag that is never used for distribution). Add personal names/amounts to the release scan. Acceptance: a default build contains no personal names, amounts or credentials; the owner build still reproduces the parity figures.
 
-- [ ] **A-11 — One implementation per provider calculation.** Move the rent/water payment-target and ledger recalculation in `app/src/views/tools.tsx` and `app/src/views/providers.tsx` into `core/rent.ts`, `core/water.ts` and `core/telco.ts`, and have the views call them. Acceptance: golden tests show the preview rows equal the engine rows for rent, water, O2 and Virgin changes.
+- [x] **A-11 — One implementation per provider calculation.** Delivered 2026-11-20: the engine's per-month rent payment, water payment and telco charge rules moved into `core/rent.ts` (`rentPaymentPenceForMonth`), `core/water.ts` (`waterPaymentPenceForMonth`) and `core/telco.ts` (`telcoBillPence`), and the rent ledger became `rentLedgerThrough`. The rent, water and telco baseline and running-balance maths now call the shared `core/providerLedger.ts` rules instead of keeping private copies. `tests/provider-rules.test.ts` pins the exact pence figures and proves the engine's bills and rent ledger are those helpers' own output.
 
 - [~] **A-12 — Release and auth hardening.**
   - [x] A valid Supabase configuration now restricts CSP `connect-src` to the exact HTTPS/WSS origin; CSV/URL hardening is covered by A-13.
@@ -2257,10 +2274,12 @@ Everything here can be built, tested and released without a decision, a key or a
    Account lists devices with this-device, inactive and revoked badges, Revoke and Sign out
    everywhere. `tests/devices.test.ts` proves the scoping, ordering and one-row-per-install
    behaviour. Migration `0005` is applied and verified live (2026-11-20).
-4. **Orphaned backlog items** that no step owned: A-11 (one implementation of the rent,
-   water and telco calculations in `core/`), property-based ledger invariants, import fuzz
-   tests, a diff between two restore points and restoring individual sections, the monthly
-   "what changed" digest, and a direct statement-vs-snapshot comparison in Data health.
+4. **Orphaned backlog items** that no step owned. Done 2026-11-20: A-11 (the rent, water
+   and telco rules now have one implementation in `core/`, proven by
+   `tests/provider-rules.test.ts`), the restore-point diff with section restore
+   (`core/backupDiff.ts`, `tests/backup-diff.test.ts`) and the statement-versus-snapshot
+   check in Data health. Still open: property-based ledger invariants, import fuzz tests and
+   the monthly "what changed" digest.
 5. **Plan truth.** Fix the stale checkboxes in §6, §7 and §8, the §25 test count, and the
    §23.6 rows that code already closes, so the plan matches the build.
 

@@ -355,6 +355,55 @@ function lockedMonthCheck(ds: Dataset, engine: Engine): HealthCheck {
   };
 }
 
+/**
+ * Direct statement-vs-snapshot comparison.
+ *
+ * A lock records each account's closing balance. Re-running that month's
+ * statement must reproduce the same closing figure; when it does not, history
+ * has changed behind the lock and the owner needs to see it rather than guess.
+ */
+export function statementSnapshotFindings(ds: Dataset, engine: Engine): string[] {
+  const findings: string[] = [];
+  for (const [key, lock] of Object.entries(ds.monthLocks ?? {})) {
+    if (!lock || !Array.isArray(lock.accounts) || lock.accounts.length === 0) continue;
+    const match = /^(\d{4})-(\d{2})$/.exec(key);
+    if (!match) continue;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (month < 1 || month > 12) continue;
+    for (const account of lock.accounts) {
+      const closing = engine.statement(account.name, year, month).closingPence;
+      const snapshot = Number(account.balancePence) || 0;
+      if (closing !== snapshot) {
+        findings.push(`${key} · ${account.name}: locked ${money(snapshot)} vs statement ${money(closing)} (differs by ${money(closing - snapshot)}).`);
+      }
+    }
+  }
+  return findings;
+}
+
+function statementCheck(ds: Dataset, engine: Engine): HealthCheck {
+  const findings = statementSnapshotFindings(ds, engine);
+  if (!findings.length) {
+    return {
+      id: 'statement-snapshot',
+      title: 'Statements against locked snapshots',
+      severity: 'ok',
+      summary: 'Every locked month still reproduces its recorded account closing balances.',
+      items: [],
+      action: { label: 'Open Month end', view: 'monthEnd' },
+    };
+  }
+  return {
+    id: 'statement-snapshot',
+    title: 'Statements disagree with a locked snapshot',
+    severity: 'warning',
+    summary: `${findings.length} account closing balance${findings.length === 1 ? '' : 's'} no longer match the month that was locked.`,
+    items: findings,
+    action: { label: 'Review Month end', view: 'monthEnd' },
+  };
+}
+
 function dormantAccountCheck(ds: Dataset): HealthCheck {
   const year = ds.settings.targetYear;
   const moved = new Set(
@@ -521,6 +570,7 @@ export function buildDataHealth(ds: Dataset, engine: Engine, options: DataHealth
     billLinkCheck(ds, options.sheets ?? []),
     billChangeCheck(ds),
     lockedMonthCheck(ds, engine),
+    statementCheck(ds, engine),
     dormantAccountCheck(ds),
     syncConflictCheck(options.syncConflicts ?? 0),
     syncStateCheck(options.sync),

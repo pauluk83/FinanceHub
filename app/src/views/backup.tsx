@@ -14,6 +14,13 @@ import {
   type StoredBackup,
 } from '../../../core/backupUpload';
 import { cloudBackupAdapterForCurrentUser, cloudBackupConfigured } from '../cloudBackup';
+import {
+  diffDatasets,
+  restoreSections,
+  RESTORABLE_SECTIONS,
+  type SectionDiff,
+  type SectionId,
+} from '../../../core/backupDiff';
 import { stripLegacySecrets } from '../vault';
 import {
   autoBackupPassphrase,
@@ -55,6 +62,8 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
     return true;
   };
 
+  const [compare, setCompare] = useState<{ label: string; createdAt: string; dataset: Dataset; diff: SectionDiff[] } | null>(null);
+  const [selectedSections, setSelectedSections] = useState<SectionId[]>([]);
   const [cloudRows, setCloudRows] = useState<StoredBackup[]>([]);
   const [cloudBusy, setCloudBusy] = useState(false);
   const [cloudError, setCloudError] = useState<string | null>(null);
@@ -203,6 +212,54 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
     }
   };
 
+  /**
+   * Decrypts one point and reports per-section differences against the live
+   * budget, so a restore is a decision rather than a guess. Nothing is written.
+   */
+  const comparePoint = async (id: string) => {
+    const point = points.find((entry) => entry.id === id);
+    const secret = point?.automatic ? autoBackupPassphrase(userId) : passphrase;
+    if (!secret || (!point?.automatic && passphrase.length < MIN_BACKUP_PASSPHRASE)) {
+      notify(point?.automatic
+        ? 'The automatic backup key is no longer available on this device'
+        : 'Enter the backup passphrase to compare this restore point');
+      return;
+    }
+    const backup = readRestorePoint(userId, id);
+    if (!backup) { notify('That restore point is no longer available'); refresh(); return; }
+    setBusy(true);
+    try {
+      const plain = await decryptBackup(backup, secret);
+      const restored = plain ? decodeBackupDataset(plain) : null;
+      if (!restored) { notify('The restore point could not be decrypted with that passphrase'); return; }
+      const diff = diffDatasets(ds, restored);
+      setCompare({ label: point?.label ?? 'restore point', createdAt: backup.createdAt, dataset: restored, diff });
+      setSelectedSections(diff.filter((section) => !section.identical && RESTORABLE_SECTIONS.includes(section.id)).map((section) => section.id));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleSection = (id: SectionId) => {
+    setSelectedSections((current) => current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]);
+  };
+
+  const restoreSelected = () => {
+    if (!compare || selectedSections.length === 0) return;
+    const labels = compare.diff.filter((section) => selectedSections.includes(section.id)).map((section) => section.label).join(', ');
+    if (!confirm(`Restore ${labels} from ${compare.label} (${dateTimeUk(compare.createdAt)})?\n\nOnly those sections change; every other record stays as it is now. A plain safety copy downloads first.`)) return;
+    download(`financehub-before-section-restore-${todayIso()}.json`, JSON.stringify(safeCopy(ds), null, 2), 'application/json');
+    const chosen = [...selectedSections];
+    update((dataset) => {
+      const next = restoreSections(dataset, compare.dataset, chosen);
+      for (const key of Object.keys(dataset)) delete (dataset as unknown as Record<string, unknown>)[key];
+      Object.assign(dataset, next);
+    });
+    notify(`Restored ${chosen.length} section${chosen.length === 1 ? '' : 's'} from ${compare.label}`);
+    setCompare(null);
+    setSelectedSections([]);
+  };
+
   const restoreFile = async (file: File) => {
     const sizeProblem = backupFileProblem(file.size);
     if (sizeProblem) { notify(sizeProblem); return; }
@@ -263,6 +320,43 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
       <div style={{ padding: '0 16px 16px' }} className="notice info">
         A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a manual restore point can be opened. Automatic daily points keep 30 days of history, use a key held in this device's secure store and restore here without a prompt.
       </div>
+      {compare && (
+        <div style={{ padding: '12px 16px' }}>
+          <div className="toolbar" style={{ borderBottom: 0 }}>
+            <Badge tone="blue">Comparing {compare.label} · {dateTimeUk(compare.createdAt)}</Badge>
+            <div className="toolbar-spacer" />
+            <button className="btn primary sm" disabled={busy || selectedSections.length === 0} onClick={restoreSelected}>
+              Restore {selectedSections.length} section{selectedSections.length === 1 ? '' : 's'}
+            </button>
+            <button className="btn ghost sm" disabled={busy} onClick={() => { setCompare(null); setSelectedSections([]); }}>Close</button>
+          </div>
+          <Table head={['Section', 'Only in this point', 'Only in the budget now', 'Changed', 'Restore']}>
+            {compare.diff.filter((section) => RESTORABLE_SECTIONS.includes(section.id)).map((section) => (
+              <tr key={section.id}>
+                <td>
+                  <strong>{section.label}</strong>
+                  {section.identical && <span className="muted small"> · identical</span>}
+                </td>
+                <td className="num">{section.added || '—'}</td>
+                <td className="num">{section.removed || '—'}</td>
+                <td className="num">{section.changed || '—'}</td>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={selectedSections.includes(section.id)}
+                    disabled={section.identical || busy}
+                    onChange={() => toggleSection(section.id)}
+                    aria-label={`Restore ${section.label} from this point`}
+                  />
+                </td>
+              </tr>
+            ))}
+          </Table>
+          <div className="muted small" style={{ marginTop: 8 }}>
+            Settings and month locks are compared but only a full restore replaces them, because they carry the budget year, As-of and anchor dates.
+          </div>
+        </div>
+      )}
       {points.length === 0 ? (
         <div style={{ padding: 16 }}><Empty>No encrypted restore points yet. Create one before a large edit or import.</Empty></div>
       ) : (
@@ -274,6 +368,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
               <td className="num muted">{Math.ceil(point.bytes / 1024)} KB</td>
               <td className="nowrap">
                 <button className="btn ghost sm" disabled={busy} onClick={() => void restorePoint(point.id)}>Restore</button>{' '}
+                <button className="btn ghost sm" disabled={busy} onClick={() => void comparePoint(point.id)}>Compare</button>{' '}
                 <button className="btn ghost sm" disabled={busy} onClick={() => {
                   if (!confirm(`Remove restore point “${point.label}”?`)) return;
                   if (removeRestorePoint(userId, point.id)) { refresh(); notify('Restore point removed'); }

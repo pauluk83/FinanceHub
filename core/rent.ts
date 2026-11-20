@@ -1,3 +1,5 @@
+import { baselineFor, recalculate, type LedgerSpec } from './providerLedger.ts';
+
 export type RentEntry = {
   date: string;
   description?: string;
@@ -69,20 +71,43 @@ export function rentPaymentTargets(entries: readonly RentEntry[], asOfDate: stri
   );
 }
 
+/** The rent sheet is a dated ledger of charges and payments; balances are shared with every provider sheet. */
+const RENT_SPEC: LedgerSpec = { rowsKey: 'entries', formula: 'amount', monthly: false };
+
 function rentBaseline(entries: RentEntry[]): number {
   const ordered = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  return ordered.length
-    ? (Number(ordered[0].balancePence) || 0) - (Number(ordered[0].amountPence) || 0)
-    : 0;
+  return baselineFor(RENT_SPEC, ordered);
 }
 
 function recalculateRentBalances(entries: RentEntry[], baseline: number): void {
   entries.sort((a, b) => a.date.localeCompare(b.date));
-  let running = baseline;
-  for (const entry of entries) {
-    running += Number(entry.amountPence) || 0;
-    entry.balancePence = running;
+  recalculate(RENT_SPEC, entries, baseline);
+}
+
+/**
+ * The rent payment a month's bill should use: the newest payment change that
+ * has taken effect by the month start, else the recorded payment, else null.
+ */
+export function rentPaymentPenceForMonth(rent: RentProvider, year: number, month: number): number | null {
+  const mStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  let chosen: RentPaymentChange | null = null;
+  for (const change of rent.paymentChanges ?? []) {
+    if (change.effectiveFrom <= mStart && (!chosen || change.effectiveFrom > chosen.effectiveFrom)) chosen = change;
   }
+  if (chosen) return chosen.amountPence;
+  return rent.paymentBasePence ?? rent.monthlyPaymentPence ?? null;
+}
+
+/**
+ * Rent ledger as of a date, computed by SUMIFS over the amount column rather
+ * than by row order: the brought-forward row is part of the amount column, so
+ * charges plus payments is the balance.
+ */
+export function rentLedgerThrough(rent: RentProvider, through: string) {
+  const entries = allRentEntries(rent).filter((entry) => String(entry.date ?? '') <= through);
+  const chargesPence = entries.filter((entry) => (Number(entry.amountPence) || 0) < 0).reduce((sum, entry) => sum + (Number(entry.amountPence) || 0), 0);
+  const paymentsPence = entries.filter((entry) => (Number(entry.amountPence) || 0) > 0).reduce((sum, entry) => sum + (Number(entry.amountPence) || 0), 0);
+  return { balancePence: chargesPence + paymentsPence, chargesPence, paymentsPence, entryCount: entries.length };
 }
 
 /**

@@ -38,13 +38,21 @@ export type TelcoTotals = {
   remainingPaymentsPence: number | null;
 };
 
+import { baselineFor, recalculate, type LedgerSpec } from './providerLedger.ts';
+
 const num = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+/** O2 and Virgin bill their monthly charge from the statement's amount column. */
+export const TELCO_SPEC: LedgerSpec = { rowsKey: 'statement', formula: 'telco', monthly: true };
+
+export function telcoBillPence(row: TelcoRow | undefined): number | null {
+  const amount = row?.amountPence;
+  return typeof amount === 'number' && Number.isFinite(amount) ? amount : null;
+}
 
 /** Balance carried into the first statement row of the ledger. */
 export function telcoOpeningPence(rows: TelcoRow[]): number {
-  const first = rows[0];
-  if (!first) return 0;
-  return num(first.balancePence) - num(first.paymentPence) + num(first.amountPence);
+  return baselineFor(TELCO_SPEC, rows);
 }
 
 /**
@@ -56,19 +64,9 @@ export function telcoOpeningPence(rows: TelcoRow[]): number {
  */
 export function recalculateTelco(provider: TelcoProvider, openingPence?: number): TelcoTotals {
   const rows = provider.statement ?? [];
-  let running = openingPence ?? telcoOpeningPence(rows);
-  let payments = 0;
-
-  for (const row of rows) {
-    const payment = num(row.paymentPence);
-    const charge = num(row.amountPence);
-    running += payment - charge;
-    if (typeof row.balanceOverridePence === 'number' && Number.isFinite(row.balanceOverridePence)) {
-      running = row.balanceOverridePence;
-    }
-    row.balancePence = running;
-    payments += payment;
-  }
+  // Balances are the shared ledger rule; the contract totals are telco-only.
+  recalculate(TELCO_SPEC, rows, openingPence ?? telcoOpeningPence(rows));
+  const payments = rows.reduce((sum, row) => sum + num(row.paymentPence), 0);
 
   let remaining: number | null = null;
   const contract = provider.contract;

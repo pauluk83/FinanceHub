@@ -528,7 +528,7 @@ export const USER_GUIDE: GuideEntry[] = [
     id: 'health',
     group: 'Tools',
     title: 'Data health',
-    summary: 'An integrity centre that flags account names, duplicates, provider year-chain breaks, linked bills, locked-month drift, dormant accounts and sync conflicts, and repairs the dead records in one save.',
+    summary: 'An integrity centre that flags account names, duplicates, provider year-chain breaks, linked bills, locked-month drift, statement-versus-snapshot differences, dormant accounts and sync conflicts, and repairs the dead records in one save.',
     steps: [
       'Open Tools → Data health after an import, a restore, a year rollover or a month close.',
       'Read critical and warning findings first, then open the screen named by the finding to review the underlying rows.',
@@ -539,6 +539,7 @@ export const USER_GUIDE: GuideEntry[] = [
       'The checks never delete, merge or rewrite anything; they only read the loaded budget. One-click fixes are the only place this page changes data, and they list every change before it applies.',
       'A one-click fix only touches records no balance or total counts, so applying one cannot move a figure. Anything that needs a decision — an unknown account, a duplicate, a drifted lock, a hidden provider ledger — stays a finding you review yourself.',
       'A lock that no longer matches live balances means history changed after the month was closed. Unlock it only when the close itself is wrong.',
+      'The statement check reruns each locked month\'s account statement and compares its closing balance with the figure the lock recorded, so a later edit that changed history behind the lock is named with both figures and the difference.',
     ],
   },
   {
@@ -553,6 +554,7 @@ export const USER_GUIDE: GuideEntry[] = [
       'Set the budget year, As-of date, anchor date, theme and Menu layout.',
       'Export a JSON backup, restore the imported workbook, or manage sync and local data in Data & backups.',
       'For a protected copy, enter a backup passphrase and export an encrypted backup. One automatic encrypted restore point is created each day and the newest 30 stay on this device, alongside the newest seven manual restore points.',
+      'Compare a restore point before restoring it: the panel lists each section with what exists only in the point, only in the budget now, and what changed. Tick the sections you want back and restore those alone; settings and month locks are compared but only a whole restore replaces them.',
       'In Settings → Sync conflicts, review both versions, export a copy, or purge the retained conflict history once nothing needs reviewing. The purge removes local and cloud conflict copies only; every budget record stays intact.',
       'Add a passkey under Account security, check the devices signed in to the account, mark one revoked or sign out everywhere, or delete the cloud account and its records permanently.',
     ],

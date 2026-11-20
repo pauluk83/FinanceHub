@@ -13,7 +13,9 @@
 import { findInternalTransferRows } from './internalTransfers.ts';
 import { accountClassifier } from './accounts.ts';
 import { providerRowsKey, rowsForYear } from './providerYears.ts';
-import { allRentEntries } from './rent.ts';
+import { allRentEntries, rentLedgerThrough, rentPaymentPenceForMonth } from './rent.ts';
+import { waterPaymentPenceForMonth } from './water.ts';
+import { telcoBillPence } from './telco.ts';
 import type { Asset } from './assets.ts';
 import type { ImportRule } from './importRules.ts';
 import type { ImportBatch, StatementCheck } from './reconciliation.ts';
@@ -336,44 +338,16 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
       const hit = yearRows.find((e: any) => typeof e.date === 'string' && e.date.slice(0, 7) === `${year}-${pad(month)}`);
       return hit ? (hit.amountPence as number) : 0;
     }
-    if (key === 'rent') {
-      const mStart = `${year}-${pad(month)}-01`;
-      const changes = (p.paymentChanges ?? []) as { effectiveFrom: string; amountPence: number }[];
-      let chosen: { effectiveFrom: string; amountPence: number } | null = null;
-      for (const change of changes) {
-        if (change.effectiveFrom <= mStart && (!chosen || change.effectiveFrom > chosen.effectiveFrom)) chosen = change;
-      }
-      if (chosen) return chosen.amountPence;
-      return p.paymentBasePence ?? p.monthlyPaymentPence ?? null;
-    }
-    if (key === 'water') {
-      const mStart = `${year}-${pad(month)}-01`;
-      const row = yearRows.find((r: any) => r.month === label);
-      // Zero-payment months are deliberate and stay at zero after a change.
-      // The live sheet records which months those are, so the rule carries into
-      // later-year blocks that do not repeat the zero themselves.
-      const liveRow = (p.statement as any[] | undefined)?.find((r) => r.month === label);
-      // A payment edited in a future block is an explicit forward-plan choice.
-      if (row?.paymentEdited === true) return Number(row.paymentPence) || 0;
-      if (row && (Number(row.paymentPence) || 0) === 0) return 0;
-      // The live sheet records zero-payment months; later blocks may repeat the
-      // normal payment there, so keep the deliberate zero unless it was edited.
-      if (liveRow && (Number(liveRow.paymentPence) || 0) === 0) return 0;
-      const changes = (p.paymentChanges ?? []) as { effectiveFrom: string; amountPence: number }[];
-      let chosen: { effectiveFrom: string; amountPence: number } | null = null;
-      for (const change of changes) {
-        if (change.effectiveFrom <= mStart && (!chosen || change.effectiveFrom > chosen.effectiveFrom)) chosen = change;
-      }
-      if (chosen) return chosen.amountPence;
-      if (row && typeof row.paymentPence === 'number') return row.paymentPence;
-      return p.paymentBasePence ?? p.monthlyPaymentPence ?? null;
-    }
+    // The rent, water and telco month rules live in their core modules, so the
+    // bills, the provider screens and any future port read the same figures.
+    if (key === 'rent') return rentPaymentPenceForMonth(p as any, year, month);
+    if (key === 'water') return waterPaymentPenceForMonth(p as any, year, month, yearRows as any[]);
     const row = yearRows.find((r: any) => r.month === label);
     if (!row) return null;
-    // O2/Virgin bill amounts come from the charge column; the utility sheets
-    // expose the monthly payment column as the bill amount (Settings!G50:G54).
-    const field = key === 'o2' || key === 'virgin' ? 'amountPence' : 'paymentPence';
-    const amount = row[field];
+    // O2/Virgin bill from the charge column; the utility sheets expose the
+    // monthly payment column as the bill amount (Settings!G50:G54).
+    if (key === 'o2' || key === 'virgin') return telcoBillPence(row as any);
+    const amount = row.paymentPence;
     return typeof amount === 'number' ? amount : null;
   }
 
@@ -1047,11 +1021,7 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
    * computed by SUMIFS-style aggregation as of a date (not row order).
    */
   function rentLedger(through: string) {
-    const entries = allRentEntries(ds.providers.rent ?? {}).filter((e) => e.date <= through);
-    const charges = entries.filter((e) => e.amountPence < 0).reduce((s, e) => s + e.amountPence, 0);
-    const payments = entries.filter((e) => e.amountPence > 0).reduce((s, e) => s + e.amountPence, 0);
-    // SUMIFS over the AMOUNT column already includes the brought-forward row.
-    return { balancePence: charges + payments, chargesPence: charges, paymentsPence: payments, entryCount: entries.length };
+    return rentLedgerThrough(ds.providers.rent ?? {}, through);
   }
 
   /**
