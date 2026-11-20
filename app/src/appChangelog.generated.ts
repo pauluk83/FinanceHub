@@ -29,7 +29,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Add property-based ledger invariants and import fuzz tests",
             "Add the monthly what changed digest",
             "Remove the always-shown note from menu layout",
-            "Drop the unused menu layout pill styles"
+            "Drop the unused menu layout pill styles",
+            "Drop the three unreferenced style rules"
           ]
         }
       ]

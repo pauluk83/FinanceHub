@@ -23,6 +23,7 @@ and the build time.
 - Add the monthly what changed digest
 - Remove the always-shown note from menu layout
 - Drop the unused menu layout pill styles
+- Drop the three unreferenced style rules
 
 ## [2026.11.19] — 18 November 2026
 
