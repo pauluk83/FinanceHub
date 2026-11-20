@@ -370,19 +370,6 @@ export function deletePortalFeedback(ownerId: string, id: string): void {
   emitFeedbackChanged();
 }
 
-export function markFeedbackRead(ownerId: string, id: string): void {
-  const at = new Date().toISOString();
-  let changed = false;
-  const next = readFeedbackForOwner(ownerId).map((item) => {
-    if (item.id !== id || item.readAt) return item;
-    changed = true;
-    return { ...item, readAt: at };
-  });
-  if (!changed) return;
-  saveFeedbackForOwner(ownerId, next);
-  emitFeedbackChanged();
-}
-
 export function markAllFeedbackRead(ownerId: string): number {
   const at = new Date().toISOString();
   let changed = 0;

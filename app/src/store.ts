@@ -497,10 +497,6 @@ export function loadStateWithStatus(userId?: string): LoadedState {
   }
 }
 
-export function loadState(userId?: string): AppState {
-  return loadStateWithStatus(userId).state;
-}
-
 export function readStoredStateRaw(userId?: string): string | null {
   try { return readRaw(storageKey(userId)); } catch { return null; }
 }

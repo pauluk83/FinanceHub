@@ -4,10 +4,6 @@ import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '../publicSupabase
 const url = import.meta.env.VITE_SUPABASE_URL?.trim() || PUBLIC_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || PUBLIC_SUPABASE_ANON_KEY;
 
-/** Public auth endpoint values used by the account-security helpers. */
-export const authUrl = url;
-export const authAnonKey = anonKey;
-
 /** The anon/publishable key is intentionally public. Never use a service-role key here. */
 export const authConfigured = Boolean(url && anonKey);
 

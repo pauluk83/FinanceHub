@@ -40,7 +40,6 @@ export interface EnableBankingImportRow {
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -48,10 +47,6 @@ function text(value: unknown): string {
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? value as Record<string, unknown> : {};
-}
-
-export function isEnableBankingUuid(value: unknown): value is string {
-  return typeof value === 'string' && UUID_RE.test(value);
 }
 
 /** Enable Banking sends decimal strings such as "12.34"; convert exactly to pence. */

@@ -3,9 +3,23 @@
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  X-DNS-Prefetch-Control: off
+  Permissions-Policy: accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()
+
+/*.html
+  Cache-Control: no-cache, must-revalidate
 
 /index.html
   Cache-Control: no-cache, must-revalidate
 
 /bank-callback.html
   Cache-Control: no-cache, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: no-cache, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

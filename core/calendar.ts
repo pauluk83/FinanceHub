@@ -342,5 +342,3 @@ export function calendarIcs(ds: Dataset, engine: Engine, options: { from?: strin
     '',
   ].join('\r\n');
 }
-
-export { MONTH_SHORT as CALENDAR_MONTHS };

@@ -27,6 +27,8 @@ function productionCsp(command: string, env: Record<string, string>): Plugin {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
+    "manifest-src 'self'",
+    "media-src 'self' blob:",
     `connect-src ${connectSources(env)}`,
     "worker-src 'self' blob:",
   ].join('; ');

@@ -1058,3 +1058,10 @@ tr.locked td { color: var(--muted); }
   .asset-form { grid-template-columns: minmax(0, 1fr); }
   .explain-panel { width: 100%; max-height: 90vh; }
 }
+
+/* iOS Safari zooms the page when a focused field renders under 16px, which
+   then leaves the layout scrolled on every form on a phone. */
+@media (max-width: 720px) {
+  input, select, textarea,
+  .input, .select, .input.compact, .select.compact { font-size: 16px; }
+}

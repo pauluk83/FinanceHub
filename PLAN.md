@@ -1534,6 +1534,28 @@ Open items:
   so, and that building the digest leaves the document and every headline figure untouched.
   Suite **525/525**, `tsc` clean. Not viewed: the new panel in a browser.
 
+- 2026-11-20: **Security and performance audit.** Findings and actions: (1) the hosted
+  headers carried nosniff, framing, referrer and robots rules but no transport or
+  permission policy — `_headers` now adds HSTS, COOP, CORP, X-DNS-Prefetch-Control and a
+  Permissions-Policy that denies camera, microphone, geolocation, payment, USB, serial and
+  display capture while leaving passkeys to this origin; hashed `/assets/*` are cached for a
+  year as immutable and every document, the manifest and the bank callback stay
+  no-cache. `tests/security-headers.test.ts` (5 tests) locks all of it. (2) The build CSP
+  gained `manifest-src 'self'` and `media-src 'self' blob:`; it still has no inline script
+  and fails closed on a missing Supabase origin. (3) Seven exports nothing imported were
+  removed (`authUrl`, `authAnonKey`, `Ratio`, `markFeedbackRead`, `loadState`,
+  `CALENDAR_MONTHS`, `isEnableBankingUuid`) after a repo-wide reference scan. (4) Phones:
+  every view was measured at 375 px with no horizontal overflow, the sidebar gives way to
+  the bottom tab bar at 720 px, and form fields now render at 16 px on a phone so iOS
+  stops zooming the layout on focus. (5) Checked and sound: no `eval`/`new Function`, the
+  only `innerHTML` is a static template with no interpolation, every external link is
+  `rel="noreferrer"`, Electron runs sandboxed with context isolation, a navigation
+  allowlist and every permission denied, `npm audit --omit=dev` is clean, and PKCE sessions
+  live in DPAPI/Keychain storage on desktop. Accepted risks: the hosted build keeps the
+  budget in plaintext browser storage (cleared on sign-out while the outbox is empty), and
+  the dev-only `xlsx` package used by `import/extract.mjs` never reaches the bundle.
+  Suite **530/530**, `tsc` clean. Not checked: a live pen test against the Supabase project.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.

@@ -93,10 +93,6 @@ export function Money({ pence, sign = false }: { pence: number | null | undefine
   return <span className={`amount ${cls}`}>{gbp(pence, { sign })}</span>;
 }
 
-export function Ratio({ value, tone }: { value: number; tone?: string }) {
-  return <span className="ratio">{pct(value)}{tone ? '' : ''}</span>;
-}
-
 export type DonutSlice = { label: string; value: number; tone?: string };
 
 /**
