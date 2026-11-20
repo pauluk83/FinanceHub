@@ -142,13 +142,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .month-select:focus, .select:focus, .input:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; border-color: transparent; }
 .month-select { min-width: 118px; font-weight: 600; }
 
-.icon-btn, .btn {
+.btn {
   border: 1px solid var(--line-strong); background: var(--panel); color: var(--text);
   border-radius: 9px; padding: 7px 11px; cursor: pointer; min-height: 34px;
   display: inline-flex; align-items: center; gap: 7px; font-size: 13px;
   transition: background 120ms, border-color 120ms, transform 80ms;
 }
-.icon-btn:hover, .btn:hover { background: var(--panel-2); border-color: var(--faint); }
+.btn:hover { background: var(--panel-2); border-color: var(--faint); }
 .btn:active { transform: translateY(1px); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #04120c; font-weight: 650; }
 .btn.primary:hover { filter: brightness(1.05); }
@@ -156,8 +156,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
 .btn.sm { min-height: 28px; padding: 4px 8px; font-size: 12px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.icon-btn { padding: 7px 9px; }
-
 .content { flex: 1; overflow-y: auto; padding: 22px; min-height: 0; }
 .view { max-width: 1500px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 
@@ -194,7 +192,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .grid { display: grid; gap: 16px; }
 .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--line); }
@@ -230,7 +227,6 @@ th.num { text-align: right; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ledger-table-start th, .ledger-table-start td.num { text-align: left; }
 .ledger-table-start .table-input { text-align: left; }
-td.mono, .mono { font-variant-numeric: tabular-nums; }
 .amount.neg { color: var(--danger); }
 .amount.pos { color: var(--accent); }
 .muted { color: var(--muted); }
@@ -646,7 +642,7 @@ tr.locked td { color: var(--muted); }
 
 @media (max-width: 1180px) {
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .two-col, .cols-2, .cols-3 { grid-template-columns: minmax(0, 1fr); }
+  .two-col, .cols-2 { grid-template-columns: minmax(0, 1fr); }
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .month-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
