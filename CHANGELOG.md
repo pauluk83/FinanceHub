@@ -17,6 +17,7 @@ and the build time.
 - Show days remaining on the income due card instead of amounts
 - List signed-in devices and sign out everywhere
 - List signed-in devices and sign out everywhere
+- Let every Tools item be hidden or moved, except Settings
 
 ## [2026.11.19] — 18 November 2026
 

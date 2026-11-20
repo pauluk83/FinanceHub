@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.20",
-  "buildId": "9ee98ac252ec",
+  "buildId": "4cf829fe8d49",
   "builtAt": "2026-11-20",
   "releases": [
     {
@@ -23,7 +23,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Show the income due and holiday countdown cards on Monthly",
             "Show days remaining on the income due card instead of amounts",
             "List signed-in devices and sign out everywhere",
-            "List signed-in devices and sign out everywhere"
+            "List signed-in devices and sign out everywhere",
+            "Let every Tools item be hidden or moved, except Settings"
           ]
         }
       ]
