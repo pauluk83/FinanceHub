@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.20",
-  "buildId": "8ba8a71fa3fe",
+  "buildId": "055fb6a4bbaf",
   "builtAt": "2026-11-20",
   "releases": [
     {
@@ -27,7 +27,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Let every Tools item be hidden or moved, except Settings",
             "Share the provider rules, compare restore points and check statements against locks",
             "Add property-based ledger invariants and import fuzz tests",
-            "Add the monthly what changed digest"
+            "Add the monthly what changed digest",
+            "Remove the always-shown note from menu layout"
           ]
         }
       ]
