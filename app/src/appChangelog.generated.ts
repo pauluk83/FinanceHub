@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.20",
-  "buildId": "458837f68981",
+  "buildId": "9ee98ac252ec",
   "builtAt": "2026-11-20",
   "releases": [
     {
@@ -21,7 +21,9 @@ export const APP_CHANGELOG: AppChangelog = {
             "Keep 30 automatic daily restore points",
             "Remove the dashboard holiday list and show both income dates",
             "Show the income due and holiday countdown cards on Monthly",
-            "Show days remaining on the income due card instead of amounts"
+            "Show days remaining on the income due card instead of amounts",
+            "List signed-in devices and sign out everywhere",
+            "List signed-in devices and sign out everywhere"
           ]
         }
       ]

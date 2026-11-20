@@ -15,6 +15,8 @@ and the build time.
 - Remove the dashboard holiday list and show both income dates
 - Show the income due and holiday countdown cards on Monthly
 - Show days remaining on the income due card instead of amounts
+- List signed-in devices and sign out everywhere
+- List signed-in devices and sign out everywhere
 
 ## [2026.11.19] — 18 November 2026
 
