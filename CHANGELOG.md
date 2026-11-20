@@ -26,6 +26,7 @@ and the build time.
 - Drop the three unreferenced style rules
 - Security headers, dead code removal and mobile input fix
 - Compact phone top bar with month and year pickers
+- Fluid phone and tablet layout
 
 ## [2026.11.19] — 18 November 2026
 

@@ -32,7 +32,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Drop the unused menu layout pill styles",
             "Drop the three unreferenced style rules",
             "Security headers, dead code removal and mobile input fix",
-            "Compact phone top bar with month and year pickers"
+            "Compact phone top bar with month and year pickers",
+            "Fluid phone and tablet layout"
           ]
         }
       ]
