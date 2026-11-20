@@ -24,6 +24,7 @@ and the build time.
 - Remove the always-shown note from menu layout
 - Drop the unused menu layout pill styles
 - Drop the three unreferenced style rules
+- Security headers, dead code removal and mobile input fix
 
 ## [2026.11.19] — 18 November 2026
 
