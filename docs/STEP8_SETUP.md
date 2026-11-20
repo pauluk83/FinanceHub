@@ -57,8 +57,11 @@ as a setup step. Running speculative DDL now would create schema nothing reads.
 
 ## After this sitting (unattended, no credentials)
 
-1. Wire the R17 upload UI to `core/backupUpload.ts` with a Supabase adapter writing
-   `<user-id>/financehub-backup-<timestamp>.json`, listing and pruning to seven.
+1. ~~Wire the R17 upload UI~~ **Done 2026-11-20:** `core/cloudBackup.ts` and
+   `app/src/cloudBackup.ts` write `<user-id>/financehub-backup-<timestamp>.json`, list and
+   prune to seven, and Tools → Encrypted backups has Upload, Restore and Remove. An anonymous
+   upload is refused live (`new row violates row-level security policy`); a signed-in round-trip
+   and a second account still need your session.
 2. Device/session list with revoke.
 3. Service-worker web push and reminder delivery behind the privacy gate.
 4. Prove signed-out uploads are refused and two accounts cannot read each other's folder.

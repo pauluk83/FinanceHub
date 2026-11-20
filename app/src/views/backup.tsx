@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dataset } from '../../../core/engine';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
@@ -6,6 +6,14 @@ import { dateTimeUk, download, todayIso } from '../format';
 import { decodeBackupDataset } from '../backup';
 import { backupFileProblem } from '../../../core/importLimits';
 import { decryptBackup, encryptBackup, MIN_BACKUP_PASSPHRASE } from '../backupArchive';
+import {
+  BACKUP_RETENTION,
+  listEncryptedBackups,
+  readEncryptedBackup,
+  uploadEncryptedBackup,
+  type StoredBackup,
+} from '../../../core/backupUpload';
+import { cloudBackupAdapterForCurrentUser, cloudBackupConfigured } from '../cloudBackup';
 import { stripLegacySecrets } from '../vault';
 import {
   autoBackupPassphrase,
@@ -43,6 +51,88 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
     });
     notify(`Restored ${restored.transactions.length} transactions from ${source}`);
     return true;
+  };
+
+  const [cloudRows, setCloudRows] = useState<StoredBackup[]>([]);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudError, setCloudError] = useState<string | null>(null);
+
+  const loadCloud = async () => {
+    if (!cloudBackupConfigured) return;
+    setCloudBusy(true);
+    try {
+      const adapter = await cloudBackupAdapterForCurrentUser();
+      setCloudRows(await listEncryptedBackups(adapter));
+      setCloudError(null);
+    } catch (error) {
+      setCloudRows([]);
+      setCloudError(error instanceof Error ? error.message : 'Cloud backups are unavailable');
+    } finally {
+      setCloudBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadCloud();
+    // The list belongs to one signed-in user; reload when that changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const uploadCloud = async () => {
+    if (passphrase.length < MIN_BACKUP_PASSPHRASE) {
+      notify(`Use at least ${MIN_BACKUP_PASSPHRASE} characters for the backup passphrase`);
+      return;
+    }
+    setCloudBusy(true);
+    try {
+      const adapter = await cloudBackupAdapterForCurrentUser();
+      const backup = await encryptBackup(safeCopy(ds), passphrase);
+      const result = await uploadEncryptedBackup(adapter, backup);
+      markBackupExported(userId, backup.createdAt);
+      setPassphrase('');
+      notify(`Uploaded ${result.name} — ${result.kept} of ${BACKUP_RETENTION} cloud backups kept${result.removed.length ? `, ${result.removed.length} older removed` : ''}`);
+      await loadCloud();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'The cloud backup could not be uploaded');
+    } finally {
+      setCloudBusy(false);
+    }
+  };
+
+  const restoreCloud = async (name: string) => {
+    if (passphrase.length < MIN_BACKUP_PASSPHRASE) {
+      notify('Enter the backup passphrase to unlock a cloud backup');
+      return;
+    }
+    setCloudBusy(true);
+    try {
+      const adapter = await cloudBackupAdapterForCurrentUser();
+      const text = await readEncryptedBackup(adapter, name);
+      if (!text) { notify('That cloud backup is no longer available'); await loadCloud(); return; }
+      const plain = await decryptBackup(text, passphrase);
+      const restored = plain ? decodeBackupDataset(plain) : null;
+      if (!restored) { notify('That cloud backup could not be decrypted with that passphrase'); return; }
+      if (applyRestored(restored, `cloud backup ${name}`)) setPassphrase('');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'The cloud backup could not be restored');
+    } finally {
+      setCloudBusy(false);
+    }
+  };
+
+  const removeCloud = async (name: string) => {
+    if (!confirm(`Remove cloud backup “${name}”?\n\nThe budget on this device is not affected.`)) return;
+    setCloudBusy(true);
+    try {
+      const adapter = await cloudBackupAdapterForCurrentUser();
+      await adapter.remove(name);
+      notify('Cloud backup removed');
+      await loadCloud();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'The cloud backup could not be removed');
+    } finally {
+      setCloudBusy(false);
+    }
   };
 
   const createBackup = async () => {
@@ -132,6 +222,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
   };
 
   return (
+    <>
     <Section
       title="Encrypted backups & restore points"
       sub="Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. One automatic restore point is created each day, and the newest seven restore points stay on this device."
@@ -192,5 +283,43 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
         </Table>
       )}
     </Section>
+
+    {cloudBackupConfigured && (
+      <Section
+        title="Cloud backups"
+        sub="Uploads the same encrypted envelope to your private Supabase bucket. The bucket only allows your own folder, and the newest seven uploads are kept. The passphrase above unlocks them on any device; only the ciphertext leaves this device."
+        actions={<Badge tone={cloudError ? 'amber' : cloudRows.length ? 'green' : 'neutral'}>{cloudBusy ? 'Working…' : `${cloudRows.length}/${BACKUP_RETENTION} uploads`}</Badge>}
+      >
+        <div className="toolbar" style={{ borderBottom: 0 }}>
+          <button className="btn primary" type="button" disabled={busy || cloudBusy} onClick={() => void uploadCloud()}>
+            Upload encrypted backup
+          </button>
+          <button className="btn ghost" type="button" disabled={cloudBusy} onClick={() => void loadCloud()}>
+            Refresh list
+          </button>
+          <span className="muted small">Uses the backup passphrase above.</span>
+        </div>
+        {cloudError && <div className="notice warn" style={{ margin: 12 }}>{cloudError}</div>}
+        {!cloudError && cloudRows.length === 0 && (
+          <div style={{ padding: 16 }}><Empty>{cloudBusy ? 'Loading cloud backups…' : 'No cloud backups uploaded yet.'}</Empty></div>
+        )}
+        {cloudRows.length > 0 && (
+          <Table head={['Uploaded', 'File', 'Size', '']}>
+            {cloudRows.map((row) => (
+              <tr key={row.name}>
+                <td className="muted">{row.uploadedAt ? dateTimeUk(row.uploadedAt) : '—'}</td>
+                <td className="muted small">{row.name}</td>
+                <td className="num muted">{row.bytes ? `${Math.ceil(row.bytes / 1024)} KB` : '—'}</td>
+                <td className="nowrap">
+                  <button className="btn ghost sm" type="button" disabled={cloudBusy} onClick={() => void restoreCloud(row.name)}>Restore</button>{' '}
+                  <button className="btn ghost sm" type="button" disabled={cloudBusy} onClick={() => void removeCloud(row.name)}>Remove</button>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Section>
+    )}
+    </>
   );
 }

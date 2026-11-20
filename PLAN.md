@@ -1441,6 +1441,21 @@ Open items:
   stays on the in-app Feedback route and the security contact is
   `pauluk83+financehub@gmail.com`. Nothing in this entry changes a money rule or a figure.
 
+- 2026-11-20: **Cleared checkbox removed and R17 upload wired.** The cleared checkbox is gone
+  from the Transactions table (`41478dc`), released as `2026.11.20` with the installer
+  rebuilt, the hosted bundle deployed and the tag pushed. Cloud backup upload is now wired
+  end to end: `core/cloudBackup.ts` scopes every object to
+  `<user-id>/financehub-backup-<timestamp>.json`, `app/src/cloudBackup.ts` maps the signed-in
+  Supabase session onto the bucket, and Tools → Encrypted backups gained an upload button plus
+  a list with Restore and Remove, shown only when the build has Supabase configured. Seven
+  tests in `tests/cloud-backup.test.ts` cover folder scoping, signed-out and traversing ids,
+  foreign names, per-folder retention and storage errors; suite **467/467**, `tsc` and
+  `build:web` clean. Live check against the real bucket: an anonymous upload carrying only the
+  publishable key is refused (`new row violates row-level security policy`) and an anonymous
+  list returns `[]`. Not done: a signed-in upload/restore round-trip and second-account
+  isolation need an authenticated session, and the wiring ships in the next release rather
+  than moving today's published tag.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
