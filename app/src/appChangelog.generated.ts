@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.20",
-  "buildId": "70d4e4d0caec",
+  "buildId": "87d2128b7061",
   "builtAt": "2026-11-20",
   "releases": [
     {
@@ -31,7 +31,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Remove the always-shown note from menu layout",
             "Drop the unused menu layout pill styles",
             "Drop the three unreferenced style rules",
-            "Security headers, dead code removal and mobile input fix"
+            "Security headers, dead code removal and mobile input fix",
+            "Compact phone top bar with month and year pickers"
           ]
         }
       ]

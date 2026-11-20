@@ -25,6 +25,7 @@ and the build time.
 - Drop the unused menu layout pill styles
 - Drop the three unreferenced style rules
 - Security headers, dead code removal and mobile input fix
+- Compact phone top bar with month and year pickers
 
 ## [2026.11.19] — 18 November 2026
 
