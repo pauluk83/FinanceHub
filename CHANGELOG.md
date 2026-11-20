@@ -10,6 +10,7 @@ and the build time.
 ### Changed
 - Remove the cleared checkbox from the transaction table; plan reduced to five points
 - Wire encrypted backup upload to the Supabase bucket
+- Dashboard income card and holiday countdown
 
 ## [2026.11.19] — 18 November 2026
 
