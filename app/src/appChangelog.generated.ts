@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.20",
-  "buildId": "58719701cecd",
+  "buildId": "3a06df00b822",
   "builtAt": "2026-11-20",
   "releases": [
     {
@@ -17,7 +17,8 @@ export const APP_CHANGELOG: AppChangelog = {
           "items": [
             "Remove the cleared checkbox from the transaction table; plan reduced to five points",
             "Wire encrypted backup upload to the Supabase bucket",
-            "Dashboard income card and holiday countdown"
+            "Dashboard income card and holiday countdown",
+            "Keep 30 automatic daily restore points"
           ]
         }
       ]

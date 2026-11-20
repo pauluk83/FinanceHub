@@ -11,6 +11,7 @@ and the build time.
 - Remove the cleared checkbox from the transaction table; plan reduced to five points
 - Wire encrypted backup upload to the Supabase bucket
 - Dashboard income card and holiday countdown
+- Keep 30 automatic daily restore points
 
 ## [2026.11.19] — 18 November 2026
 
