@@ -28,6 +28,7 @@ and the build time.
 - Compact phone top bar with month and year pickers
 - Fluid phone and tablet layout
 - Responsive e2e guard and fluid auth and portal screens
+- Let the auth card padding scale on the smallest screens
 
 ## [2026.11.19] — 18 November 2026
 
