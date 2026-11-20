@@ -28,6 +28,10 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   const categoryTargets = targetsSummary(ds, year, month);
   const today = todayIso();
   const incomeDue = scheduledIncome(ds, year, month, today);
+  // The card shows the next payment that has not passed; if the month is over, the last one.
+  const upcomingIncome = incomeDue.filter((payment) => payment.days >= 0);
+  const nextIncome = upcomingIncome[0] ?? incomeDue[incomeDue.length - 1] ?? null;
+  const laterIncome = upcomingIncome[1] ?? null;
   const ytd = d.ytd;
   const refMonths = (ds.reference?.months ?? []) as any[];
   // Reconciliation against the workbook uses the uncorrected ledger: the months
@@ -45,6 +49,8 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   const now = new Date(ds.settings.asOfDate).getTime();
   const yearProgress = Math.max(0, Math.min(1, (now - start) / (end - start)));
   const holidayTrips = groupHolidayTrips(engine.holidays(ds.settings.asOfDate), (holiday) => holiday).slice(0, 7);
+  // Trips arrive ongoing first, then upcoming by start, so the first match is the countdown target.
+  const nextHoliday = holidayTrips.find((trip) => trip.headline.ongoing || trip.headline.upcoming) ?? null;
   const needsReview = accountsNeedingReview(ds.transactions, ds, d.asOf);
   // The Dashboard warning is for the month on screen, not the whole history.
   const duplicateReview = duplicateGroups(ds.transactions.filter((t) =>
@@ -165,6 +171,27 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Card title="Account target" value={gbp(d.accounts.reduce((s, a) => s + a.targetPence, 0))} sub="Combined target" />
         <Card title="Card balance" value={gbp(d.cardBalancePence)} sub={`${pct(d.cardUtilisation)} of ${gbp(d.cardLimitPence)}`} tone={d.cardBalancePence > 0 ? 'warn' : 'neutral'} />
         <Card title="Bills this month" value={gbp(d.billsTotalPence)} sub={`${d.bills.length} scheduled bills`} />
+        <Card
+          title="Income due"
+          sub={nextIncome ? `${nextIncome.source} · ${dateUk(nextIncome.date)}` : 'No PIP or UC payment this month'}
+          value={nextIncome ? gbp(nextIncome.amountPence) : '—'}
+          tone={nextIncome ? 'pos' : 'neutral'}
+          actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
+        >
+          {nextIncome && (
+            <div className="card-sub" style={{ marginTop: 6 }}>
+              {incomeCountdownLabel(nextIncome.days)}
+              {laterIncome ? ` · then ${laterIncome.source} ${incomeCountdownLabel(laterIncome.days)}` : ''}
+            </div>
+          )}
+        </Card>
+        <Card
+          title="Next holiday"
+          sub={nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
+          value={nextHoliday ? (nextHoliday.headline.ongoing ? 'Away now' : `${nextHoliday.headline.daysToGo} days`) : '—'}
+          tone={nextHoliday ? 'pos' : 'neutral'}
+          actions={<button className="btn ghost sm" type="button" onClick={() => go('holidays')}>Holidays</button>}
+        />
       </div>
 
       <div className="grid cols-2">
@@ -400,28 +427,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
           </div>
         </Section>
       </div>
-
-      <Section
-        title="Income due"
-        sub="PIP and Universal Credit dates for this month, counted from today"
-        actions={<button className="btn ghost sm" onClick={() => go('income')}>View income schedule</button>}
-      >
-        <Table head={['Source', 'Date', 'Amount', 'Countdown']} numHead={[2]}>
-          {incomeDue.map((payment) => (
-            <tr key={payment.key}>
-              <td>{payment.source}</td>
-              <td className="muted">{dateUk(payment.date)}</td>
-              <td className="num"><strong>{gbp(payment.amountPence)}</strong></td>
-              <td>
-                <Badge tone={payment.days < 0 ? 'neutral' : payment.days <= 7 ? 'amber' : 'blue'}>
-                  {incomeCountdownLabel(payment.days)}
-                </Badge>
-              </td>
-            </tr>
-          ))}
-        </Table>
-        {incomeDue.length === 0 && <Empty>No PIP or UC payment scheduled for this month.</Empty>}
-      </Section>
 
       {categoryTargets.targets.length > 0 && (
         <Section

@@ -74,6 +74,7 @@ export const USER_GUIDE: GuideEntry[] = [
     steps: [
       'Read income, expenses, net and owed for the target year at the top of the page.',
       'Compare account, card and People balances with their statements, and review any model checks or differences.',
+      'The card row under the figures shows this month’s bills, the next income payment due with its countdown, and how many days there are until the next holiday and where it is.',
       'Use Year at a glance to pick a month, then open Month end from the same page when you are ready to close it.',
     ],
     notes: [

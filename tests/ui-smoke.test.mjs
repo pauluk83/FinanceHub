@@ -318,6 +318,10 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.match(html, /Income due/);
   assert.match(html, /PIP/);
   assert.match(html, /Universal Credit \(UC\)/);
+  // The income card shows the next payment and the one after it.
+  assert.match(html, /then Universal Credit \(UC\)/);
+  // The holiday countdown card is always in the same row.
+  assert.match(html, /Next holiday/);
 });
 
 test('email verification is required for unconfirmed email accounts only', async () => {
