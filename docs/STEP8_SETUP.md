@@ -44,10 +44,9 @@ the Windows app or the browser.
 
 ## Not applicable yet — nothing to run
 
-There is **no pending SQL** for device/session management or share tokens: those tables do
-not exist in `db/migrations/postgres/` yet. They arrive with the step 8/9 code as reviewed
-migrations, not as a setup step. Running speculative DDL now would create schema nothing
-reads.
+There is **no pending SQL** for device/session management: that table does not exist in
+`db/migrations/postgres/` yet. It arrives as a reviewed migration with the point 1 code, not
+as a setup step. Running speculative DDL now would create schema nothing reads.
 
 ## Verification already done
 

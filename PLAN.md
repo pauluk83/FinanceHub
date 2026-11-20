@@ -1,7 +1,7 @@
 # FinanceHub — master plan
 
 Last updated: 2026-11-18
-Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17; the owner then chose Enable Banking's free restricted production mode and a desktop Open Banking feed was built for the owner's own linked accounts. G1–G5 remain open for any public or third-party use and no provider contract exists. A desktop-only owner Starling personal feed was implemented separately (not Open Banking) and awaits a real-token test. The owner confirms exposed provider passwords are rotated; GitHub releases through `v2026.11.19` are published with matching source archives and checksums; the hosted build moved to Cloudflare Pages at `https://financehub-uk.pages.dev/` on 2026-11-17 after InfinityFree suspended the account, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2. The §24 ranked delivery (R1–R12) and its audit fixes shipped as `2026.11.19` from commit `6c5f7e4`; the next five ranked releases (R15, R5, R14, R16, R6) shipped in the same version from commit `35a09e7`, with a rebuilt CI installer whose published SHA-256 matches and a verified live build; §24 now lists only R17's encrypted cloud upload, R13 and R18, and R17's one-click data-health fixes shipped on 2026-11-19.**
+Status: **Phases 1–3 delivered; live Google sign-in and one-account cloud sync verified; encrypted credential vault, people statement sign-ins, feedback, Data Health, per-record audit/trash, transaction categories and tags, the in-app notification centre, guided first-run choice, encrypted backup v2 with seven restore points and automatic daily points, provider balances in locks, All-years statements, backup/sync health diagnostics, passkey controls for the hosted web app, self-serve cloud deletion, Playwright click-through tests and Excel/print report exports delivered. The Open Banking planning workstream started on 2026-11-17; the owner then chose Enable Banking's free restricted production mode and a desktop Open Banking feed was built for the owner's own linked accounts. G1–G5 remain open for any public or third-party use and no provider contract exists. A desktop-only owner Starling personal feed was implemented separately (not Open Banking) and awaits a real-token test. The owner confirms exposed provider passwords are rotated; GitHub releases through `v2026.11.19` are published with matching source archives and checksums; the hosted build moved to Cloudflare Pages at `https://financehub-uk.pages.dev/` on 2026-11-17 after InfinityFree suspended the account, and the owner has verified the personal Starling balance and the month-scoped duplicate review. The A-02 cloud-payload guard and the Card payment flow are live in that bundle. P0-8 is closed: the owner ran the conflict purge and removed the old pre-rotation backup files on 2026-11-13. Not release-ready — packaged-security checks, published support contacts, the ICO position and bank linking after C-4 remain; no external legal review is planned (owner, 2026-11-17), the live hosted passkey ceremony was confirmed working, and the owner signed risk acceptances RA-1 and RA-2. The §24 ranked delivery (R1–R12) and its audit fixes shipped as `2026.11.19` from commit `6c5f7e4`; the next five ranked releases (R15, R5, R14, R16, R6) shipped in the same version from commit `35a09e7`, with a rebuilt CI installer whose published SHA-256 matches and a verified live build; R13 (the household pack) was removed from the plan on 2026-11-20, so §24 now lists only R17's encrypted cloud upload and R18, and R17's one-click data-health fixes shipped on 2026-11-19.**
 
 This is the single plan for FinanceHub: what is built, workbook parity, architecture, security findings, release gates, the product roadmap, bank linking, authentication setup, delivery phases, and the UK/Microsoft/Apple compliance workstream. It replaces the former `PLAN.md`, `PRODUCTION_READINESS.md`, `AUTH_SETUP.md` and `FEATURE_ROADMAP.md`; nothing is tracked elsewhere.
 
@@ -403,7 +403,6 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [ ] **Bill price-change and renewal alerts.**
 - [ ] **Safe-to-spend forecast** combining upcoming bills, income and known commitments.
 - [ ] **Savings-goal auto-save rules.**
-- [ ] **Household/shared budget roles**, after conflict resolution and per-record sync are solid.
 - [ ] **Mobile/PWA quick-entry**, once the Windows data model and sync are stable.
 
 ### Deliberate order
@@ -498,7 +497,6 @@ applied by swapping only `app.asar`.
 | Conflict-resolution screen | Resolves both-sides-changed safely | M | Existing conflict records |
 | Realtime propagation | Updates another device within seconds | M | Supabase Realtime |
 | Per-record sync | Reduces conflict size and scales beyond one document | L | Normalised sync model |
-| Household/shared budgets | Lets partners or family share one budget with roles | XL | Per-record sync, permissions |
 | Passkeys/WebAuthn | Stronger, phishing-resistant sign-in | M | Supabase auth configuration |
 | Conflict history and audit view | Shows what changed, when and on which device | M | Sync metadata |
 | Account deletion and data export | Required for a credible privacy story | M | Cloud account flow |
@@ -561,8 +559,7 @@ applied by swapping only `app.asar`.
 1. Conflict-resolution screen.
 2. Realtime propagation.
 3. Per-record sync.
-4. Household sharing.
-5. Passkeys and conflict history.
+4. Passkeys and conflict history.
 
 **Exit:** two devices and two users can edit without silent loss.
 
@@ -1167,7 +1164,7 @@ External dependencies that code changes cannot satisfy: legal review, Apple hard
 
 Sequence chosen: low-risk, independently verifiable release work first.
 
-**Immediate next:** run the packaged-app security checks, publish the support and security contacts, and record the ICO fee position. Deletion, two-device sync, backup restore, the delta update and the live passkey ceremony are owner-attested; Supabase email confirmation is deliberately off by decision 7. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.19`, build `7441098da7b8`, with matching local/live hashes; the moved `v2026.11.19` tag and its rebuilt release assets are published with matching checksums. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. The §24 ranked delivery (R1–R12), its audit fixes and the same-day tag guard are recorded in §24.4, as are the five later releases (R15, R5, R14, R16, R6); §24 now lists only R17's encrypted cloud upload, R13 and R18. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
+**Immediate next:** run the packaged-app security checks, publish the support and security contacts, and record the ICO fee position. Deletion, two-device sync, backup restore, the delta update and the live passkey ceremony are owner-attested; Supabase email confirmation is deliberately off by decision 7. The account-deletion SQL and passkey backend are configured in Supabase (see `docs/OWNER_ACTIONS.md`). The hosted bundle is live at `2026.11.19`, build `7441098da7b8`, with matching local/live hashes; the moved `v2026.11.19` tag and its rebuilt release assets are published with matching checksums. The owner has verified the personal budget after today's transaction and the month-scoped duplicate warning. The A-02 cloud-payload guard and the Card payment flow are live. The §24 ranked delivery (R1–R12), its audit fixes and the same-day tag guard are recorded in §24.4, as are the five later releases (R15, R5, R14, R16, R6); §24 now lists only R17's encrypted cloud upload and R18; R13 was removed on 2026-11-20. P0-5 and P0-6 were removed from scope by the owner on 2026-11-12.
 
 1. [x] Write and maintain this plan.
 2. [x] Harden Electron navigation, external links, IPC and production CSP.
@@ -1428,6 +1425,22 @@ Open items:
 
 ---
 
+- 2026-11-20: **Plan reduced to five points and R13 removed.** At the owner's request the
+  household pack (R13: server-side share tokens, the partner read-only link and bill split
+  into linked People rows) is no longer planned; §8, §9, §19, §24 and §25 no longer carry it
+  and no code was written for it. The remaining work is point 1 — the unattended block: the
+  pending release of `41478dc` (the cleared checkbox removed from the transaction table),
+  R17's upload half against the live `financehub-backups` bucket, device/session management,
+  A-11 plus the orphaned backlog tests, and plan truth — and points 2–5, which need owner
+  decisions. Decisions recorded the same day: publish with the logged-in Wrangler session;
+  **Resend** for transactional email with Supabase SMTP and **Confirm email off** per
+  decision 7; web push sent from a **Supabase Edge Function**; a device list with per-device
+  revoke and sign out everywhere; legal work kept in-house with dated risk acceptances and
+  the penetration test **deferred by written acceptance**; the ICO position recorded as an
+  exemption with its reason; the launch route is **owner-only private use for now**; support
+  stays on the in-app Feedback route and the security contact is
+  `pauluk83+financehub@gmail.com`. Nothing in this entry changes a money rule or a figure.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
@@ -1468,7 +1481,7 @@ FinanceHub is a **fidelity tool**: it reproduces one household's workbook to the
 | Mobile app | Every competitor is mobile-first | iOS is Phase 4, blocked on macOS; a PWA is in §9 E; no Android |
 | Receipts and attachments | YNAB attaches photos and memos per transaction; Monarch similar | Planned in §9 B, with OCR in §8 |
 | Powerful search | PocketSmith sells its search; Monarch markets searching any transaction | Transactions searches comments, account and amount with month and type filters. No cross-entity search, saved filters or search inside statements |
-| Shared household budget | YNAB Together covers up to six people; Monarch invites a partner at no extra cost | Planned as XL in §9 D, after per-record sync |
+| Shared household budget | YNAB Together covers up to six people; Monarch invites a partner at no extra cost | Not planned — R13 was removed on 2026-11-20 |
 | Net worth, assets and investments | PocketSmith tracks property, mortgages and vehicles; Monarch tracks investments, allocation and performance | Only a "net worth view" row in §9 C; no asset, liability or investment model |
 | Long-range forecasting | PocketSmith projects daily balances up to 60 years with what-if scenarios; Monarch Plus does retirement forecasting | Only the 12-month cash-flow forecast in §9 C, on top of the existing open-month projection |
 | Multi-currency | PocketSmith, including native and converted balances | Not planned anywhere |
@@ -1972,9 +1985,9 @@ Ship only when every PR-0 to PR-7 gate has passed, every exception is recorded i
 ## 24. Remaining releases — current priority plan (2026-11-18)
 
 Status: **every ranked release is delivered and published as `2026.11.19` except R17's
-encrypted cloud upload, R13 and R18; R17's one-click data-health fixes shipped on
-2026-11-19, so the remaining work is that upload (deferred by the owner until a Supabase
-Storage bucket exists), then R13 and R18 in the order below.** This revision supersedes the earlier §24: delivered work has been removed from
+encrypted cloud upload and R18; R17's one-click data-health fixes shipped on 2026-11-19 and
+the backup bucket and its policies were applied on 2026-11-20, so the remaining work is that
+upload and R18. R13 was removed from the plan on 2026-11-20.** This revision supersedes the earlier §24: delivered work has been removed from
 the plan, its record is kept in §24.4 and §17, and the remainder is re-ranked. Effort is
 focused development time for one experienced developer with agent support; it excludes
 review, release packaging (about half a day per release), device testing and store work.
@@ -1999,23 +2012,18 @@ Release IDs stay stable for traceability; the rank column is the new order.
 
 | Rank | ID | Remaining scope | Effort | Value | Depends on |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | R17 | Encrypted cloud backup upload — the one-click data-health fixes shipped 2026-11-19 | 3–4 days | Medium | Backups, restore points and health checks (exist); a Supabase Storage bucket |
-| 2 | R13 | Partner read-only link and bill splitting | 7–10 days | High | Hosted sync and auth (exist); new server-side share tokens |
-| 3 | R18 | Mobile quick-add and web-push notifications | 4–6 days | Medium | Mobile PWA (shipped); R6 preferences (shipped) |
+| 1 | R17 | Encrypted cloud backup upload — the one-click data-health fixes shipped 2026-11-19 | 3–4 days | Medium | Backups, restore points and health checks (exist); the `financehub-backups` bucket (exists) |
+| 2 | R18 | Mobile offline queue and web-push notifications | 4–6 days | Medium | Mobile PWA (shipped); R6 preferences (shipped) |
 
 **Sequencing rationale:** R17 comes first because it adds operational resilience — an
 encrypted cloud backup and previewed data-health fixes — using the existing Supabase
-storage and backup format, and it closes the last backup gap. R13 is the largest item and
-the only one that adds a remote access surface, so it waits until household demand is
-confirmed and needs its own token, revocation and privacy review. R18 follows because
-quick-add depends on the shipped sync conflict handling and R6's preference groundwork,
-and web push needs a server-side sender and key before it can be offered.
+storage and backup format, and it closes the last backup gap. R18 follows because the write
+half of the mobile PWA already ships and web push is the only delivery channel still missing.
 
-**Total:** roughly 16–23 focused dev-days for the remaining three releases (±50%), or about
-three to four weeks for one full-time developer. The delivered foundation removes about
-60–80 days from the earlier 75–110 estimate.
+**Total:** roughly 7–10 focused dev-days for the two remaining releases (±50%). The delivered
+foundation removes about 60–80 days from the earlier 75–110 estimate.
 
-The ten-step execution order that supersedes this table — including the §6/§7/§8 and §23
+The five-point execution order that supersedes this table — including the §6/§7/§8 and §23
 backlog — is §25.
 
 ### 24.2 Priority 1: R17
@@ -2036,14 +2044,7 @@ ledger that is merely hidden keeps its link — that stays a manual review. The 
 deferred: the owner chose on 2026-11-19 to skip it until a Supabase Storage bucket and its RLS
 policies have been applied, and the round-trip acceptance gate still stands for it.
 
-### 24.3 Priority 2–3: R13, R18
-
-**R13 — Household pack.** A revocable, read-only whole-budget link with server-side share
-tokens, owner-scoped reads and revocation. The people portal is device-local — a local
-password hash and a saved statement snapshot — so its pattern cannot be reused for a remote
-link. Also bill splitting that creates linked People rows for equal or custom splits.
-Acceptance: a revoked link cannot read the budget; a link can only read its owner's budget;
-split rows reconcile exactly to the bill amount.
+### 24.3 Priority 2: R18
 
 **R18 — Mobile write.** The phone PWA now edits the whole budget (2026-11-19): the
 read-only guard and its banner are gone, so Dashboard, Bills, Accounts and Transactions use
@@ -2146,7 +2147,6 @@ work and are recorded here rather than repeated. Full checks and deviations are 
 | Public API and webhooks | Skip | Security surface with no demonstrated demand |
 | Receipt OCR and attachments | Later | Storage, privacy and mobile camera work; after the current remaining list |
 | Split transactions | Later | Touches every balance and total; defer until rules prove demand |
-| Shared household write access | Later | XL per-record sync; the read-only mobile companion is the cheaper first step |
 
 ### 24.6 Gates for every release in this plan
 
@@ -2156,126 +2156,111 @@ work and are recorded here rather than repeated. Full checks and deviations are 
   tag guard must pass before any build or deploy.
 - R17 proves the encrypted backup round-trips and that no plaintext budget leaves the
   device; fixes preview every change before applying.
-- R13 proves a revoked link cannot read the budget and that a link is scoped to its owner.
 - R18 proves an offline entry syncs exactly once and repeated taps cannot double-post.
 
 ---
 
-## 25. Backlog-clearing plan — 10 steps (2026-11-19)
+## 25. Remaining plan — 5 points (2026-11-20)
 
-Goal: clear §24's remaining releases and the §6, §7, §8 and §23 backlog in ten steps. The order
-puts the quickest, most local and least error-prone work first, so the longest unattended
-stretch needs no owner input at all. New server surfaces and money-model changes are last,
-and the one owner setup session sits late enough that everything before it can run without
-anyone watching.
+R13 (the household pack: share tokens, partner read-only link and bill splitting) was removed
+from this plan on 2026-11-20. Nothing about it is built, and the open services backlog no
+longer carries it. The remaining work is condensed below into five points: point 1 needs no
+owner input and can run unattended; points 2–5 each need a decision, a credential or a
+signature from the owner, and the answers taken on 2026-11-20 are recorded below.
 
-Rules for every step: one commit per step with the step number in the message; one release
-per pair of steps (packaging is about half a day each); `npm test`, `npx tsc -p
-app/tsconfig.json --noEmit` and `npm run release:check` gate each release; no money rule
-changes without a test that proves the old figures are unchanged.
+**Decisions taken 2026-11-20:** publish with the already-authenticated Wrangler session;
+Resend for transactional email with **Confirm email off**; web push from a Supabase Edge
+Function; a device list with per-device revoke and sign out everywhere; the legal pack kept
+in-house with dated risk acceptances and the penetration test deferred by acceptance; the ICO
+exemption recorded with its reason; owner-only private use as the launch route; support through
+the in-app Feedback route and `pauluk83+financehub@gmail.com` as the security contact. §17
+records the same decisions.
 
-| Step | Work | Effort | Risk | Owner input | Unattended |
-| ---: | --- | ---: | --- | --- | --- |
-| 1 | Plan truth and stale checkboxes | 0.5 d | None | None | Yes |
-| 2 | Release and security evidence automation | 1.5 d | Very low | None | Yes |
-| 3 | Renderer, seed and build hygiene | 1.5 d | Low | None | Yes |
-| 4 | Small user-visible backlog | 2.5 d | Low | None | Yes |
-| 5 | Data-load resilience (A-07, A-08) | 2.5 d | Medium | None | Yes |
-| 6 | Mobile offline queue and web storage (R18 part 1) | 3.5 d | Medium | None | Yes |
-| 7 | R17 encrypted backup upload, adapter-first | 2.5 d | Medium | None yet | Yes |
-| 8 | One owner setup session, then wire it up | 2 d + 20–30 min | Medium | Bucket, keys, one SQL run | No, then yes |
-| 9 | R13 household pack | 8 d | High | Review before enabling | No |
-| 10 | Launch evidence and final gate | 2.5 d | Low | Legal, support, sign-off | No |
+**Delivered before this revision.** §25 steps 1–7 shipped and were released as `2026.11.19`:
+plan truth (`e89af90`, `556afd1`), renderer/seed/build hygiene (`534d01b`), the small
+user-visible backlog (`deac1eb`), data-load resilience A-07/A-08 (`8b28835`), IndexedDB web
+storage plus the duplicate-tap guard (`7b8919d`), and the adapter-first encrypted upload
+(`07d2890`). The row-number repair followed (`2d532c5`, released `be26d2f`) and the step 8
+Supabase half is done: private bucket `financehub-backups`, four owner-scoped policies and
+`db/migrations/postgres/0004_backup_storage.sql`. See §17 for the verification log.
 
-**Total: about 27 focused dev-days plus one short owner session, external legal review and a
-penetration test.** Steps 1–7 can run as one unattended block; only step 8 needs the owner.
+### Point 1 — Unattended build work (no owner input)
 
-**Status (2026-11-19): steps 1–7 are delivered and released as `2026.11.19`; step 8 is next and is
-the first step that needs the owner.** Step commits: 1–2 `556afd1`, 3 `534d01b`, 4 `deac1eb`,
-5 `8b28835`, 6 `7b8919d`, 7 `07d2890`, release `3c29c6c` with tag `v2026.11.19`. 458 tests, `tsc`,
-`release:check` 9/9, packaged smoke 5/5 and the Release workflow all passed; SBOM and claims are
-attached. Step 5's Data health exit is closed by the “Saved document was repaired” check. Stated
-rather than claimed: step 3's edit-latency budget is not measured; step 6's 420 px hosted
-click-through was not run because no signed-in session was used; step 7 has no live bucket by
-design, so its UI stays hidden until step 8.
+Everything here can be built, tested and released without a decision, a key or a signature.
 
-### Step 1 — Plan truth (0.5 d, no risk, no input)
+1. **Publish the pending release.** Commit `41478dc` (the cleared-checkbox removal) is on
+   `main` but not in the live bundle; `npm run release`, commit the release output and push
+   `main` plus the matching tag.
+2. **R17 upload half.** Supabase storage adapter for `core/backupUpload.ts` writing
+   `<user-id>/financehub-backup-<timestamp>.json`, the upload/restore-list UI behind the
+   existing flag, retention to the newest seven, and live tests that a signed-out upload is
+   refused and a second account cannot read the folder.
+3. **Device and session management.** A per-device row written on sign-in, a list with last
+   sync, per-device revoke, and "sign out everywhere" through the existing auth session
+   scope. New reviewed migration in `db/migrations/postgres/`, applied from the signed-in
+   dashboard like 0004.
+4. **Orphaned backlog items** that no step owned: A-11 (one implementation of the rent,
+   water and telco calculations in `core/`), property-based ledger invariants, import fuzz
+   tests, a diff between two restore points and restoring individual sections, the monthly
+   "what changed" digest, and a direct statement-vs-snapshot comparison in Data health.
+5. **Plan truth.** Fix the stale checkboxes in §6, §7 and §8, the §25 test count, and the
+   §23.6 rows that code already closes, so the plan matches the build.
 
-Close checkboxes that are already delivered (§7 accessibility, §6 “Explain this number” and
-import provenance via R9), reconcile the email-verification decision against the checklist,
-record the phone-editing delivery in §24, and delete superseded text. Exit: `PLAN.md`
-matches the shipped app, no code change.
+Exit: each item has a test or a recorded measurement; the full suite, `tsc` and
+`release:check` pass; the release is published and the live bundle verified. Still unmeasured
+after this point: step 3's edit-latency budget and step 6's 420 px hosted click-through, which
+need a signed-in browser session rather than code.
 
-### Step 2 — Release and security evidence automation (1.5 d, very low risk)
+### Point 2 — Email delivery (needs the owner's provider account)
 
-Exact Supabase-origin CSP test, forged/replayed OAuth callback tests, a regression test for
-the sensitive-file ignore rules, and a script that writes the SBOM, installer hashes and claims
-list into the release assets. Add an Electron smoke script for the packaged app: navigation,
-CSP enforcement, external-link blocking, secure-store write/read and the OAuth callback route.
-This clears the packaged-app checks, A-01, A-12, A-13 and the SBOM gate with tests that need
-no live account. Exit: every open §23.6 item that can be proven locally is a passing check.
+Decided 2026-11-20: **Resend** is the provider, and **Confirm email stays off** per §24
+decision 7, so the dashboard setting is switched off when SMTP is enabled. Remaining owner
+work: create the Resend account, verify the sender domain or address, and paste the SMTP
+host, username and API key into Supabase → Authentication → Emails → SMTP settings. Then,
+without further input: run signup → confirmation → resend → password reset once, wire email
+reminder delivery to the shipped suppression list and digest, and run one real send.
 
-### Step 3 — Renderer, seed and build hygiene (1.5 d, low risk)
+Exit: the four auth emails arrive, the confirmation setting is recorded with a date, and one
+reminder digest is delivered and logged.
 
-Lazy-load the larger views to cut the 1.46 MB renderer chunk, add the dataset-size warning and
-measure an edit-latency budget, and prove the distributable build contains no personal workbook
-(A-10) with a test instead of an ignore rule alone. Exit: build stays green, bundle shrinks,
-measurements recorded in §17.
+### Point 3 — Web push (needs the Supabase CLI session and a secret)
 
-### Step 4 — Small user-visible backlog (2.5 d, low risk)
+Decided 2026-11-20: the sender runs as a **Supabase Edge Function**, so the VAPID private key
+becomes a Supabase secret beside auth and the backup bucket. The pair is already generated at
+`tmp/vapid-keys.json`. Remaining owner work: authorise the Supabase CLI once (`npx supabase
+login`) so the function can be deployed and its secret set — the key itself is never pasted
+into chat or the repository. Then: service-worker subscription, permission prompt, push for
+the existing bill, balance and card alerts, and unsubscribe.
 
-Holiday search and filtering, the accountant/tax-year export pack (locked-month snapshots,
-provider balances and a reconciliation note), and an opt-in local crash journal that is
-redacted and included in the support bundle — no third-party crash service, so no key or
-consent gate. Exit: each feature has a test and appears in the user guide.
+Exit: a real device receives a push for a due bill, and an unsubscribed device receives none.
 
-### Step 5 — Data-load resilience (2.5 d, medium risk)
+### Point 4 — Legal and compliance pack (in-house, dated risk acceptances)
 
-A-07 and A-08: validate the provider schema, hydrate malformed documents through a migration
-instead of blanking the app, and prove with tests that a damaged or older document cannot
-overwrite good edits. No money rule is touched; the work is in the load and migration path.
-Exit: recovery tests pass and Data health reports the migration outcome.
+Decided 2026-11-20: no external legal review and no penetration test for now; every open gate
+is closed by a **dated written risk acceptance** instead. Support stays on the in-app Feedback
+route, and the security contact is `pauluk83+financehub@gmail.com`. Remaining work: record the
+processor list and controller/processor position, the lawful basis, the DPIA addendum
+position, the international-transfer basis for the Supabase region, the ICO exemption and its
+reason, the penetration-test acceptance, and the privacy-notice, terms and refund/complaints
+position — each as an acceptance with a date and the risk carried, kept in
+`docs/compliance/RISK_ACCEPTANCE_REGISTER.md`. The privacy notice, terms and in-app legal
+pages are updated to name the security contact.
 
-### Step 6 — Mobile offline queue and web storage (3.5 d, medium risk)
+Exit: every §14 and §23.6 gate is a dated acceptance or passing evidence, signed by the owner.
 
-R18's write half: move the hosted cache and outbox to IndexedDB (A-09), queue phone edits
-offline with exactly-once retry and a duplicate-tap guard, and reconcile on reconnect through
-the existing sync cursors. Acceptance from §24.6: an offline entry syncs exactly once and
-repeated taps cannot double-post. Exit: tests plus a 420 px click-through.
+### Point 5 — Private-use gate (needs the owner's signature)
 
-### Step 7 — R17 upload, adapter-first (2.5 d, medium risk)
+Decided 2026-11-20: the route is **owner-only private use for now** — no pilot, no public
+launch and no public claims until the owner revisits the decision. Run the packaged-app checks
+and the accessibility pass against the published installer, assemble the release evidence
+(SBOM, hashes, claims list), and take a dated owner sign-off that the build is for private use
+only, naming what is still unproven. A later public route would reopen points 4 and 5.
 
-Build encrypted backup upload, the restore list and retention behind a storage adapter with a
-local implementation and tests, so the round-trip and “no plaintext leaves the device” gate are
-proven before any bucket exists. UI stays hidden until step 8 supplies credentials. Exit:
-round-trip test passes against the local adapter; the live path is one flag away.
-
-### Step 8 — One owner setup session, then wire it (2 d + 20–30 min owner)
-
-One sitting covers everything that needs the owner: create the Supabase Storage bucket and its
-RLS policies, run the pending SQL migrations (device/session management, share tokens), add the
-transactional-email key and the web-push VAPID keys. Then, unattended: switch on R17 upload
-end-to-end, device/session management with revoke, web push through the service worker, and
-email reminder delivery behind the §24.6 privacy gate. Exit: each live integration verified
-with a real round-trip, and a signed-out request still refused.
-
-### Step 9 — R13 household pack (8 d, high risk)
-
-Share tokens with owner-scoped reads and revocation, plus bill splitting into linked People
-rows. Build behind a flag, add two-account isolation and revocation tests, and keep it off
-until the review in the same step is signed. Exit: a revoked link cannot read the budget, a
-link reads only its owner's budget, and split rows reconcile exactly to the bill amount.
-
-### Step 10 — Launch evidence and final gate (2.5 d + owner/legal)
-
-Run the packaged checks against the published installer, re-run the accessibility pass,
-finalise the privacy notice, retention/DSAR/breach pack, ICO position, support/incident
-contacts and the processor register, file the penetration-test report, then take the signed
-go/no-go. Exit: every §23.6 gate is either passing evidence or a signed, dated acceptance;
-final release tagged and verified.
+Exit: §23.6 is all passing evidence or signed acceptance, the private-use statement is
+recorded, and the final release is tagged and verified live.
 
 ### Explicitly outside this plan
 
 Split/merge transactions is excluded because it changes money rules across every balance and
 total and deserves its own release with a parity proof. Native iOS, secure bank linking (C-4),
-receipt OCR and shared household write access stay deferred for the reasons in §24.5.
+receipt OCR and PDF statement import stay deferred for the reasons in §24.5.
