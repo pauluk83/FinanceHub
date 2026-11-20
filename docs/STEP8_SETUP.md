@@ -57,11 +57,13 @@ as a setup step. Running speculative DDL now would create schema nothing reads.
 
 ## After this sitting (unattended, no credentials)
 
-1. ~~Wire the R17 upload UI~~ **Done 2026-11-20:** `core/cloudBackup.ts` and
+1. ~~Wire the R17 upload UI~~ **Done and verified live 2026-11-20:** `core/cloudBackup.ts` and
    `app/src/cloudBackup.ts` write `<user-id>/financehub-backup-<timestamp>.json`, list and
-   prune to seven, and Tools → Encrypted backups has Upload, Restore and Remove. An anonymous
-   upload is refused live (`new row violates row-level security policy`); a signed-in round-trip
-   and a second account still need your session.
+   prune to seven, and Tools → Settings → Data has Upload, Restore and Remove. From the
+   signed-in hosted app the upload stored a 577,654-byte v2 envelope under
+   `31c12d42…/financehub-backup-2026-11-20T22-30-52-997Z.json` with no plaintext budget keys,
+   and Remove emptied it. An anonymous upload and a write to another user's folder are both
+   refused by RLS. A second account and a UI restore are still untested.
 2. Device/session list with revoke.
 3. Service-worker web push and reminder delivery behind the privacy gate.
 4. Prove signed-out uploads are refused and two accounts cannot read each other's folder.

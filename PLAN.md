@@ -1450,11 +1450,24 @@ Open items:
   a list with Restore and Remove, shown only when the build has Supabase configured. Seven
   tests in `tests/cloud-backup.test.ts` cover folder scoping, signed-out and traversing ids,
   foreign names, per-folder retention and storage errors; suite **467/467**, `tsc` and
-  `build:web` clean. Live check against the real bucket: an anonymous upload carrying only the
-  publishable key is refused (`new row violates row-level security policy`) and an anonymous
-  list returns `[]`. Not done: a signed-in upload/restore round-trip and second-account
-  isolation need an authenticated session, and the wiring ships in the next release rather
-  than moving today's published tag.
+  `build:web` clean. The wiring was then released by moving `v2026.11.20` to `ddc2d6e`
+  (`--allow-tag-move`, installer rebuilt SHA-256 prefix `79577575cfac`, hosted bundle
+  `index-Cr7xzfOd.js`, live parity PASS, `release:check` 9/9) and tested live from the
+  authenticated hosted app (owner session, user id ending `ec16da`):
+  - anonymous upload with only the publishable key → `403 new row violates row-level security policy`;
+    anonymous list → `[]`.
+  - a signed-in upload to another user's folder → the same RLS refusal.
+  - Tools → Settings → Data → **Upload encrypted backup** through the app's own `supabase-js`
+    path → list showed `1/7` with a 565 KB object; the server stored
+    `31c12d42…/financehub-backup-2026-11-20T22-30-52-997Z.json`, 577,654 bytes,
+    `application/json`, keys exactly `format/version/createdAt/kdf/cipher/payload/checksum`,
+    valid hex checksum and **no** plaintext budget keys.
+  - **Remove** → badge back to `0/7`, empty notice, and the server folder listed zero objects.
+  A string request body is accepted by the storage endpoint (also proven with a raw REST POST),
+  so the uploader deliberately keeps sending the JSON string; no Blob change was needed.
+  Still unproven: a second real account reading another folder (only a forged foreign write was
+  refused), a restore from cloud in the UI (it would replace the live budget), and the retention
+  prune against the live bucket (proven in tests, not by pushing eight objects).
 
 ## 18. Notes and constraints
 
