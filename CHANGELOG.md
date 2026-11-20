@@ -20,6 +20,7 @@ and the build time.
 - Let every Tools item be hidden or moved, except Settings
 - Share the provider rules, compare restore points and check statements against locks
 - Add property-based ledger invariants and import fuzz tests
+- Add the monthly what changed digest
 
 ## [2026.11.19] — 18 November 2026
 
