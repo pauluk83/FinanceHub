@@ -171,18 +171,6 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const history = historyRow === null ? [] : recordHistory(ds, 'transactions', String(historyRow));
   const deleted = deletedTransactions(ds);
 
-  /** Evidence only: clearing a row records a tick and a time, never a total. */
-  const toggleCleared = (tx: typeof ds.transactions[number]) => {
-    const next = tx.cleared !== true;
-    update((d) => {
-      const row = d.transactions.find((entry) => entry.row === tx.row);
-      if (!row) return;
-      row.cleared = next;
-      if (next) row.reconciledAt = new Date().toISOString();
-      else delete row.reconciledAt;
-    });
-  };
-
   const exportRows = () => {
     download('financehub-transactions.csv', toCsv([
       ['Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared'],
@@ -686,7 +674,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         <Table
           head={[
             <input key="select" type="checkbox" aria-label="Select all rows on this page" checked={pageAllSelected} onChange={togglePage} />,
-            'Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Cleared', 'Actions',
+            'Date', 'Account', 'Type', 'Amount', 'Comments', 'Category', 'Tags', 'Treatment', 'Status', 'Actions',
           ]}
           numHead={[4]}
         >
@@ -709,15 +697,6 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
               <td className="muted small">{(t.tags ?? []).length ? t.tags!.join(', ') : '—'}</td>
               <td>{t.budgetTreatment ? <Badge tone={t.budgetTreatment === 'Transfer' ? 'blue' : 'violet'}>{t.budgetTreatment}</Badge> : <span className="faint">Normal</span>}</td>
               <td>{t.status ? <Badge tone="amber">{t.status}</Badge> : <Badge tone="green">Open</Badge>}</td>
-              <td>
-                <input
-                  type="checkbox"
-                  aria-label={`Cleared ${t.date} ${t.comments || 'transaction'}`}
-                  title="Evidence only: clearing a row records a tick and a time, and never changes a balance"
-                  checked={t.cleared === true}
-                  onChange={() => toggleCleared(t)}
-                />
-              </td>
               <td className="nowrap">
                 <button className="btn ghost sm" onClick={() => setHistoryRow(t.row)}>History</button>{' '}
                 <button className="btn ghost sm" onClick={() => startEdit(t)}>Edit</button>{' '}
