@@ -1487,9 +1487,12 @@ Open items:
   `app/src/devices.ts` (device id in device storage, label from platform and user agent,
   registration on sign-in and hourly), `tests/devices.test.ts` (8 tests) and a Devices block
   in Settings → Account with this-device, inactive and revoked badges, Revoke and Sign out
-  everywhere. Suite **479/479**, `tsc` clean. Not yet proven: the panel against the live table
-  (the migration needs applying in the Supabase SQL editor) and a second device appearing in
-  the list.
+  everywhere. Suite **479/479**, `tsc` clean. Migration `0005` was then applied to
+  `fzkkgbatmmgasfmgvrzp` from the signed-in SQL editor and verified in place (RLS on, four
+  policies, unique `(user_id, device_id)`), and the live panel recorded this install:
+  `Chrome on Windows · This device · Last seen 20/11/2026 23:01 · web`, 1 active device,
+  hosted bundle `index-jZ3wk_P2.js`. Not proven: a second device in the list, Revoke and Sign
+  out everywhere, which would end the owner's own session.
 
 ## 18. Notes and constraints
 
@@ -2253,7 +2256,7 @@ Everything here can be built, tested and released without a decision, a key or a
    helpers, `app/src/devices.ts` records this install on sign-in and hourly, and Settings →
    Account lists devices with this-device, inactive and revoked badges, Revoke and Sign out
    everywhere. `tests/devices.test.ts` proves the scoping, ordering and one-row-per-install
-   behaviour. The migration is applied from the signed-in Supabase dashboard like `0004`.
+   behaviour. Migration `0005` is applied and verified live (2026-11-20).
 4. **Orphaned backlog items** that no step owned: A-11 (one implementation of the rent,
    water and telco calculations in `core/`), property-based ledger invariants, import fuzz
    tests, a diff between two restore points and restoring individual sections, the monthly
