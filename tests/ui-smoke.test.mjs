@@ -318,9 +318,13 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.match(html, /Income due/);
   assert.match(html, /PIP/);
   assert.match(html, /Universal Credit \(UC\)/);
-  // The income card shows each source's own next date and amount.
-  assert.match(html, /20\/11\/2026 · £180\.00/);
-  assert.match(html, /25\/11\/2026 · £120\.00/);
+  // The income card shows each source's own next date and countdown, not amounts.
+  assert.match(html, /20\/11\/2026/);
+  assert.match(html, /25\/11\/2026/);
+  const incomeCard = html.match(/Income due[\s\S]*?<\/section>/)?.[0] ?? '';
+  assert.ok(incomeCard.length > 0, 'the income card rendered');
+  assert.equal(incomeCard.includes('£180.00'), false, 'no PIP amount in the card');
+  assert.equal(incomeCard.includes('£120.00'), false, 'no UC amount in the card');
   // The holiday countdown card is always in the same row.
   assert.match(html, /Next holiday/);
 });

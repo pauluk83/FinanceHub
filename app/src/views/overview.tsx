@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Bar, Card, Donut, Empty, Field, Money, Section, Table } from '../components';
 import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct, todayIso } from '../format';
-import { countdownLabel, daysUntil } from '../../../core/countdowns';
+import { countdownLabel, daysUntil, incomeCountdownLabel } from '../../../core/countdowns';
 import type { ScheduleRow } from '../../../core/engine';
 import { groupHolidayTrips } from '../../../core/holidays';
 import { accountsNeedingReview } from '../../../core/accounts';
@@ -371,7 +371,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
 export function IncomeAndHolidayCards({ ds, engine, year, go }: Pick<ViewProps, 'ds' | 'engine' | 'year' | 'go'>) {
   const today = todayIso();
   const nextIncome = nextIncomeDates(ds, year, today);
-  const nextIncomeTotal = nextIncome.reduce((sum, entry) => sum + (entry.date ? entry.amountPence : 0), 0);
   const nextIncomeSoonest = nextIncome
     .filter((entry) => entry.date)
     .sort((a, b) => a.date!.localeCompare(b.date!))[0] ?? null;
@@ -383,15 +382,19 @@ export function IncomeAndHolidayCards({ ds, engine, year, go }: Pick<ViewProps, 
       <Card
         title="Income due"
         sub={nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
-        value={nextIncomeTotal > 0 ? gbp(nextIncomeTotal) : '—'}
-        tone={nextIncomeTotal > 0 ? 'pos' : 'neutral'}
+        value={nextIncomeSoonest ? incomeCountdownLabel(daysUntil(nextIncomeSoonest.date!, today)) : '—'}
+        tone={nextIncomeSoonest ? 'pos' : 'neutral'}
         actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
       >
         <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
           {nextIncome.map((entry) => (
             <div key={entry.key} className="card-sub" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <span>{entry.label}</span>
-              <span>{entry.date ? `${dateUk(entry.date)} · ${gbp(entry.amountPence)}` : 'No date'}</span>
+              <span>
+                {entry.date
+                  ? `${dateUk(entry.date)} · ${incomeCountdownLabel(daysUntil(entry.date, today))}`
+                  : 'No date'}
+              </span>
             </div>
           ))}
         </div>
@@ -417,15 +420,15 @@ function nextIncomeDates(ds: ViewProps['ds'], year: number, today: string) {
   const datesFor = (key: 'pip' | 'uc') => (ds.incomeSchedules[key] ?? [])
     .map((row) => source(key, row))
     .filter((entry) => entry?.date && Number(entry.date.slice(0, 4)) === year)
-    .map((entry) => ({ date: entry.date, amountPence: entry.amountPence }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .map((entry) => entry.date)
+    .sort((a, b) => a.localeCompare(b));
   return ([
     { key: 'pip', label: 'PIP' },
     { key: 'uc', label: 'Universal Credit (UC)' },
   ] as const).map(({ key, label }) => {
     const dates = datesFor(key);
-    const next = dates.find((entry) => entry.date >= today) ?? dates[dates.length - 1] ?? null;
-    return { key, label, date: next?.date ?? null, amountPence: next?.amountPence ?? 0 };
+    const next = dates.find((date) => date >= today) ?? dates[dates.length - 1] ?? null;
+    return { key, label, date: next };
   });
 }
 
