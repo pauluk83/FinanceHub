@@ -770,9 +770,6 @@ tr.locked td { color: var(--muted); }
 .provider-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .provider-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .provider-fields .detail-textarea { min-height: 54px; }
-.menu-fixed-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.menu-fixed-item { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 11.5px; }
-
 @media (max-width: 980px) {
   .provider-setup-grid { grid-template-columns: minmax(0, 1fr); }
   .provider-fields { grid-template-columns: minmax(0, 1fr); }
