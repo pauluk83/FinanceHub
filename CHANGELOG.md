@@ -13,6 +13,7 @@ and the build time.
 - Dashboard income card and holiday countdown
 - Keep 30 automatic daily restore points
 - Remove the dashboard holiday list and show both income dates
+- Show the income due and holiday countdown cards on Monthly
 
 ## [2026.11.19] — 18 November 2026
 
