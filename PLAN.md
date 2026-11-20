@@ -399,7 +399,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 
 - [ ] **Receipt OCR and attachments** linked to transactions and warranties.
 - [ ] **PDF bank-statement import** with a review grid and duplicate detection.
-- [~] **Notification centre and monthly digest.** The in-app centre for bills, low balances and card utilisation is delivered; the monthly “what changed” digest remains.
+- [x] **Notification centre and monthly digest.** The in-app centre for bills, low balances and card utilisation is delivered, and Tools → Notifications now carries **What changed**: `core/digest.ts` compares a month with the one before it (income, expenses, scheduled bills with the count of changed amounts, month-end account balance and owed), lists that month's budget changelog entries, states whether the month is locked, and prints only engine figures. `tests/digest.test.ts` proves each figure is the engine's own and that reading the digest writes nothing.
 - [ ] **Bill price-change and renewal alerts.**
 - [ ] **Safe-to-spend forecast** combining upcoming bills, income and known commitments.
 - [ ] **Savings-goal auto-save rules.**
@@ -1524,6 +1524,16 @@ Open items:
   invented row, whole-pence money, literal formula text and an untouched budget. Suite
   **517/517**, `tsc` clean.
 
+- 2026-11-20: **Monthly "what changed" digest.** `core/digest.ts` builds a month-against-the-
+  previous-month view from the engine — income, expenses, scheduled bills (with how many
+  bills changed amount), the month-end account balance and what people owe — plus the
+  budget changelog entries recorded in that month and whether the month is locked. Tools →
+  Notifications gained a **What changed** section with a month picker. `tests/digest.test.ts`
+  (8 tests) proves every printed figure is the engine's own, that only the chosen month's
+  changelog entries appear, that a quiet month reads as unchanged, that a locked month says
+  so, and that building the digest leaves the document and every headline figure untouched.
+  Suite **525/525**, `tsc` clean. Not viewed: the new panel in a browser.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
@@ -2292,8 +2302,8 @@ Everything here can be built, tested and released without a decision, a key or a
    `tests/provider-rules.test.ts`), the restore-point diff with section restore
    (`core/backupDiff.ts`, `tests/backup-diff.test.ts`) and the statement-versus-snapshot
    check in Data health, property-based ledger invariants (`tests/ledger-invariants.test.ts`)
-   and import fuzz tests (`tests/import-fuzz.test.ts`). Still open: the monthly "what
-   changed" digest.
+   import fuzz tests (`tests/import-fuzz.test.ts`) and the monthly "what changed" digest
+   (`core/digest.ts`). Point 1 is complete.
 5. **Plan truth.** Fix the stale checkboxes in §6, §7 and §8, the §25 test count, and the
    §23.6 rows that code already closes, so the plan matches the build.
 

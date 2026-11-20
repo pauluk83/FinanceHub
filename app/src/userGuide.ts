@@ -513,9 +513,11 @@ export const USER_GUIDE: GuideEntry[] = [
     id: 'alerts',
     group: 'Tools',
     title: 'Notifications',
-    summary: 'In-app alerts for bills due soon, low account balances and high card use.',
+    summary: 'In-app alerts for bills due soon, low account balances and high card use, plus a monthly digest of what changed.',
     steps: [
       'Open the bell in the top bar or Tools → Notifications to see current alerts.',
+      'Read the What changed section for the selected month: income, expenses, scheduled bills, the month-end account balance and what people owe, each against the month before, with the change shown in pounds.',
+      'Below those figures are the budget changelog entries recorded in that month, so a moved number can be traced to the edit that moved it.',
       'Mark an alert read after dealing with it; the alert remains visible until the underlying bill or balance changes.',
       'Use Open to jump to the bill, account or card that caused the alert.',
     ],

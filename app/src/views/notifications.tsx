@@ -4,6 +4,7 @@ import { Badge, Empty, Section, Table } from '../components';
 import { dateUk, dateTimeUk } from '../format';
 import { buildBudgetNotifications, type NotificationSeverity } from '../../../core/notifications';
 import { reminderPreferences } from '../../../core/reminders';
+import { buildMonthDigest, moneyText } from '../../../core/digest';
 
 function tone(severity: NotificationSeverity): string {
   return severity === 'critical' ? 'red' : severity === 'warning' ? 'amber' : 'blue';
@@ -14,6 +15,9 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
   const read = ds.settings.notificationReads ?? {};
   const initialPrefs = reminderPreferences(ds);
   const [prefs, setPrefs] = useState(initialPrefs);
+  const digestYear = ds.settings.targetYear;
+  const [digestMonth, setDigestMonth] = useState(() => Number(ds.settings.asOfDate.slice(5, 7)) || 1);
+  const digest = buildMonthDigest(ds, engine, digestYear, digestMonth);
 
   const savePrefs = () => {
     const email = prefs.email.trim();
@@ -86,6 +90,62 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
             ))}
           </Table>
         )}
+      </Section>
+
+      <Section
+        title="What changed"
+        sub="A month against the one before it: income, expenses, bills, the account balance and what people owe, plus every budget change recorded that month."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select className="select" aria-label="Digest month" value={digestMonth} onChange={(event) => setDigestMonth(Number(event.target.value))}>
+              {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, index) => (
+                <option key={name} value={index + 1}>{name} {digestYear}</option>
+              ))}
+            </select>
+            <Badge tone={digest.locked ? 'green' : 'neutral'}>{digest.locked ? 'Locked' : 'Open month'}</Badge>
+          </div>
+        }
+      >
+        <div style={{ padding: '12px 16px' }}>
+          <div className="muted">{digest.summary}</div>
+        </div>
+        <Table head={['Figure', digest.previousLabel, digest.label, 'Change']}>
+          {digest.changes.map((entry) => (
+            <tr key={entry.id}>
+              <td>
+                <strong>{entry.label}</strong>
+                {entry.note && <div className="muted small">{entry.note}</div>}
+              </td>
+              <td className="num muted">{entry.before}</td>
+              <td className="num">{entry.after}</td>
+              <td className="num nowrap">
+                {entry.direction === 'same'
+                  ? <span className="muted">No change</span>
+                  : <span style={{ color: entry.direction === 'up' ? 'var(--good, #1b7f4b)' : 'var(--bad, #b3261e)' }}>
+                    {entry.direction === 'up' ? '▲' : '▼'} {moneyText(Math.abs(entry.deltaPence))}
+                  </span>}
+              </td>
+            </tr>
+          ))}
+        </Table>
+        <div style={{ padding: '12px 16px 16px' }}>
+          <strong>Budget changes recorded in {digest.label}</strong>
+          {digest.events.length === 0 ? (
+            <div className="muted small" style={{ marginTop: 6 }}>No budget changes were recorded in this month.</div>
+          ) : (
+            <div className="list" style={{ marginTop: 8 }}>
+              {digest.events.map((event, index) => (
+                <div className="list-row" key={`${event.date}-${index}`}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="title">{event.title}</div>
+                    <div className="sub">{event.description}</div>
+                  </div>
+                  <span className="muted small nowrap">{dateUk(event.date)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Section>
 
       <Section title="Email reminders" sub="A daily digest of the same bill and expiry alerts. Delivery stays off until a server-side provider key is configured; this budget never stores that key.">
