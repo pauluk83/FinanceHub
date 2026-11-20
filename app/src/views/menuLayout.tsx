@@ -16,7 +16,6 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
   const hidden = layout.hidden ?? [];
   const items = defaultNavItems(ds);
   const movable = items.filter((item) => !isPinnedItem(item));
-  const pinned = items.filter(isPinnedItem);
   const hiddenCount = movable.filter((item) => hidden.includes(item.id)).length;
   const movedCount = movable.filter((item) => effectiveGroup(item, layout) !== item.group).length;
 
@@ -58,7 +57,7 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
   return (
     <Section
       title="Menu layout"
-      sub="Choose what appears in the sidebar and which section it sits in. Settings is the only item that always stays visible, under Tools."
+      sub="Choose what appears in the sidebar and which section it sits in."
       actions={<Badge tone={hiddenCount || movedCount ? 'amber' : 'green'}>{hiddenCount + movedCount ? `${hiddenCount} hidden · ${movedCount} moved` : 'Default layout'}</Badge>}
     >
       <div className="toolbar" style={{ borderBottom: 0 }}>
@@ -103,18 +102,6 @@ export function MenuLayoutSection({ ds, update, notify }: Pick<ViewProps, 'ds' |
         })}
       </Table>
 
-      <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 8 }}>
-        <div className="muted small"><strong style={{ color: 'var(--text)' }}>Always shown.</strong> Settings cannot be hidden or moved, so there is always a way back to this screen.</div>
-        <div className="menu-fixed-list">
-          {pinned.map((item) => (
-            <span className="menu-fixed-item" key={item.id}>
-              <span className="nav-icon" aria-hidden>{item.icon}</span>
-              {item.label}
-              <Badge tone="neutral">Always shown</Badge>
-            </span>
-          ))}
-        </div>
-      </div>
     </Section>
   );
 }
