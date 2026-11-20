@@ -28,7 +28,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Share the provider rules, compare restore points and check statements against locks",
             "Add property-based ledger invariants and import fuzz tests",
             "Add the monthly what changed digest",
-            "Remove the always-shown note from menu layout"
+            "Remove the always-shown note from menu layout",
+            "Drop the unused menu layout pill styles"
           ]
         }
       ]
