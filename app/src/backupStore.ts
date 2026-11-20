@@ -1,8 +1,8 @@
 import type { EncryptedBackup } from './backupArchive';
 import { readPersistedValue, writePersistedValue } from './store';
-import { MAX_RESTORE_POINTS, pruneRestorePoints } from '../../core/backupRetention';
+import { MAX_AUTOMATIC_RESTORE_POINTS, MAX_RESTORE_POINTS, pruneRestorePoints } from '../../core/backupRetention';
 
-export { MAX_RESTORE_POINTS, pruneRestorePoints };
+export { MAX_AUTOMATIC_RESTORE_POINTS, MAX_RESTORE_POINTS, pruneRestorePoints };
 
 export interface RestorePointMeta {
   id: string;
@@ -57,8 +57,17 @@ export function saveRestorePoint(ownerId: string, backup: EncryptedBackup, label
     automatic,
     backup,
   };
-  const next = pruneRestorePoints([point, ...points]);
-  return writePersistedValue(keyFor(ownerId), JSON.stringify(next)) ? point : null;
+  const all = [point, ...points];
+  // A small-quota device cannot hold a month of encrypted points, so shrink the
+  // automatic pool and retry rather than losing the newest point entirely.
+  let automaticLimit = MAX_AUTOMATIC_RESTORE_POINTS;
+  for (;;) {
+    const next = pruneRestorePoints(all, { automatic: automaticLimit });
+    if (!next.some((entry) => entry.id === point.id)) return null;
+    if (writePersistedValue(keyFor(ownerId), JSON.stringify(next))) return point;
+    if (automaticLimit <= MAX_RESTORE_POINTS) return null;
+    automaticLimit = Math.max(MAX_RESTORE_POINTS, Math.floor(automaticLimit / 2));
+  }
 }
 
 export function removeRestorePoint(ownerId: string, id: string): boolean {

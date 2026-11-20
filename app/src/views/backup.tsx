@@ -39,6 +39,8 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const points = useMemo(() => listRestorePoints(userId), [userId, version]);
+  const automaticCount = points.filter((point) => point.automatic).length;
+  const manualCount = points.length - automaticCount;
 
   const refresh = () => setVersion((value) => value + 1);
 
@@ -171,7 +173,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
       refresh();
       setPassphrase('');
       setLabel('');
-      notify('Encrypted restore point saved — seven newest are retained');
+      notify('Encrypted restore point saved — the newest seven manual points are retained');
     } catch (error) {
       notify(error instanceof Error ? error.message : 'The restore point could not be created');
     } finally {
@@ -225,8 +227,8 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
     <>
     <Section
       title="Encrypted backups & restore points"
-      sub="Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. One automatic restore point is created each day, and the newest seven restore points stay on this device."
-      actions={<Badge tone={points.length ? 'green' : 'neutral'}>{points.length}/7 restore points</Badge>}
+      sub="Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. One automatic restore point is created each day and the newest 30 stay on this device; manual restore points keep the newest seven."
+      actions={<Badge tone={points.length ? 'green' : 'neutral'}>{`${manualCount}/7 manual · ${automaticCount}/30 daily`}</Badge>}
     >
       <div className="inline-form">
         <Field label="Backup passphrase" hint={`At least ${MIN_BACKUP_PASSPHRASE} characters; never stored`}>
@@ -259,7 +261,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
         />
       </div>
       <div style={{ padding: '0 16px 16px' }} className="notice info">
-        A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a manual restore point can be opened. Automatic daily points use a key held in this device's secure store and restore here without a prompt.
+        A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a manual restore point can be opened. Automatic daily points keep 30 days of history, use a key held in this device's secure store and restore here without a prompt.
       </div>
       {points.length === 0 ? (
         <div style={{ padding: 16 }}><Empty>No encrypted restore points yet. Create one before a large edit or import.</Empty></div>
