@@ -27,6 +27,7 @@ and the build time.
 - Security headers, dead code removal and mobile input fix
 - Compact phone top bar with month and year pickers
 - Fluid phone and tablet layout
+- Responsive e2e guard and fluid auth and portal screens
 
 ## [2026.11.19] — 18 November 2026
 

@@ -33,7 +33,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Drop the three unreferenced style rules",
             "Security headers, dead code removal and mobile input fix",
             "Compact phone top bar with month and year pickers",
-            "Fluid phone and tablet layout"
+            "Fluid phone and tablet layout",
+            "Responsive e2e guard and fluid auth and portal screens"
           ]
         }
       ]
