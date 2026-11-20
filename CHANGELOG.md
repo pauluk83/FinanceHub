@@ -12,6 +12,7 @@ and the build time.
 - Wire encrypted backup upload to the Supabase bucket
 - Dashboard income card and holiday countdown
 - Keep 30 automatic daily restore points
+- Remove the dashboard holiday list and show both income dates
 
 ## [2026.11.19] — 18 November 2026
 
