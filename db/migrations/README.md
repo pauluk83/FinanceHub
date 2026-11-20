@@ -42,6 +42,8 @@ order:
    account deletion.
 4. `postgres/0004_backup_storage.sql` — the private `financehub-backups` bucket and its
    owner-scoped policies (applied 2026-11-19).
+5. `postgres/0005_user_devices.sql` — `public.user_devices`, one owner-scoped row per
+   install, for the device list, per-device revoke and sign out everywhere.
 
 The runner in `db/migrations.ts` only manages SQLite; Postgres migrations are
 deliberately explicit because they also carry policies and functions that need a

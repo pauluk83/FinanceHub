@@ -342,14 +342,14 @@ No secret values were read or printed during this review. Severity reflects the 
 - [x] Manual encrypted restore points: seven newest retained, with checksum verification.
 - [x] Automatic daily restore points, encrypted with a random device-bound key held in the secure store. Manual exports still use the owner's chosen passphrase; the newest seven points are retained.
 - [x] Browser click-through coverage (`tests/e2e/demo.spec.ts`): demo navigation, transaction add/edit/delete, CSV staging and confirmation, month-end lock/unlock, encrypted restore-point creation/restore and statement totals. The four render-level tests in `tests/ui-smoke.test.mjs` still cover backup metadata, notifications and account security. Settings propagation and recovery remain covered by unit tests rather than a browser click-through.
-- [~] Automated security regression tests. Built-artifact credential scanning, CSV formula neutralisation and HTTPS-only URL validation are covered. Remaining: exact Supabase CSP-origin and forged/replayed OAuth callback tests (A-01, A-12, A-13).
-- [~] Security hardening. CSV formula cells are neutralised, URL schemes are validated and the CSP now fails closed with only the exact HTTPS/WSS Supabase origin. Remaining: document/test OAuth state handling (A-12, A-13).
-- [ ] Provider schema validation and migration-based hydration so malformed data cannot blank the app and the seed cannot overwrite edits (A-07, A-08).
+- [x] Automated security regression tests. Built-artifact credential scanning, CSV formula neutralisation and HTTPS-only URL validation are covered, with the exact-origin CSP in `tests/build-secrets.test.ts` (only the exact `https`/`wss` Supabase host, `'self'` when the URL is missing or invalid) and forged, oversized and repeated OAuth callbacks in `tests/oauth-callback.test.ts` (foreign host, wrong port, POST, traversal and empty paths refused).
+- [x] Security hardening. CSV formula cells are neutralised, URL schemes are validated and the CSP fails closed with only the exact HTTPS/WSS Supabase origin. OAuth state is the SDK's PKCE flow (`flowType: 'pkce'`), the loopback callback deliberately carries no state of its own, and `tests/oauth-callback.test.ts` refuses a forged or repeated callback before the renderer sees it.
+- [x] Provider schema validation and migration-based hydration so malformed data cannot blank the app and the seed cannot overwrite edits (A-07, A-08). Delivered 2026-11-20 (`8b28835`): `repairDataset` keeps every readable row, drops only what has no date, account or amount with a recorded note, and `core/providerMerge.ts` fills a provider gap only when the saved value is missing.
 - [~] Capacity guard: dataset-size warning and IndexedDB for the hosted build are delivered (§25 steps 3 and 6); a measured edit-latency budget remains open.
-- [ ] Separate the personal workbook seed from the distributable build (A-10).
+- [x] Separate the personal workbook seed from the distributable build (A-10). Delivered 2026-11-20 (`534d01b`): the blank seed is compiled whenever `data/workbook.json` is absent, so a build made from this repository carries no budget rows.
 - [~] SQLCipher deferred by the owner on 2026-11-13; the accepted design keeps the DPAPI-backed value store rather than adding a native SQLite encryption dependency.
-- [ ] Keep hosted `/FinanceHub/` deployment blocked until P0-8 and browser storage are secured.
-- [~] Build/release secret scan and sensitive-file ignore checks. `tests/build-secrets.test.ts` scans built bundles for legacy credential values; a regression test for the sensitive-file ignore rules remains.
+- [x] Hosted deployment gate lifted: P0-8 is closed, the hosted build keeps documents in IndexedDB (`app/src/idbStore.ts`) and the app is live at `https://financehub-uk.pages.dev/`; distribution stays owner-only private use (decision 2026-11-20).
+- [x] Build/release secret scan and sensitive-file ignore checks. `tests/build-secrets.test.ts` scans built bundles for legacy credential values and asserts `.gitignore` still excludes `data/workbook.json`, `data/*.db`, builds, `analysis/`, `reports/` and env files.
 - [~] Passkeys and email-verification review. Self-serve deletion is implemented and the deletion SQL is applied; TOTP setup was removed from Settings. The live hosted passkey ceremony was confirmed on 2026-11-17; the packaged WebAuthn limitation, email-verification review and throwaway-account deletion test remain.
 - [x] CI runs typecheck, the hosted build and the Playwright Chromium suite on every push. The full test suite needs the private workbook, so public CI runs it only when that file is present and otherwise skips it with a message; packaging remains outside CI.
 - [ ] iOS client (separate Mac/Xcode track).
@@ -381,7 +381,7 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [x] **Backups have a version and checksum.** Encrypted format v2 records the format version and SHA-256 checksum and refuses a tampered payload; plain JSON restore remains available.
 - [~] **Data Health screen — expanded.** Tools → Data health now includes failed-sync/pending-change and backup-age checks alongside account names, duplicates, provider year-chain breaks, linked bills, orphaned bill changes, locked-month drift, dormant accounts and unresolved conflicts. Direct statement-vs-snapshot comparison still relies on the locked-month balance check.
 - [x] **“Explain this number” drill-down.** Delivered with R8 on 2026-11-18: every KPI and reconciliation row opens a panel with its source rows, formula, month, account and overrides.
-- [ ] **No session/device management.** Cloud accounts cannot see active devices, last sync, revoke a device or sign out all sessions. Add this alongside MFA/passkeys.
+- [x] **Session/device management.** Delivered 2026-11-20: `public.user_devices` (migration `0005`) records one row per install with a last-seen time, Settings → Account lists them with this-device, inactive and revoked badges, Revoke marks a device, and Sign out everywhere ends the sessions through the auth service.
 - [x] **Accountant/tax-year export.** Delivered in §25 step 4: one workbook with reconciliation, monthly summary, year transactions and month locks (`core/accountantPack.ts`).
 
 ### Improvements to add
@@ -1469,6 +1469,28 @@ Open items:
   refused), a restore from cloud in the UI (it would replace the live budget), and the retention
   prune against the live bucket (proven in tests, not by pushing eight objects).
 
+- 2026-11-20: **Dashboard counts down instead of quoting amounts.** The cleared-checkbox
+  removal, the Income due card shared by Dashboard and Monthly, the "Next holiday" card and
+  the retention split (30 automatic daily points beside 7 manual ones) shipped in
+  `2026.11.20`. The Income due card then dropped its amounts at the owner's request and shows
+  the days to the next PIP and UC payments: `Next payment 27/11/2026`, headline `In 7 days`,
+  rows `PIP 01/12/2026 · In 11 days` and `Universal Credit (UC) 27/11/2026 · In 7 days`.
+  `tests/ui-smoke.test.mjs` asserts both dates and that no `£` amount survives inside the
+  card; suite **471/471**, UI smoke **14/14**, `tsc` and `release:check` 9/9, live on
+  `index-01sNyvE2.js` and checked in the browser on both Dashboard and Monthly.
+- 2026-11-20: **§25 point 1 brought to truth, and device/session management built.** The plan
+  now records shipped work instead of stale boxes: A-07/A-08 (`8b28835`), A-10 (`534d01b`),
+  the hosted gate, the secret and sensitive-file scan, the exact-origin CSP and OAuth callback
+  tests, the SBOM/hashes/claims assets, the §23.6 rows they close, and §25 items 1–3.
+  Device management ships as `db/migrations/postgres/0005_user_devices.sql` (owner-scoped RLS,
+  one row per install, revoke recorded as a timestamp), `core/devices.ts`,
+  `app/src/devices.ts` (device id in device storage, label from platform and user agent,
+  registration on sign-in and hourly), `tests/devices.test.ts` (8 tests) and a Devices block
+  in Settings → Account with this-device, inactive and revoked badges, Revoke and Sign out
+  everywhere. Suite **479/479**, `tsc` clean. Not yet proven: the panel against the live table
+  (the migration needs applying in the Supabase SQL editor) and a second device appearing in
+  the list.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
@@ -1481,10 +1503,10 @@ Open items:
 - The local-to-cloud consent screen is live-tested with Google sign-in. Keeping local retains the account session for manual Sync, Exit and Log out; local mode still does not auto-sync.
 - Recovery covers the device-cached budget document. Cloud sync is disabled while the local document is blocked, so a remote copy cannot overwrite it automatically.
 - The Windows installer is unsigned and uses the default Electron icon; this is an accepted distribution risk. A branded icon remains optional.
-- The renderer bundle still contains the workbook seed data; do not treat the installer as free of personal data until the seed is replaced or confirmed appropriate for distribution.
+- A build made without `data/workbook.json` compiles the blank seed (`534d01b`), so a public build carries no budget rows; a build made here with the workbook still does until it is removed.
 - Live Google sign-in and one-account cloud sync are verified. A full visual click-through and packaged OAuth/CSP exercise remain release gates.
 - Provider credentials must never re-enter the seed, renderer bundle, plain backups, cloud `state_json` or sync-conflict snapshots.
-- The hosted `/FinanceHub/` build is structurally ready but not approved for public use until P0-8 and browser-storage hardening are complete.
+- The hosted build is live at `https://financehub-uk.pages.dev/` on IndexedDB storage with P0-8 closed; its use stays owner-only private until the point 2–5 gates are signed off.
 - Completing P0/P1/P2 does not equal compliance. The compliance workstream needs external legal, registrar, Apple-hardware and FCA inputs, and must be evidenced per release.
 - The app must not describe itself as compliant, certified, approved or "bank-level secure" until the matching C-5/C-7 evidence exists.
 
@@ -1986,10 +2008,10 @@ Counsel must mark each item **applicable**, **not applicable with reason**, or *
 - [ ] Packaged-app navigation, CSP, external-link blocking, secure storage and OAuth callback checks.
 - [x] Owner-attested: deletion and export drills completed, and a backup restore was run on the `2026.11.16` build (2026-11-17). No instrumented artifact.
 - [x] Owner-attested: two-account isolation and two-device conflict/realtime behaviour confirmed (2026-11-17). No instrumented artifact.
-- [ ] Client verification gate implemented, but the Supabase “Confirm email” setting is unverified: the recorded decision (decision 7) is that it is deliberately **off** because custom SMTP is disabled, while this checklist previously said enabled. Record the actual dashboard value and run the live signup/resend test before any public signup claim. Owner input needed.
+- [~] Client verification gate implemented, and the owner decided on 2026-11-20 that Supabase “Confirm email” stays **off** (decision 7) until custom SMTP exists; the gate still shows for unconfirmed accounts. The live signup/resend pass runs under point 2 once SMTP is configured, so no public signup claim is made before that.
 - [x] Hosted demo-only gate built, deployed and live-checked on 2026-11-16, then withdrawn by the owner on 2026-11-17 so the hosted app serves a real budget again.
 - [x] RA-3 signed by the owner on 2026-11-17: plaintext browser storage for the hosted budget, with the confirmed-email rule retained.
-- [ ] Exact-origin CSP and forged/replayed OAuth callback tests.
+- [x] Exact-origin CSP and forged/replayed OAuth callback tests (`tests/build-secrets.test.ts`, `tests/oauth-callback.test.ts`).
 - [ ] Independent penetration test and remediation record.
 - [x] No code signing — RA-2 signed by the owner on 2026-11-17; unsigned-publisher warning published.
 - [x] RA-1 signed by the owner on 2026-11-17; C3 accepted, with C1 processor evidence and an independent penetration test still open.
@@ -2001,7 +2023,7 @@ Counsel must mark each item **applicable**, **not applicable with reason**, or *
 - [x] Accessibility pass run on the live build 2026-11-17: labels, image alternatives, landmarks, heading order, keyboard reachability and 125–200% scaling checked. The one defect found — icon-only sidebar buttons losing their accessible name below ~1000 px — is fixed in `2026.11.17` (build `195682713b7a`) and verified live at 640 px: all 20 buttons report their names while the labels stay visually hidden (`clip-path: inset(50%)`).
 - [x] Backup restore and delta-update drills reported by the owner on the `2026.11.16` build (2026-11-17); no instrumented artifact.
 - [ ] Support, incident, vulnerability-disclosure and status contacts published.
-- [ ] SBOM, hashes and claims list attached to the release.
+- [x] SBOM, hashes and claims list attached to the release: `release/SBOM.json`, `release/RELEASE_CLAIMS.md` and `SHA256SUMS.txt` are built per release and uploaded beside the installer by `scripts/github-release.mjs`.
 - [ ] Signed owner go/no-go.
 
 ### 23.7 Go/no-go rule
@@ -2216,17 +2238,22 @@ Supabase half is done: private bucket `financehub-backups`, four owner-scoped po
 
 Everything here can be built, tested and released without a decision, a key or a signature.
 
-1. **Publish the pending release.** Commit `41478dc` (the cleared-checkbox removal) is on
-   `main` but not in the live bundle; `npm run release`, commit the release output and push
-   `main` plus the matching tag.
-2. **R17 upload half.** Supabase storage adapter for `core/backupUpload.ts` writing
-   `<user-id>/financehub-backup-<timestamp>.json`, the upload/restore-list UI behind the
-   existing flag, retention to the newest seven, and live tests that a signed-out upload is
-   refused and a second account cannot read the folder.
-3. **Device and session management.** A per-device row written on sign-in, a list with last
-   sync, per-device revoke, and "sign out everywhere" through the existing auth session
-   scope. New reviewed migration in `db/migrations/postgres/`, applied from the signed-in
-   dashboard like 0004.
+1. **Publish the pending release.** Done 2026-11-20: `2026.11.20` has shipped repeatedly
+   since (latest tag move to `08cb2be`), each with the installer rebuilt, the live bundle
+   hash-matched and `release:check` 9/9.
+2. **R17 upload half.** Done 2026-11-20: `core/cloudBackup.ts` and `app/src/cloudBackup.ts`
+   write `<user-id>/financehub-backup-<timestamp>.json`, Tools → Settings → Data uploads,
+   lists, restores and removes, and seven tests cover folder scoping, signed-out and
+   traversing ids, foreign names, retention and storage errors. Live: a 577,654-byte envelope
+   uploaded, listed and removed from the owner's folder, while anonymous and foreign-folder
+   writes were refused by RLS. A second real account and a UI restore from cloud stay
+   unproven.
+3. **Device and session management.** Done 2026-11-20: `db/migrations/postgres/0005_user_devices.sql`
+   creates `public.user_devices` with owner-scoped RLS, `core/devices.ts` holds the tested
+   helpers, `app/src/devices.ts` records this install on sign-in and hourly, and Settings →
+   Account lists devices with this-device, inactive and revoked badges, Revoke and Sign out
+   everywhere. `tests/devices.test.ts` proves the scoping, ordering and one-row-per-install
+   behaviour. The migration is applied from the signed-in Supabase dashboard like `0004`.
 4. **Orphaned backlog items** that no step owned: A-11 (one implementation of the rent,
    water and telco calculations in `core/`), property-based ledger invariants, import fuzz
    tests, a diff between two restore points and restoring individual sections, the monthly

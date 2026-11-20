@@ -61,6 +61,7 @@ import { PeoplePortalPage } from './views/peoplePortal';
 import { FeedbackDialog } from './views/feedback';
 import { PORTAL_FEEDBACK_EVENT, readFeedbackForOwner, refreshPortalStatements, type PortalFeedback } from './portal';
 import { authClient, authConfigured, emailNeedsVerification, endSession, type Session } from './auth';
+import { registerCurrentDevice } from './devices';
 import { LegalPage } from './views/legal';
 import { legalRouteFromHash, type LegalDocId } from './legal';
 import { AuthLoading, EmailVerificationPage, LocalImportPrompt, LoginPage, ModeChooser, RecoveryPage } from './views/login';
@@ -441,6 +442,22 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       }
     });
   }, [blocked, user.id, demo]);
+
+  // Records this install in the account's device list, and refreshes last-seen hourly.
+  useEffect(() => {
+    if (user.local || demo || !authClient) return;
+    let disposed = false;
+    const touch = () => {
+      if (disposed) return;
+      void registerCurrentDevice().catch(() => { /* Settings → Account shows the reason */ });
+    };
+    touch();
+    const timer = window.setInterval(touch, 60 * 60 * 1000);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [user.local, user.id, demo]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

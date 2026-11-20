@@ -554,12 +554,13 @@ export const USER_GUIDE: GuideEntry[] = [
       'Export a JSON backup, restore the imported workbook, or manage sync and local data in Data & backups.',
       'For a protected copy, enter a backup passphrase and export an encrypted backup. One automatic encrypted restore point is created each day and the newest 30 stay on this device, alongside the newest seven manual restore points.',
       'In Settings → Sync conflicts, review both versions, export a copy, or purge the retained conflict history once nothing needs reviewing. The purge removes local and cloud conflict copies only; every budget record stays intact.',
-      'Add a passkey under Account security, or delete the cloud account and its records permanently.',
+      'Add a passkey under Account security, check the devices signed in to the account, mark one revoked or sign out everywhere, or delete the cloud account and its records permanently.',
     ],
     notes: [
       'Menu layout hides items and moves them between sections; Tools is fixed and can never be hidden or moved.',
       'Provider credentials are encrypted with your vault passphrase; the app never stores them as plaintext. You can change the passphrase from the unlocked vault, and an optional hint is stored unencrypted so the locked screen can show it.',
       'The app lock is a screen barrier, not encryption. Its PIN is stored as a slow hash, cannot be recovered, and removing the lock does not delete anything; the budget data itself stays as protected as the device store.',
+      'A device joins the list when it signs in and updates its last-seen time while it stays open. Revoking marks it here and deletes no budget record; Sign out everywhere ends every session through the auth service, including this one.',
     ],
   },
   {
