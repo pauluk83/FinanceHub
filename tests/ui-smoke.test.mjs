@@ -318,8 +318,9 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.match(html, /Income due/);
   assert.match(html, /PIP/);
   assert.match(html, /Universal Credit \(UC\)/);
-  // The income card shows the next payment and the one after it.
-  assert.match(html, /then Universal Credit \(UC\)/);
+  // The income card shows each source's own next date and amount.
+  assert.match(html, /20\/11\/2026 · £180\.00/);
+  assert.match(html, /25\/11\/2026 · £120\.00/);
   // The holiday countdown card is always in the same row.
   assert.match(html, /Next holiday/);
 });

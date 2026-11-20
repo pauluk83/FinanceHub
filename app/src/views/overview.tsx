@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Bar, Card, Donut, Empty, Field, Money, Section, Table } from '../components';
 import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct, todayIso } from '../format';
-import { countdownLabel, daysUntil, incomeCountdownLabel } from '../../../core/countdowns';
+import { countdownLabel, daysUntil } from '../../../core/countdowns';
 import type { ScheduleRow } from '../../../core/engine';
 import { groupHolidayTrips } from '../../../core/holidays';
 import { accountsNeedingReview } from '../../../core/accounts';
@@ -17,21 +17,15 @@ import { ExplainButton, ExplainDialog } from '../explain';
 
 export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, lastSavedAt, lastSyncedAt, feedbackItems, openFeedback, userEmail }: ViewProps) {
   const [explanation, setExplanation] = useState<Explanation | null>(null);
-  const [openHolidayTrips, setOpenHolidayTrips] = useState<Set<string>>(() => new Set());
-  const toggleHolidayTrip = (key: string) => setOpenHolidayTrips((current) => {
-    const next = new Set(current);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    return next;
-  });
   const d = engine.dashboard(year, month);
   const categoryTargets = targetsSummary(ds, year, month);
   const today = todayIso();
-  const incomeDue = scheduledIncome(ds, year, month, today);
-  // The card shows the next payment that has not passed; if the month is over, the last one.
-  const upcomingIncome = incomeDue.filter((payment) => payment.days >= 0);
-  const nextIncome = upcomingIncome[0] ?? incomeDue[incomeDue.length - 1] ?? null;
-  const laterIncome = upcomingIncome[1] ?? null;
+  // Both income sources carry their own next date, whichever month it falls in.
+  const nextIncome = nextIncomeDates(ds, year, today);
+  const nextIncomeTotal = nextIncome.reduce((sum, entry) => sum + (entry.date ? entry.amountPence : 0), 0);
+  const nextIncomeSoonest = nextIncome
+    .filter((entry) => entry.date)
+    .sort((a, b) => a.date!.localeCompare(b.date!))[0] ?? null;
   const ytd = d.ytd;
   const refMonths = (ds.reference?.months ?? []) as any[];
   // Reconciliation against the workbook uses the uncorrected ledger: the months
@@ -173,17 +167,19 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Card title="Bills this month" value={gbp(d.billsTotalPence)} sub={`${d.bills.length} scheduled bills`} />
         <Card
           title="Income due"
-          sub={nextIncome ? `${nextIncome.source} · ${dateUk(nextIncome.date)}` : 'No PIP or UC payment this month'}
-          value={nextIncome ? gbp(nextIncome.amountPence) : '—'}
-          tone={nextIncome ? 'pos' : 'neutral'}
+          sub={nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
+          value={nextIncomeTotal > 0 ? gbp(nextIncomeTotal) : '—'}
+          tone={nextIncomeTotal > 0 ? 'pos' : 'neutral'}
           actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
         >
-          {nextIncome && (
-            <div className="card-sub" style={{ marginTop: 6 }}>
-              {incomeCountdownLabel(nextIncome.days)}
-              {laterIncome ? ` · then ${laterIncome.source} ${incomeCountdownLabel(laterIncome.days)}` : ''}
-            </div>
-          )}
+          <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
+            {nextIncome.map((entry) => (
+              <div key={entry.key} className="card-sub" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span>{entry.label}</span>
+                <span>{entry.date ? `${dateUk(entry.date)} · ${gbp(entry.amountPence)}` : 'No date'}</span>
+              </div>
+            ))}
+          </div>
         </Card>
         <Card
           title="Next holiday"
@@ -339,7 +335,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         </Section>
       </div>
 
-      <div className="two-col">
         <Section
           title="Bills due"
           sub={`Resolved for ${MONTH_LONG[month - 1]} — paid automatically on the due date`}
@@ -364,69 +359,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
           {d.bills.length === 0 && <Empty>No bills scheduled for this month.</Empty>}
         </Section>
 
-        <Section
-          title="Holidays"
-          sub="Soonest upcoming first; passed events sink to the bottom. Expand a trip for its cost lines."
-          actions={<button className="btn ghost sm" onClick={() => go('holidays')}>View holidays</button>}
-        >
-          <div className="list">
-            {holidayTrips.flatMap((trip) => {
-              const headline = trip.headline;
-              const showCostLines = openHolidayTrips.has(trip.key);
-              const rows = [
-                <div className="list-row" key={trip.key}>
-                  <div>
-                    <div className="title">{headline.event}</div>
-                    <div className="sub">
-                      {dateUk(trip.start)} → {dateUk(trip.end)} · {trip.nights ? `${trip.nights} nights` : 'No stay booked'}
-                      {trip.extras.length > 0 ? ` · ${trip.extras.length} cost line${trip.extras.length === 1 ? '' : 's'}` : ''}
-                    </div>
-                    {trip.extras.length > 0 && (
-                      <button
-                        className="btn ghost sm"
-                        aria-expanded={showCostLines}
-                        style={{ marginTop: 4, padding: '1px 6px', fontSize: 11 }}
-                        onClick={() => toggleHolidayTrip(trip.key)}
-                      >
-                        {showCostLines ? 'Hide' : 'Show'} {trip.extras.length} cost line{trip.extras.length === 1 ? '' : 's'}
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <Badge tone={headline.ongoing ? 'amber' : headline.upcoming ? 'blue' : 'neutral'}>{headline.ongoing ? 'On holiday' : headline.upcoming ? `${headline.daysToGo} days` : 'Passed'}</Badge>
-                    <div className="sub" style={{ marginTop: 3 }}>{trip.totalPence === null ? 'Amount redacted' : gbp(trip.totalPence)}{trip.extras.length > 0 ? ' incl. cost lines' : ''}</div>
-                  </div>
-                </div>,
-              ];
-              if (showCostLines) {
-                trip.extras.forEach((extra, index) => {
-                  const paid = String(extra.paid ?? '').toLowerCase();
-                  rows.push(
-                    <div
-                      className="list-row"
-                      key={`${trip.key}-cost-${index}`}
-                      style={{ paddingLeft: 32, background: 'rgba(148, 163, 184, 0.06)' }}
-                    >
-                      <div>
-                        <div className="title" style={{ fontWeight: 500 }}>{extra.event || 'Cost line'}</div>
-                        <div className="sub">
-                          Cost line · {paid.includes('unpaid') ? 'Unpaid' : paid.includes('paid') ? 'Paid' : 'Not set'}
-                          {extra.ref ? ` · ${extra.ref}` : ''}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div className="sub">{extra.totalPence === null || extra.totalPence === undefined ? 'Amount redacted' : gbp(extra.totalPence)}</div>
-                      </div>
-                    </div>,
-                  );
-                });
-              }
-              return rows;
-            })}
-            {holidayTrips.length === 0 && <Empty>No holidays recorded.</Empty>}
-          </div>
-        </Section>
-      </div>
 
       {categoryTargets.targets.length > 0 && (
         <Section
@@ -461,21 +393,26 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
   );
 }
 
-function scheduledIncome(ds: ViewProps['ds'], year: number, month: number, today: string) {
-  const label = MONTHS[month - 1];
-  const hit = (row: ScheduleRow) => year === 2027 ? row.year2027 : year === 2028 ? row.year2028 : row.year2026;
-  const rows = [
-    ...ds.incomeSchedules.pip
-      .filter((row) => row.month === label)
-      .map((row, index) => ({ key: `pip-${index}-${row.month}`, source: 'PIP', ...hit(row) })),
-    ...ds.incomeSchedules.uc
-      .filter((row) => row.month === label)
-      .map((row, index) => ({ key: `uc-${index}-${row.month}`, source: 'Universal Credit (UC)', ...hit(row) })),
-  ]
-    .filter((row) => row.date && Number(row.date.slice(0, 4)) === year)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((row) => ({ ...row, days: daysUntil(row.date, today) }));
-  return rows;
+/**
+ * The next dated payment for each income source in the selected year. When every
+ * date has passed, the last one is shown rather than an empty card.
+ */
+function nextIncomeDates(ds: ViewProps['ds'], year: number, today: string) {
+  const source = (key: 'pip' | 'uc', entry: ScheduleRow) =>
+    year === 2027 ? entry.year2027 : year === 2028 ? entry.year2028 : entry.year2026;
+  const datesFor = (key: 'pip' | 'uc') => (ds.incomeSchedules[key] ?? [])
+    .map((row) => source(key, row))
+    .filter((entry) => entry?.date && Number(entry.date.slice(0, 4)) === year)
+    .map((entry) => ({ date: entry.date, amountPence: entry.amountPence }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return ([
+    { key: 'pip', label: 'PIP' },
+    { key: 'uc', label: 'Universal Credit (UC)' },
+  ] as const).map(({ key, label }) => {
+    const dates = datesFor(key);
+    const next = dates.find((entry) => entry.date >= today) ?? dates[dates.length - 1] ?? null;
+    return { key, label, date: next?.date ?? null, amountPence: next?.amountPence ?? 0 };
+  });
 }
 
 function feedbackExcerpt(message: string, max = 150) {
