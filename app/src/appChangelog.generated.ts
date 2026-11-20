@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.19",
-  "buildId": "4897b612fa64",
-  "builtAt": "2026-11-19",
+  "version": "2026.11.20",
+  "buildId": "b8e75aa03712",
+  "builtAt": "2026-11-20",
   "releases": [
+    {
+      "version": "2026.11.20",
+      "date": "20 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Remove the cleared checkbox from the transaction table; plan reduced to five points"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.19",
       "date": "18 November 2026",

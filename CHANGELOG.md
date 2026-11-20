@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.20] — 20 November 2026
+
+### Changed
+- Remove the cleared checkbox from the transaction table; plan reduced to five points
+
 ## [2026.11.19] — 18 November 2026
 
 ### Changed
