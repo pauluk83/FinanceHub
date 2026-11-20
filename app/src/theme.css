@@ -1002,16 +1002,28 @@ tr.locked td { color: var(--muted); }
 /* -------------------------------------------------- phone shell (R1) */
 
 .mobile-tabs { display: none; }
-.phone-month { display: none; }
 
 @media (max-width: 720px) {
-  .phone-month { display: flex; align-items: center; gap: 6px; width: 100%; }
-  .phone-month .month-select { flex: 1; min-width: 0; }
   .app { grid-template-columns: minmax(0, 1fr); }
   .sidebar { display: none; }
   .main { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
-  .topbar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
-  .topbar-right .month-select { display: none; }
+  /* Phone top bar: the title keeps its own row, then the lock badge, the
+     month and year pickers and the icons share one compact row. The command
+     palette and theme switch live in the More sheet and Settings on a phone,
+     so they leave the bar to make room for the pickers. */
+  .topbar { height: auto; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .topbar-left { flex: 1 1 100%; }
+  .topbar-right { flex: 1 1 100%; flex-wrap: wrap; gap: 6px; margin-left: 0; }
+  .topbar-right .palette-trigger, .topbar-right .theme-toggle { display: none; }
+  .topbar-status { order: 0; }
+  .topbar-right .month-picker { order: 1; }
+  .topbar-right .year-picker { order: 2; }
+  .topbar-right > .btn { order: 3; }
+  .topbar-right .month-select {
+    min-width: 0; min-height: 30px; padding: 3px 6px;
+    font-size: 12px; font-weight: 600; border-radius: 8px;
+  }
+  .topbar-right .month-picker { max-width: 46vw; }
   .view-title { font-size: 18px; }
   .content { padding: 0 0 8px; }
   .mobile-tabs {

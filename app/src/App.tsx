@@ -589,17 +589,6 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     );
   }
 
-  // The phone shell hides the desktop month and year selectors, so it gets its
-  // own row. Stepping past a year boundary only moves to a year the budget has.
-  const stepPhoneMonth = (delta: number) => {
-    const next = activeYear * 12 + (month - 1) + delta;
-    const nextYear = Math.floor(next / 12);
-    const nextMonth = (next % 12) + 1;
-    if (!yearOptions.includes(nextYear)) return;
-    setActiveYear(nextYear);
-    setMonth(nextMonth);
-  };
-
   // The phone companion edits the same budget as the desktop: every mutation
   // still funnels through update(), so the save, audit and changelog paths match.
   const props: ViewProps = {
@@ -807,7 +796,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
           </div>
           <div className="topbar-right">
             <select
-              className="month-select"
+              className="month-select year-picker"
               aria-label="Viewing year"
               value={activeYear}
               onChange={(e) => setActiveYear(Number(e.target.value))}
@@ -818,7 +807,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
               ))}
             </select>
             <select
-              className="month-select"
+              className="month-select month-picker"
               aria-label="Viewing month"
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
@@ -827,16 +816,18 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
                 <option value={i + 1} key={m}>{m} {activeYear}</option>
               ))}
             </select>
-            <Badge tone={locked ? 'amber' : 'green'}>{locked ? '🔒 Locked' : '● Open'}</Badge>
+            <span className="topbar-status">
+              <Badge tone={locked ? 'amber' : 'green'}>{locked ? '🔒 Locked' : '● Open'}</Badge>
+            </span>
             <button
-              className="btn ghost"
+              className="btn ghost palette-trigger"
               onClick={() => { setPalette(true); setQuery(''); }}
               title="Command palette (Ctrl+K)"
             >
               <span className="kbd">Ctrl</span><span className="kbd">K</span>
             </button>
             <button
-              className="btn"
+              className="btn theme-toggle"
               onClick={() => setTheme(state.theme === 'dark' ? 'light' : 'dark')}
               aria-label={`Switch to ${state.theme === 'dark' ? 'light' : 'dark'} theme`}
               title={`Switch to ${state.theme === 'dark' ? 'light' : 'dark'} theme`}
@@ -880,40 +871,6 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
               </button>
             )}
           </div>
-          {phoneShell && (
-            <div className="phone-month" role="group" aria-label="Month and year">
-              <button
-                className="btn ghost sm"
-                type="button"
-                aria-label="Previous month"
-                onClick={() => stepPhoneMonth(-1)}
-                disabled={activeYear === yearOptions[0] && month === 1}
-              >‹</button>
-              <select
-                className="month-select"
-                aria-label="Phone viewing month"
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-              >
-                {MONTHS.map((m, i) => <option value={i + 1} key={m}>{m} {activeYear}</option>)}
-              </select>
-              <select
-                className="month-select"
-                aria-label="Phone viewing year"
-                value={activeYear}
-                onChange={(e) => setActiveYear(Number(e.target.value))}
-              >
-                {yearOptions.map((option) => <option value={option} key={option}>{option}</option>)}
-              </select>
-              <button
-                className="btn ghost sm"
-                type="button"
-                aria-label="Next month"
-                onClick={() => stepPhoneMonth(1)}
-                disabled={activeYear === yearOptions[yearOptions.length - 1] && month === 12}
-              >›</button>
-            </div>
-          )}
         </header>
 
         <main className="content">
