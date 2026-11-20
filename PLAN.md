@@ -1564,6 +1564,15 @@ Open items:
   chrome cannot clip the tab bar. Measured with no horizontal overflow at 320, 360, 390,
   430, 600, 820 and 1280px. Suite **530/530**, `tsc` clean.
 
+- 2026-11-20: **Responsive guard and fluid auth/portal.** `tests/e2e/responsive.spec.ts`
+  opens all 27 navigation views in the demo workspace at 320, 430 and 768 px through the
+  command palette and fails if `documentElement.scrollWidth` exceeds the viewport; inner
+  scrollers such as `.table-wrap` are excluded because they never widen the document. The
+  login (`auth-shell`, art panel, card, headings) and people-portal (`portal-top`,
+  `portal-body`, owner card, feedback panel) now use the same `clamp()` sizing as the app,
+  and the portal metrics reflow with `auto-fit` instead of a fixed four columns. Suite
+  **530/530**, e2e responsive 3/3, `tsc` clean.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
