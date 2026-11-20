@@ -390,8 +390,8 @@ Added 2026-11-06. These are not additional P0 stop-ship items; P0-8 and P0-7 mus
 - [ ] **Split and merge transactions:** split one payment across categories/accounts and merge duplicates.
 - [ ] **Reconciliation assistant:** match imported CSV rows to existing ledger entries and flag differences, not just duplicates.
 - [x] **Backup versioning and restore points:** encrypted format v2, thirty automatic daily points and seven manual points are delivered. Delivered 2026-11-20: `core/backupDiff.ts` compares a restore point with the live budget section by section and restores only the chosen sections, with settings and month locks compared but only replaced by a whole restore; Tools → Settings → Data has Compare per point.
-- [ ] **Property-based ledger tests:** assert invariants such as total owed equals the sum of people, statement closing equals cumulative balance, and account totals equal dashboard totals.
-- [ ] **Import fuzz tests:** malformed CSV, huge files, odd dates, duplicate rows and formula-injection strings.
+- [x] **Property-based ledger tests.** Delivered 2026-11-20: `tests/ledger-invariants.test.ts` runs seeded generators over the real budget and asserts that total owed is the sum of the people balances at any date, that every statement closes on opening plus its deltas and chains into the next month, that one added transaction moves only its own account and month, that the water, O2 and Virgin rows satisfy their published formulas, that the rent ledger is its amount column, and that a preference or target edit moves no figure.
+- [x] **Import fuzz tests.** Delivered 2026-11-20: `tests/import-fuzz.test.ts` feeds the splitter, date and amount parsers, the built-in and profile mappers, duplicate detection and the row cap a few hundred seeded inputs each — unbalanced quotes, delimiters, CRLF noise, impossible dates, overflow amounts, out-of-range columns, repeated rows and formula strings — proving nothing throws, no row is invented, money stays whole pence, formulas stay literal text, and the loaded budget and its figures are untouched.
 - [~] **Security regression tests:** credential scanning, URL-scheme rejection and CSV neutralisation are covered. Exact CSP-origin and OAuth state/callback tests remain.
 - [x] **Accessibility and scaling pass:** run on the live build 2026-11-17 — labels, image alternatives, landmarks, heading order, keyboard reachability and 125–200% scaling. The one defect (icon-only sidebar buttons losing their accessible name below ~1000 px) was fixed in `2026.11.17` and re-verified at 640 px (see §23.6).
 
@@ -1511,6 +1511,19 @@ Open items:
   clean. Not viewed: the Compare panel in a browser, and no section restore was run against
   the live budget.
 
+- 2026-11-20: **Property-based ledger invariants and import fuzz tests.**
+  `tests/ledger-invariants.test.ts` (7 tests) drives the real budget with a seeded printer and
+  asserts total owed equals the sum of people at random dates, statements close on opening
+  plus their deltas and chain month to month, an added transaction moves only its own account
+  and month (with Backup Space and cash deliberately excluded because Starling's balance
+  carries them), provider rows satisfy their published formulas, the rent ledger is its amount
+  column, and preference or target edits move no figure. `tests/import-fuzz.test.ts` (9
+  tests) fuzzes the splitter, date and amount parsers, both mappers, duplicate detection and
+  the row cap with unbalanced quotes, CRLF noise, impossible dates, overflow amounts,
+  out-of-range profile columns, repeated rows and formula strings, proving no throw, no
+  invented row, whole-pence money, literal formula text and an untouched budget. Suite
+  **517/517**, `tsc` clean.
+
 ## 18. Notes and constraints
 
 - Local-only mode must remain device-only.
@@ -2278,8 +2291,9 @@ Everything here can be built, tested and released without a decision, a key or a
    and telco rules now have one implementation in `core/`, proven by
    `tests/provider-rules.test.ts`), the restore-point diff with section restore
    (`core/backupDiff.ts`, `tests/backup-diff.test.ts`) and the statement-versus-snapshot
-   check in Data health. Still open: property-based ledger invariants, import fuzz tests and
-   the monthly "what changed" digest.
+   check in Data health, property-based ledger invariants (`tests/ledger-invariants.test.ts`)
+   and import fuzz tests (`tests/import-fuzz.test.ts`). Still open: the monthly "what
+   changed" digest.
 5. **Plan truth.** Fix the stale checkboxes in §6, §7 and §8, the §25 test count, and the
    §23.6 rows that code already closes, so the plan matches the build.
 
