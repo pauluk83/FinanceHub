@@ -6,6 +6,7 @@ import { dateUk, dateTimeUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIs
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
+import { applyBillDueDay } from '../providerSetup';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
@@ -1391,7 +1392,12 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                   disabled={planning && yearChange(b.name)?.skip === true}
                   onChange={(e) => planning
                     ? setPlan(b.name, { dueDayOverride: Number(e.target.value) || null })
-                    : update((d) => { d.bills[i].dueDay = Number(e.target.value); d.bills[i].baseDueDay = Number(e.target.value); })}
+                    : update((d) => {
+                        // The provider page shows this same date, so keep the two together.
+                        d.bills[i].dueDay = Number(e.target.value);
+                        d.bills[i].baseDueDay = Number(e.target.value);
+                        applyBillDueDay(d, b.providerKey, Number(e.target.value));
+                      })}
                 />
               </td>
               <td>

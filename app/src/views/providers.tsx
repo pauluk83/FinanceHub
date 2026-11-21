@@ -838,8 +838,12 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   }
   const billing = providerBilling(p);
   if (billing.contractDetails) accountDetails.push(['Contract details', billing.contractDetails]);
+  // The bill's due day is the one the Bills section edits, so show that day here;
+  // a fill-in for bills with no link keeps the provider's own figure.
+  const linkedBill = (ds.bills ?? []).find((bill) => bill.providerKey === provider);
+  const paymentDay = linkedBill?.dueDay ?? billing.paymentDay;
   if (!accountDetails.some(([label]) => /payment date/i.test(label))) {
-    accountDetails.push(['Payment date', `Day ${billing.paymentDay}`]);
+    accountDetails.push(['Payment date', `Day ${paymentDay}`]);
   }
   const renderProviderDetail = (label: string, value: string | undefined) => {
     if (provider === 'water' && label === 'Account number' && p.portalUrl) {
@@ -911,12 +915,12 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           <div className="card"><div className="card-title">Latest balance</div><div className="kpi-value">{latest ? gbp(latest.balancePence) : '—'}</div><div className="card-sub">{latest?.date ? dateUk(latest.date) : latest?.month || '—'}</div></div>
         </div>
       )}
-      {/* O2 keeps only the contract and ledger: its account fields and vault logins
-          are not used, so the two summary sections would be empty noise. */}
-      {provider !== 'o2' && (
+      {/* O2 and Virgin keep only the contract and ledger: their account fields and
+          vault logins are not used, so the two summary sections would be empty noise. */}
+      {provider !== 'o2' && provider !== 'virgin' && (
         <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined} />
       )}
-      {provider !== 'pureCremation' && provider !== 'o2' && (vaultSession ? (
+      {provider !== 'pureCremation' && provider !== 'o2' && provider !== 'virgin' && (vaultSession ? (
         <AccessDetails
           items={providerAccessDetails(provider, vaultSession.secrets)}
           actions={accessActions}

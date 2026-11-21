@@ -431,3 +431,37 @@ test('a hosted sign-out clears the cached budget only once it is synced', async 
   assert.deepEqual(hostedKeysToClear(keys, '[{"state":{}}]'), []);
   assert.deepEqual(hostedKeysToClear(keys, 'not json'), []);
 });
+
+test('the Virgin page keeps only the contract and ledger', async () => {
+  const { ProviderView } = await server.ssrLoadModule('/src/views/providers.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const virgin = {
+    statement: [],
+    ledgerOpeningPence: 0,
+    monthlyPaymentPence: 3_299,
+    paymentDay: 5,
+    contract: { accountName: 'Virgin Media', endDate: '2028-09-30', tiers: [], paymentsPence: 0, remainingPaymentsPence: 0 },
+  };
+  const ds = dataset({ dataset: { providers: { virgin, water: { statement: [], ledgerOpeningPence: 0, accountName: 'Thames Water' } } } });
+  const virginPage = render(ProviderView, {
+    ...props(ds, { engine: buildEngine(ds) }),
+    provider: 'virgin',
+    title: 'Virgin Media',
+    subtitle: 'Broadband',
+  });
+
+  // Both summary sections are hidden for Virgin; the contract and ledger stay.
+  assert.equal(virginPage.includes('Account details'), false, 'no account details section');
+  assert.equal(virginPage.includes('Account access'), false, 'no account access section');
+  assert.match(virginPage, /Virgin Media/);
+
+  // The same sections still render for a provider that uses them.
+  const waterPage = render(ProviderView, {
+    ...props(ds, { engine: buildEngine(ds) }),
+    provider: 'water',
+    title: 'Water',
+    subtitle: 'Thames Water',
+  });
+  assert.match(waterPage, /Account details/);
+  assert.match(waterPage, /Account access/);
+});

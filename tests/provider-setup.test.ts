@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyBillDueDay,
   buildProviderPlanEntries,
   buildProviderYearPlan,
   isProviderEnabled,
@@ -143,4 +144,20 @@ test('provider logos accept small PNG/JPEG/WebP images only', () => {
   assert.equal(providerLogoDataProblem(png), null);
   assert.match(providerLogoDataProblem('data:text/html;base64,PHNjcmlwdD4=') ?? '', /not a supported/i);
   assert.match(providerLogoDataProblem(`data:image/png;base64,${'A'.repeat(300_000)}`) ?? '', /too large/i);
+});
+
+test('a bill due day and the provider payment day move together', () => {
+  // The Bills section edits `dueDay`; the provider page reads its own payment day,
+  // so a change in either place has to land on both.
+  const ds = dataset({ virgin: { paymentDay: 4, billing: { paymentDay: 4, recurring: true } } });
+  applyBillDueDay(ds, 'virgin', 17);
+  assert.equal((ds.providers.virgin as any).paymentDay, 17, 'the provider follows the bill');
+  assert.equal(providerBilling(ds.providers.virgin).paymentDay, 17, 'and so does its billing block');
+
+  // Out-of-range days clamp like the setup field does, and an unlinked bill is a no-op.
+  applyBillDueDay(ds, 'virgin', 31);
+  assert.equal(providerBilling(ds.providers.virgin).paymentDay, 28);
+  applyBillDueDay(ds, undefined, 9);
+  applyBillDueDay(ds, 'o2', 9);
+  assert.equal((ds.providers.o2 as any), undefined);
 });

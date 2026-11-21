@@ -252,6 +252,21 @@ export function providerBilling(provider: any): ProviderBilling {
   };
 }
 
+/**
+ * The Bills section and the provider page share one due day. A bill's due day is
+ * the figure the Bills table edits; this copies it onto the provider so its
+ * payment date and year plan follow, and the setup screen writes the bill the
+ * same way in return.
+ */
+export function applyBillDueDay(dataset: Dataset, providerKey: string | undefined, day: number): void {
+  if (!providerKey) return;
+  const provider: any = dataset.providers?.[providerKey];
+  if (!provider) return;
+  const safe = paymentDay(day);
+  provider.paymentDay = safe;
+  if (provider.billing && typeof provider.billing === 'object') provider.billing.paymentDay = safe;
+}
+
 /** The figure the year plan uses: what you normally pay, else the normal bill. */
 export function providerBillingAmount(billing: ProviderBilling): number {
   return billing.monthlyPence || billing.billPence;
