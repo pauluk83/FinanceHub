@@ -18,6 +18,7 @@ and the build time.
 - Remove the append-only wording from the in-app changelog
 - Name the payment source and show passed dates on the income card
 - Tidy the Virgin page and share the bill due day with providers
+- Remove the repeated figures from the dashboard
 
 ## [2026.11.20] — 20 November 2026
 
