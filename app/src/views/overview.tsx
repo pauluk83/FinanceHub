@@ -89,7 +89,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
             <div className="hero-figure"><span>Income</span><strong className="amount pos">{gbp(d.current.incomePence)}</strong><ExplainButton label="Explain" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'income'))} /></div>
             <div className="hero-figure"><span>Expenses</span><strong className="amount neg">{gbp(d.current.expensesPence)}</strong><ExplainButton label="Explain" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'expenses'))} /></div>
             <div className="hero-figure"><span>Net</span><strong className={`amount ${d.current.netPence < 0 ? 'neg' : 'pos'}`}>{gbp(d.current.netPence, { sign: true })}</strong><ExplainButton label="Explain" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'net'))} /></div>
-            <div className="hero-figure"><span>Owed to me</span><strong>{gbp(d.totalOwedPence)}</strong></div>
           </div>
         </div>
         <div className="hero-side">
@@ -168,7 +167,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
               <h2>Income breakdown</h2>
               <p>Where {MONTH_LONG[month - 1]}’s income came from</p>
             </div>
-            <Badge tone="green">{gbp(incomeTotal)}</Badge>
           </header>
           <Donut
             slices={incomeSlices}
@@ -193,7 +191,6 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
               <h2>Expenses breakdown</h2>
               <p>Where {MONTH_LONG[month - 1]}’s spending went</p>
             </div>
-            <Badge tone="red">{gbp(expenseTotal)}</Badge>
           </header>
           <Donut
             slices={expenseSlices}
