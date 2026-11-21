@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.21** (bundle `index-DnmgwcEI.js`), suite **530/530**, `tsc` clean,
+Current release **2026.11.21** (bundle `index-CbysRVPe.js`), suite **534/534**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -21,7 +21,8 @@ encrypted backups (local and cloud), device and session management, import/expor
 compliance pack and the security hardening are all delivered and released.
 
 What remains is not feature work. It is the owner-gated work in §7 plus the decisions and
-acceptances that let the build leave private use.
+acceptances that let the build leave private use. Point 6 is the exception: simplifying what
+is already built needs no owner input, so it can run while points 2–5 wait.
 
 ---
 
@@ -106,7 +107,7 @@ and the hosted bundle, deploys to Pages and verifies the live bundle matches.
 ## 6. Verification
 
 ```
-npm test                                  # full suite (530)
+npm test                                  # full suite (534)
 npx tsc -p app/tsconfig.json --noEmit     # typecheck
 npm run release:check                     # release + live parity
 npm run test:e2e                          # Playwright: demo flows + responsive guard
@@ -123,6 +124,10 @@ installer exercised by hand. These move to point 5 (§7).
 ---
 
 ## 7. The plan
+
+Points are numbered in the order they were decided, not strictly by when they can start:
+point 1 is closed, point 6 is ready to start now, and points 2–5 each wait on one owner
+action or signature.
 
 ### Point 1 — Unattended build work: **done**
 
@@ -190,6 +195,48 @@ naming what is still unproven.
 
 Exit: every gate is passing evidence or a signed acceptance, the private-use statement is
 recorded, and the final release is tagged and verified live.
+
+### Point 6 — Simplification (unattended; can run now)
+
+Decided 2026-11-21: the build has accumulated second editors for the same records and figures
+repeated across screens. This point is presentation and structure only, so it is unblocked
+while points 2–5 wait on the owner; it ships ahead of them in the order below.
+
+Rules for every item here: no money rule in §2 changes; a change that touches a figure needs
+a test proving the figure unchanged in the same release; one release per item, so any item can
+be dropped without unpicking the others. Nothing here adds a feature or restyles a screen.
+
+**6.1 — Delete the second editors (Tier 1).** Settings loses its Bank accounts, People and
+Credit cards sections and links to the pages that own those records; Monthly loses its
+duplicate month strip, keeping the Dashboard's; the Dashboard duplicate notice points at Data
+health instead of Settings' own check; the static Guides page folds into one help surface,
+leaving the data-driven Explain dialogs as the per-figure answer.
+
+Exit: accounts, people, cards, the month strip and the duplicate check each have exactly one
+editor or one listing, and every link resolves.
+
+**6.2 — Merge four pairs of pages (Tier 2).** Accounts + Cards become "Accounts & cards";
+Calendar absorbs Notifications; Progress + Reports become "Insights"; Statements + Evidence
+packs become one print/export page. The sidebar drops from 36 destinations to about 28 with no
+capability removed.
+
+Exit: the merged pages pass the responsive guard at 320, 430 and 768 px, and every existing way
+in (help, command palette, dashboard links) reaches the merged page.
+
+**6.3 — Split Dashboard and Monthly by period (Tier 3).** Dashboard owns the year (YTD totals,
+balances, what needs attention); Monthly owns the month, where the income, bill and breakdown
+detail already lives. The two donuts move to Monthly, and the Dashboard's reconciliation, card,
+people and bills tables reduce to one "Needs attention" list linking to the owning page.
+Already done in this direction: the repeated hero figure and donut badges are gone, and the
+Savings and Debts tiles link to their pages.
+
+Exit: no figure or table appears on both screens, and each KPI row stays one height.
+
+**6.4 — Internal structure (Tier 4).** Split `views/tools.tsx` (about 2,365 lines, around twenty
+unrelated tools) into `views/tools/*`; type the provider shapes that are `any` today, starting
+with the payment-day/due-day pair, so one fact stops having two interpretations.
+
+Exit: no behaviour change, suite and typecheck green, and no view file over 800 lines.
 
 ---
 
