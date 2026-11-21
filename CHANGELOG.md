@@ -20,6 +20,7 @@ and the build time.
 - Tidy the Virgin page and share the bill due day with providers
 - Remove the repeated figures from the dashboard
 - Add linked Savings and Debts tiles to the dashboard
+- Keep dashboard tiles working for hidden pages
 
 ## [2026.11.20] — 20 November 2026
 
