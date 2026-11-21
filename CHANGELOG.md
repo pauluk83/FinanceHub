@@ -13,6 +13,7 @@ and the build time.
 - Match the income and holiday cards to the KPI row
 - Match the income and holiday cards to their row
 - Keep the income card subtitle on one line
+- Clamp the income and holiday card subtitles
 
 ## [2026.11.20] — 20 November 2026
 

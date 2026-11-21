@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.21",
-  "buildId": "300eebf21d6c",
+  "buildId": "4cf08529632d",
   "builtAt": "2026-11-21",
   "releases": [
     {
@@ -19,7 +19,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Drop the O2 account details and access sections",
             "Match the income and holiday cards to the KPI row",
             "Match the income and holiday cards to their row",
-            "Keep the income card subtitle on one line"
+            "Keep the income card subtitle on one line",
+            "Clamp the income and holiday card subtitles"
           ]
         }
       ]
