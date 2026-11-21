@@ -385,20 +385,9 @@ export function IncomeAndHolidayCards({ ds, engine, year, go }: Pick<ViewProps, 
         value={nextIncomeSoonest ? incomeCountdownLabel(daysUntil(nextIncomeSoonest.date!, today)) : '—'}
         tone={nextIncomeSoonest ? 'pos' : 'neutral'}
         actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
-      >
-        <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
-          {nextIncome.map((entry) => (
-            <div key={entry.key} className="card-sub" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-              <span>{entry.label}</span>
-              <span>
-                {entry.date
-                  ? `${dateUk(entry.date)} · ${incomeCountdownLabel(daysUntil(entry.date, today))}`
-                  : 'No date'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
+      />
+      {/* One value per card, like every other KPI: the PIP and UC dates live on
+          Income, so listing them here only made this tile taller than its row. */}
       <Card
         title="Next holiday"
         sub={nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
