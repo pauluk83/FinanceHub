@@ -21,6 +21,7 @@ and the build time.
 - Remove the repeated figures from the dashboard
 - Add linked Savings and Debts tiles to the dashboard
 - Keep dashboard tiles working for hidden pages
+- Name the page in the header when a tile opens a hidden one
 
 ## [2026.11.20] — 20 November 2026
 
