@@ -87,7 +87,6 @@ export function AppChangelogView() {
       <div style={{ padding: 16, display: 'grid', gap: 14 }}>
         <InstallerDownload />
         <div className="notice info">
-          <strong>Append-only history.</strong> A new build adds its notes at the top; every earlier release below stays exactly as it was.
           Budget figures and their changes are kept separately in the Budget changelog.
         </div>
         <ReleaseList />
