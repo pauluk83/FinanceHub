@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, Ref } from 'react';
 import { gbp, pct } from './format';
 
 export function Card(props: {
@@ -9,10 +9,23 @@ export function Card(props: {
   actions?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /** Makes the whole tile a link to the page that owns the figure. */
+  onClick?: () => void;
 }) {
-  const { title, value, sub, tone = 'neutral', actions, children, className = '' } = props;
+  const { title, value, sub, tone = 'neutral', actions, children, className = '', onClick } = props;
+  const link = onClick ? {
+    role: 'button' as const,
+    tabIndex: 0,
+    onClick,
+    onKeyDown: (event: ReactKeyboardEvent) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onClick();
+      }
+    },
+  } : {};
   return (
-    <section className={`card ${className}`}>
+    <section className={`card ${onClick ? 'card-link' : ''} ${className}`} {...link}>
       {(title || actions) && (
         <header className="card-head">
           <div>

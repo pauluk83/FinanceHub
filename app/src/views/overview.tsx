@@ -77,6 +77,13 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
     .filter((item) => !item.readAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const latestFeedback = unreadFeedback[0];
+  // Savings and debts live on their own pages; the tiles are links to them so the
+  // figure is read here and edited where it belongs.
+  const savingsAccounts = ds.savings ?? [];
+  const savingsTotal = savingsAccounts.reduce((sum, account) => sum + Math.max(0, account.balancePence || 0), 0);
+  const debts = ds.debts ?? [];
+  const debtsTotal = debts.reduce((sum, debt) => sum + Math.max(0, debt.balancePence || 0), 0);
+  const debtsMonthly = debts.reduce((sum, debt) => sum + (debt.monthlyPaymentPence || 0), 0);
   const feedbackWho = latestFeedback?.person === userEmail ? 'you' : latestFeedback?.person ?? 'someone';
 
   return (
@@ -155,7 +162,21 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Card title="Total owed" value={gbp(d.totalOwedPence)} sub="People accounts, opening + lent − repaid" />
         <Card title="Account balance" value={gbp(d.totalAccountBalancePence)} sub={`Across ${d.accounts.length} bank accounts`} />
         <Card title="Account target" value={gbp(d.accounts.reduce((s, a) => s + a.targetPence, 0))} sub="Combined target" />
+        <Card
+          title="Savings"
+          value={gbp(savingsTotal)}
+          sub={savingsAccounts.length === 0 ? 'No savings accounts yet' : `${savingsAccounts.length} savings ${savingsAccounts.length === 1 ? 'account' : 'accounts'}`}
+          tone={savingsTotal > 0 ? 'pos' : 'neutral'}
+          onClick={() => go('savings')}
+        />
         <Card title="Card balance" value={gbp(d.cardBalancePence)} sub={`${pct(d.cardUtilisation)} of ${gbp(d.cardLimitPence)}`} tone={d.cardBalancePence > 0 ? 'warn' : 'neutral'} />
+        <Card
+          title="Debts"
+          value={gbp(debtsTotal)}
+          sub={debts.length === 0 ? 'No debts recorded' : `${gbp(debtsMonthly)} a month`}
+          tone={debtsTotal > 0 ? 'warn' : 'neutral'}
+          onClick={() => go('debts')}
+        />
         <Card title="Bills this month" value={gbp(d.billsTotalPence)} sub={`${d.bills.length} scheduled bills`} />
         <IncomeAndHolidayCards ds={ds} engine={engine} year={year} />
       </div>

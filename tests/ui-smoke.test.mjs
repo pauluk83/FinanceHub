@@ -327,6 +327,10 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.equal(incomeCard.includes('£120.00'), false, 'no UC amount in the card');
   // The holiday countdown card is always in the same row.
   assert.match(html, /Next holiday/);
+  // Savings and Debts are tiles that open their own pages rather than editors.
+  assert.match(html, /Savings/);
+  assert.match(html, /Debts/);
+  assert.equal((html.match(/card-link/g) ?? []).length, 2, 'both tiles link somewhere');
 });
 
 test('an income date that has gone reads as passed', async () => {
