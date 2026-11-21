@@ -318,7 +318,7 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.match(html, /Income due/);
   // One value per card, like the rest of the KPI row: the soonest payment, no
   // per-source rows (they live on Income) and no amounts.
-  assert.match(html, /Next payment 20\/11\/2026/);
+  assert.match(html, /Next 20\/11\/2026/);
   const incomeCard = html.match(/Income due[\s\S]*?<\/section>/)?.[0] ?? '';
   assert.ok(incomeCard.length > 0, 'the income card rendered');
   assert.equal(incomeCard.includes('Universal Credit (UC)'), false, 'no per-source row in the card');

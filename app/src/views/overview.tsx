@@ -384,7 +384,7 @@ export function IncomeAndHolidayCards({ ds, engine, year, compact = false }: Pic
           neighbours. The PIP and UC dates stay on Income. */}
       <Card
         title="Income due"
-        sub={compact ? undefined : nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
+        sub={compact ? undefined : nextIncomeSoonest ? `Next ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
         value={nextIncomeSoonest ? incomeCountdownLabel(daysUntil(nextIncomeSoonest.date!, today)) : '—'}
         tone={nextIncomeSoonest ? 'pos' : 'neutral'}
       />
