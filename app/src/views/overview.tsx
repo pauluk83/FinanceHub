@@ -383,12 +383,14 @@ export function IncomeAndHolidayCards({ ds, engine, year, compact = false }: Pic
           per-source rows, because either one made the tile taller than its
           neighbours. The PIP and UC dates stay on Income. */}
       <Card
+        className="kpi-compact"
         title="Income due"
         sub={compact ? undefined : nextIncomeSoonest ? `Next ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
         value={nextIncomeSoonest ? incomeCountdownLabel(daysUntil(nextIncomeSoonest.date!, today)) : '—'}
         tone={nextIncomeSoonest ? 'pos' : 'neutral'}
       />
       <Card
+        className="kpi-compact"
         title="Next holiday"
         sub={compact ? undefined : nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
         value={nextHoliday ? (nextHoliday.headline.ongoing ? 'Away now' : `${nextHoliday.headline.daysToGo} days`) : '—'}

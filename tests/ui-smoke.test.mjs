@@ -338,7 +338,7 @@ test('the monthly view shows the same income and holiday cards', async () => {
 
   assert.match(html, /Income due/);
   assert.match(html, /Next holiday/);
-  const cards = [...html.matchAll(/<section class="card "[\s\S]*?<\/section>/g)].map((m) => m[0]);
+  const cards = [...html.matchAll(/<section class="card[^"]*"[\s\S]*?<\/section>/g)].map((m) => m[0]);
   const incomeCard = cards.find((card) => card.includes('Income due')) ?? '';
   assert.ok(incomeCard.length > 0, 'the income card rendered');
   assert.equal(incomeCard.includes('Universal Credit (UC)'), false, 'no per-source row in the card');
