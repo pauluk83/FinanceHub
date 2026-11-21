@@ -11,6 +11,7 @@ and the build time.
 - Tighten the demo banner spacing
 - Drop the O2 account details and access sections
 - Match the income and holiday cards to the KPI row
+- Match the income and holiday cards to their row
 
 ## [2026.11.20] — 20 November 2026
 
