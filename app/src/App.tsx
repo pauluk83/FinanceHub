@@ -18,7 +18,7 @@ import { useCloudSync } from './useCloudSync';
 import { useAutomaticBackup } from './useAutomaticBackup';
 import type { LocalAccountControls, ViewProps } from './types';
 import { MONTHS, MONTH_LONG, gbp, todayIso } from './format';
-import { NAV_GROUP_TIPS, buildNav } from './nav';
+import { NAV_GROUP_TIPS, buildNav, defaultNavItems } from './nav';
 import { providerDisplayName } from './providerSetup';
 import { Badge } from './components';
 import { APP_VERSION } from './version';
@@ -388,13 +388,16 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     };
   }, [user.id]);
 
-  // A menu item can be hidden or a provider removed while its view is open.
+  // A provider removed from the budget can leave its view open. A menu item that
+  // is merely hidden is still a real page — the dashboard tiles link to it — so
+  // only a page that no longer exists sends you back to the first menu item.
   useEffect(() => {
     if (view === 'setup' || blocked) return;
-    const nav = buildNav(state.dataset, {
-      hideSetup: state.dataset.accounts.length > 0 || state.dataset.transactions.length > 0,
-    });
-    if (!nav.some((group) => group.items.some((item) => item.id === view))) {
+    const exists = defaultNavItems(state.dataset).some((item) => item.id === view);
+    if (!exists) {
+      const nav = buildNav(state.dataset, {
+        hideSetup: state.dataset.accounts.length > 0 || state.dataset.transactions.length > 0,
+      });
       setView(nav[0]?.items[0]?.id ?? 'dashboard');
     }
   }, [state.dataset, view, blocked]);

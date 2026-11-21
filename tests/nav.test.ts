@@ -91,3 +91,14 @@ test('the setup item can be hidden once the budget has data', () => {
 test('every group name is known', () => {
   assert.deepEqual([...NAV_GROUPS], ['Overview', 'Ledger', 'Providers', 'Tools']);
 });
+
+test('a hidden page still exists, so a dashboard tile can open it', () => {
+  // Hiding an item is a layout preference, not deleting the page: the app's
+  // guard keeps a view that exists in defaultNavItems, and only bounces a
+  // provider that is really gone.
+  const ds = dataset({ hidden: ['debts', 'savings'] });
+  assert.equal(ids(ds).includes('debts'), false, 'out of the sidebar');
+  assert.equal(defaultNavItems(ds).some((item) => item.id === 'debts'), true, 'still a page');
+  assert.equal(defaultNavItems(ds).some((item) => item.id === 'savings'), true);
+  assert.equal(defaultNavItems(dataset({}, {})).some((item) => item.id === 'water'), false, 'a removed provider is gone');
+});
