@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Tighten the demo banner spacing
+- Drop the O2 account details and access sections
 
 ## [2026.11.20] — 20 November 2026
 
