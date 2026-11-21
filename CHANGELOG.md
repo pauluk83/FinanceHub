@@ -12,6 +12,7 @@ and the build time.
 - Drop the O2 account details and access sections
 - Match the income and holiday cards to the KPI row
 - Match the income and holiday cards to their row
+- Keep the income card subtitle on one line
 
 ## [2026.11.20] — 20 November 2026
 
