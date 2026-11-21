@@ -636,7 +636,12 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   const setupHidden = state.dataset.accounts.length > 0 || state.dataset.transactions.length > 0;
   const visibleNav = buildNav(state.dataset, { hideSetup: setupHidden });
   const allItems = visibleNav.flatMap((group) => group.items);
-  const current = allItems.find((item) => item.id === view) ?? allItems[0] ?? { id: 'dashboard', label: 'Dashboard', icon: '' };
+  // A page opened from a dashboard tile can be a hidden menu item; the header
+  // still names it rather than falling back to the first visible item.
+  const current = allItems.find((item) => item.id === view)
+    ?? defaultNavItems(state.dataset).find((item) => item.id === view)
+    ?? allItems[0]
+    ?? { id: 'dashboard', label: 'Dashboard', icon: '' };
   const locked = engine.monthlySummary(activeYear, month).locked;
   const filtered = allItems.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
   const searchResults = useMemo(
