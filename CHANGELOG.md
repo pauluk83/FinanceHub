@@ -15,6 +15,7 @@ and the build time.
 - Keep the income card subtitle on one line
 - Clamp the income and holiday card subtitles
 - Remove the append-only note from the changelog page
+- Remove the append-only wording from the in-app changelog
 
 ## [2026.11.20] — 20 November 2026
 

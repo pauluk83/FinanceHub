@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.21",
-  "buildId": "7ccc31652cfe",
+  "buildId": "df03acd7b27f",
   "builtAt": "2026-11-21",
   "releases": [
     {
@@ -21,7 +21,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Match the income and holiday cards to their row",
             "Keep the income card subtitle on one line",
             "Clamp the income and holiday card subtitles",
-            "Remove the append-only note from the changelog page"
+            "Remove the append-only note from the changelog page",
+            "Remove the append-only wording from the in-app changelog"
           ]
         }
       ]
