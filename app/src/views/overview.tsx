@@ -158,7 +158,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <Card title="Account target" value={gbp(d.accounts.reduce((s, a) => s + a.targetPence, 0))} sub="Combined target" />
         <Card title="Card balance" value={gbp(d.cardBalancePence)} sub={`${pct(d.cardUtilisation)} of ${gbp(d.cardLimitPence)}`} tone={d.cardBalancePence > 0 ? 'warn' : 'neutral'} />
         <Card title="Bills this month" value={gbp(d.billsTotalPence)} sub={`${d.bills.length} scheduled bills`} />
-        <IncomeAndHolidayCards ds={ds} engine={engine} year={year} go={go} />
+        <IncomeAndHolidayCards ds={ds} engine={engine} year={year} />
       </div>
 
       <div className="grid cols-2">
@@ -368,7 +368,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
  * The two small cards shared by Dashboard and Monthly: the next PIP and UC dates,
  * and the days until the next holiday with where it is.
  */
-export function IncomeAndHolidayCards({ ds, engine, year, go }: Pick<ViewProps, 'ds' | 'engine' | 'year' | 'go'>) {
+export function IncomeAndHolidayCards({ ds, engine, year, compact = false }: Pick<ViewProps, 'ds' | 'engine' | 'year'> & { compact?: boolean }) {
   const today = todayIso();
   const nextIncome = nextIncomeDates(ds, year, today);
   const nextIncomeSoonest = nextIncome
@@ -379,21 +379,20 @@ export function IncomeAndHolidayCards({ ds, engine, year, go }: Pick<ViewProps, 
     .find((trip) => trip.headline.ongoing || trip.headline.upcoming) ?? null;
   return (
     <>
+      {/* One value per card, like the rest of the KPI row: no action button and no
+          per-source rows, because either one made the tile taller than its
+          neighbours. The PIP and UC dates stay on Income. */}
       <Card
         title="Income due"
-        sub={nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
+        sub={compact ? undefined : nextIncomeSoonest ? `Next payment ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
         value={nextIncomeSoonest ? incomeCountdownLabel(daysUntil(nextIncomeSoonest.date!, today)) : '—'}
         tone={nextIncomeSoonest ? 'pos' : 'neutral'}
-        actions={<button className="btn ghost sm" type="button" onClick={() => go('income')}>Schedule</button>}
       />
-      {/* One value per card, like every other KPI: the PIP and UC dates live on
-          Income, so listing them here only made this tile taller than its row. */}
       <Card
         title="Next holiday"
-        sub={nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
+        sub={compact ? undefined : nextHoliday ? `${nextHoliday.headline.event} · ${dateUk(nextHoliday.start)}` : 'No trip booked'}
         value={nextHoliday ? (nextHoliday.headline.ongoing ? 'Away now' : `${nextHoliday.headline.daysToGo} days`) : '—'}
         tone={nextHoliday ? 'pos' : 'neutral'}
-        actions={<button className="btn ghost sm" type="button" onClick={() => go('holidays')}>Holidays</button>}
       />
     </>
   );
@@ -685,7 +684,9 @@ export function Monthly({ ds, engine, year, month, setMonth, go }: ViewProps) {
         <Card title="Expenses" value={gbp(s.expensesPence)} tone="neg" />
         <Card title="Net" value={gbp(s.netPence, { sign: true })} tone={s.netPence < 0 ? 'neg' : 'pos'} />
         <Card title="% income spent" value={pct(s.percentIncomeSpent)} tone={s.percentIncomeSpent > 1 ? 'warn' : 'neutral'} />
-        <IncomeAndHolidayCards ds={ds} engine={engine} year={year} go={go} />
+        {/* Monthly's summary cards carry no subtitle, so these two drop theirs
+            rather than standing a line taller than the row. */}
+        <IncomeAndHolidayCards ds={ds} engine={engine} year={year} compact />
       </div>
 
       {s.locked ? (
