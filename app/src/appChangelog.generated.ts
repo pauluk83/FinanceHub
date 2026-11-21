@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.21",
-  "buildId": "2c130944dccf",
+  "buildId": "b3168942bcef",
   "builtAt": "2026-11-21",
   "releases": [
     {
@@ -23,7 +23,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Clamp the income and holiday card subtitles",
             "Remove the append-only note from the changelog page",
             "Remove the append-only wording from the in-app changelog",
-            "Name the payment source and show passed dates on the income card"
+            "Name the payment source and show passed dates on the income card",
+            "Tidy the Virgin page and share the bill due day with providers"
           ]
         }
       ]
