@@ -16,6 +16,7 @@ and the build time.
 - Clamp the income and holiday card subtitles
 - Remove the append-only note from the changelog page
 - Remove the append-only wording from the in-app changelog
+- Name the payment source and show passed dates on the income card
 
 ## [2026.11.20] — 20 November 2026
 
