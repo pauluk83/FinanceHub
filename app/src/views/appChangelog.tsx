@@ -114,9 +114,6 @@ export function AppChangelogPage({ onClose }: { onClose: () => void }) {
       <main className="legal-body">
         <div className="legal-meta">{buildMeta()} · What changed in each release</div>
         <InstallerDownload />
-        <div className="notice info">
-          <strong>Append-only history.</strong> Earlier releases are never rewritten; the newest build is at the top.
-        </div>
         <ReleaseList />
         <footer className="legal-foot">
           <span>Budget changes stay in the separate Budget changelog inside the app.</span>
