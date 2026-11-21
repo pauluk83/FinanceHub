@@ -911,8 +911,12 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           <div className="card"><div className="card-title">Latest balance</div><div className="kpi-value">{latest ? gbp(latest.balancePence) : '—'}</div><div className="card-sub">{latest?.date ? dateUk(latest.date) : latest?.month || '—'}</div></div>
         </div>
       )}
-      <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined} />
-      {provider !== 'pureCremation' && (vaultSession ? (
+      {/* O2 keeps only the contract and ledger: its account fields and vault logins
+          are not used, so the two summary sections would be empty noise. */}
+      {provider !== 'o2' && (
+        <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined} />
+      )}
+      {provider !== 'pureCremation' && provider !== 'o2' && (vaultSession ? (
         <AccessDetails
           items={providerAccessDetails(provider, vaultSession.secrets)}
           actions={accessActions}
