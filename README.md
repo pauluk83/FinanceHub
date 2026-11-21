@@ -46,7 +46,7 @@ generated in the browser and never touches an account.
 Cloud mode stores the budget in Supabase behind row-level security. Provider credentials
 are end-to-end encrypted inside the synced document; the rest of the budget is not
 end-to-end encrypted, so treat the hosted deployment as private. See
-[`COMPLIANCE.md`](./COMPLIANCE.md) and the security findings in [`PLAN.md`](./PLAN.md).
+[`COMPLIANCE.md`](./COMPLIANCE.md) and the security model in [`PLAN.md`](./PLAN.md).
 
 Sign-in uses the public Supabase client configuration in `app/publicSupabase.ts`; a
 local `.env` can override it with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Only
@@ -138,7 +138,7 @@ pre-rotation conflict history and old backups were purged by the owner on 13 Nov
 SQLCipher full-database encryption is deferred; the DPAPI-backed value store remains the
 accepted design. Automatic daily restore points and Playwright browser coverage are
 implemented. [`PLAN.md`](./PLAN.md) is the single source for the
-roadmap, release gates and security findings.
+remaining plan, release gates and the security model.
 
 ## Owner and licence
 
