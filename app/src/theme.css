@@ -187,6 +187,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* The income and holiday tiles share a row with plain one-line cards, so a
    wrapped subtitle there would stretch both of them above the rest. */
 .kpi-compact .card-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-compact .kpi-value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi-value { font-size: 23px; font-weight: 650; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
 .kpi-value.pos { color: var(--accent); }
 .kpi-value.neg { color: var(--danger); }

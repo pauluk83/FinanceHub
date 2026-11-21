@@ -316,18 +316,37 @@ test('the dashboard shows bill and income countdowns', async () => {
   assert.match(html, /Bills due/);
   assert.match(html, /Countdown/);
   assert.match(html, /Income due/);
-  // One value per card, like the rest of the KPI row: the soonest payment, no
-  // per-source rows (they live on Income) and no amounts.
-  assert.match(html, /Next 20\/11\/2026/);
+  // The card names each source and its state, soonest first, and carries no amounts:
+  // "PIP in 6 days" over "UC in 11 days", or "PIP passed" once the date has gone.
   const incomeCard = html.match(/Income due[\s\S]*?<\/section>/)?.[0] ?? '';
   assert.ok(incomeCard.length > 0, 'the income card rendered');
+  assert.match(incomeCard, /PIP (\d+ days?|today|passed)/);
+  assert.match(incomeCard, /UC (\d+ days?|today|passed)/);
   assert.equal(incomeCard.includes('Universal Credit (UC)'), false, 'no per-source row in the card');
   assert.equal(incomeCard.includes('£180.00'), false, 'no PIP amount in the card');
   assert.equal(incomeCard.includes('£120.00'), false, 'no UC amount in the card');
-  // The countdown is the card value.
-  assert.match(incomeCard, /Yesterday|days|Due/i);
   // The holiday countdown card is always in the same row.
   assert.match(html, /Next holiday/);
+});
+
+test('an income date that has gone reads as passed', async () => {
+  const { Dashboard } = await server.ssrLoadModule('/src/views/overview.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const ds = dataset({
+    dataset: {
+      incomeSchedules: {
+        pip: [{ month: 'Jan', year2026: { date: '2026-01-05', amountPence: 18_000 }, year2027: { date: '', amountPence: 0 }, year2028: { date: '', amountPence: 0 } }],
+        uc: [{ month: 'Jan', year2026: { date: '2026-01-26', amountPence: 12_000 }, year2027: { date: '', amountPence: 0 }, year2028: { date: '', amountPence: 0 } }],
+      },
+    },
+  });
+  const html = render(Dashboard, props(ds, { engine: buildEngine(ds) }));
+  const incomeCard = html.match(/Income due[\s\S]*?<\/section>/)?.[0] ?? '';
+
+  // The sooner date has gone, so it says so rather than counting backwards; the
+  // later one still counts down until its own date passes.
+  assert.match(incomeCard, /PIP passed/);
+  assert.match(incomeCard, /UC (\d+ days?|today|passed)/);
 });
 
 test('the monthly view shows the same income and holiday cards', async () => {

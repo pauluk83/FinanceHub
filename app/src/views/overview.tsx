@@ -371,9 +371,20 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
 export function IncomeAndHolidayCards({ ds, engine, year, compact = false }: Pick<ViewProps, 'ds' | 'engine' | 'year'> & { compact?: boolean }) {
   const today = todayIso();
   const nextIncome = nextIncomeDates(ds, year, today);
-  const nextIncomeSoonest = nextIncome
+  // One line per source, soonest first: "PIP in 6 days", "UC passed". A payment
+  // whose date has gone shows "passed" rather than a countdown running backwards.
+  const payments = nextIncome
     .filter((entry) => entry.date)
-    .sort((a, b) => a.date!.localeCompare(b.date!))[0] ?? null;
+    .map((entry) => ({ label: entry.key === 'pip' ? 'PIP' : 'UC', date: entry.date!, days: daysUntil(entry.date!, today) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  // Kept short so the value stays on one KPI line: "PIP 6 days", "UC today",
+  // "PIP passed" once that month's date has gone.
+  const paymentStatus = (entry: { label: string; days: number }) => {
+    const when = entry.days < 0 ? 'passed' : entry.days === 0 ? 'today' : `${entry.days} day${entry.days === 1 ? '' : 's'}`;
+    return `${entry.label} ${when}`;
+  };
+  const nextPayment = payments[0] ?? null;
+  const laterPayment = payments[1] ?? null;
   // Trips arrive ongoing first, then upcoming by start, so the first match is the countdown target.
   const nextHoliday = groupHolidayTrips(engine.holidays(ds.settings.asOfDate), (holiday) => holiday)
     .find((trip) => trip.headline.ongoing || trip.headline.upcoming) ?? null;
@@ -385,9 +396,9 @@ export function IncomeAndHolidayCards({ ds, engine, year, compact = false }: Pic
       <Card
         className="kpi-compact"
         title="Income due"
-        sub={compact ? undefined : nextIncomeSoonest ? `Next ${dateUk(nextIncomeSoonest.date!)}` : 'No PIP or UC dates this year'}
-        value={nextIncomeSoonest ? incomeCountdownLabel(daysUntil(nextIncomeSoonest.date!, today)) : '—'}
-        tone={nextIncomeSoonest ? 'pos' : 'neutral'}
+        sub={compact ? undefined : laterPayment ? paymentStatus(laterPayment) : 'No UC date this year'}
+        value={nextPayment ? paymentStatus(nextPayment) : '—'}
+        tone={nextPayment && nextPayment.days >= 0 ? 'pos' : 'neutral'}
       />
       <Card
         className="kpi-compact"
