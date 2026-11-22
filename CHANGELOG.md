@@ -18,6 +18,7 @@ and the build time.
 - Remove the price history, expiry list and possible subscriptions panels from Bills
 - Remove the payment date card from the provider sheets
 - Add cost lines such as hotel, car park and travel insurance to a holiday trip
+- File every holiday under the year it starts, moving 2027 trips out of 2026
 
 ## [2026.11.21] — 21 November 2026
 

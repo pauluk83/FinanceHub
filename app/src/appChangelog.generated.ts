@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "6fb15e13a7bb",
+  "buildId": "af20f7a17ed0",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -24,7 +24,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Create and rename link sheets inside the bills panel and drop the separate link sheets table",
             "Remove the price history, expiry list and possible subscriptions panels from Bills",
             "Remove the payment date card from the provider sheets",
-            "Add cost lines such as hotel, car park and travel insurance to a holiday trip"
+            "Add cost lines such as hotel, car park and travel insurance to a holiday trip",
+            "File every holiday under the year it starts, moving 2027 trips out of 2026"
           ]
         }
       ]

@@ -1,6 +1,7 @@
 import type { Dataset } from '../../core/engine';
 import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
+import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
 import type { LedgerSpec } from '../../core/providerLedger';
 
@@ -392,6 +393,16 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     apply: (dataset) => {
       if (Array.isArray(dataset.changelog)) {
         dataset.changelog = withoutLegacyAppUpdateNotes(dataset.changelog as { sheetCell?: string; description?: string; details?: unknown }[]);
+      }
+    },
+  },
+  {
+    // Holidays were filed under the year they were entered, so a 2027 trip could
+    // sit in the 2026 bucket. File every row under its start date's year.
+    id: 'holidays-year-by-start-2026-11-22',
+    apply: (dataset) => {
+      if (dataset.holidays) {
+        dataset.holidays = rekeyHolidaysByStartYear(dataset.holidays as Record<string, { start?: string }[]>);
       }
     },
   },

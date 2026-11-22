@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { groupHolidayTrips } from '../core/holidays.ts';
+import { groupHolidayTrips, rekeyHolidaysByStartYear } from '../core/holidays.ts';
 
 type Row = {
   event?: string;
@@ -50,6 +50,20 @@ test('the workbook renders 15 trips and 6 cost lines instead of 21 trip rows', (
   assert.equal(trips.length, 15);
   assert.equal(rows.length - trips.length, 6);
   assert.equal(new Set(trips.map((trip) => trip.key)).size, trips.length);
+});
+
+test('a holiday is filed under the year it starts', () => {
+  const keyed = rekeyHolidaysByStartYear({
+    2026: [
+      { event: 'Mum 2027', start: '2027-04-17', end: '2027-04-24' },
+      { event: 'December', start: '2026-12-22', end: '2026-12-29' },
+    ],
+    2027: [{ event: 'No date' }],
+  });
+
+  assert.deepEqual(Object.keys(keyed).sort(), ['2026', '2027']);
+  assert.deepEqual(keyed['2026'].map((row) => row.event), ['December']);
+  assert.deepEqual(keyed['2027'].map((row) => row.event).sort(), ['Mum 2027', 'No date']);
 });
 
 test('two real trips on the same dates stay separate and cost lines attach to the latest', () => {

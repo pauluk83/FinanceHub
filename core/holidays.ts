@@ -35,6 +35,25 @@ function hasStay(holiday: HolidayShape): boolean {
 }
 
 /**
+ * Older data stored a row under whatever year it was entered, so a 2027 trip
+ * could sit in the 2026 bucket. Re-key every row by the year of its start date
+ * (keeping its own year only when the start is missing).
+ */
+export function rekeyHolidaysByStartYear<T extends { start?: string }>(
+  holidays: Record<string, readonly T[]>,
+): Record<string, T[]> {
+  const result: Record<string, T[]> = {};
+  for (const [key, list] of Object.entries(holidays)) {
+    for (const row of list ?? []) {
+      const start = String(row.start ?? '');
+      const year = /^\d{4}-\d{2}-\d{2}$/.test(start) ? start.slice(0, 4) : key;
+      (result[year] ??= []).push(row);
+    }
+  }
+  return result;
+}
+
+/**
  * Rows with a positive number of nights anchor a trip; rows without nights
  * attach to the latest matching anchor. That keeps two real trips on the same
  * dates separate while folding parking/insurance/flight lines into their stay.

@@ -23,7 +23,6 @@ type HolidayRow = { year: number; index: number; holiday: Holiday };
 type CostTarget = { key: string; trip: string; year: number; start: string; end: string };
 
 type HolidayDraft = {
-  year: string;
   event: string;
   start: string;
   end: string;
@@ -35,9 +34,8 @@ type HolidayDraft = {
   notes: string;
 };
 
-function emptyDraft(year: number): HolidayDraft {
+function emptyDraft(): HolidayDraft {
   return {
-    year: String(year),
     event: '',
     start: '',
     end: '',
@@ -50,9 +48,8 @@ function emptyDraft(year: number): HolidayDraft {
   };
 }
 
-function draftFor(year: number, holiday: Holiday): HolidayDraft {
+function draftFor(holiday: Holiday): HolidayDraft {
   return {
-    year: String(year),
     event: holiday.event ?? '',
     start: holiday.start ?? '',
     end: holiday.end ?? '',
@@ -107,7 +104,7 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   const [costDraft, setCostDraft] = useState({ label: '', amount: '', paid: '✓ Paid', ref: '', notes: '' });
   const [openTrips, setOpenTrips] = useState<Set<string>>(() => new Set());
   const [search, setSearch] = useState('');
-  const [draft, setDraft] = useState<HolidayDraft>(() => emptyDraft(ds.settings.targetYear));
+  const [draft, setDraft] = useState<HolidayDraft>(emptyDraft);
   const rows = collectRows(ds);
   const asOf = ds.settings.asOfDate;
   const trips = groupHolidayTrips(rows, (row) => row.holiday);
@@ -141,7 +138,7 @@ export function Holidays({ ds, update, notify }: ViewProps) {
     setCostFor(null);
     setEditing(null);
     setAdding(true);
-    setDraft(emptyDraft(ds.settings.targetYear));
+    setDraft(emptyDraft());
   };
 
   const openCostLine = (target: CostTarget) => {
@@ -179,14 +176,14 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   const openEdit = (row: HolidayRow) => {
     setAdding(false);
     setEditing(row);
-    setDraft(draftFor(row.year, row.holiday));
+    setDraft(draftFor(row.holiday));
   };
 
   const closeForm = () => {
     setEditing(null);
     setAdding(false);
     setCostFor(null);
-    setDraft(emptyDraft(ds.settings.targetYear));
+    setDraft(emptyDraft());
   };
 
   const save = () => {
@@ -194,8 +191,8 @@ export function Holidays({ ds, update, notify }: ViewProps) {
     if (!event) return notify('Give the holiday a name');
     if (!draft.start) return notify('Choose a start date');
     if (draft.end && draft.end < draft.start) return notify('The end date cannot be before the start date');
-    const year = Number(draft.year);
-    if (!Number.isFinite(year) || year < 2000 || year > 2100) return notify('Choose a valid holiday year');
+    const year = Number(draft.start.slice(0, 4));
+    if (!Number.isFinite(year) || year < 2000 || year > 2100) return notify('Choose a start date with a valid year');
 
     const nightsText = draft.nights.trim();
     const nights = nightsText && /^\d+(\.\d+)?$/.test(nightsText) ? Number(nightsText) : nightsText;
@@ -296,7 +293,6 @@ export function Holidays({ ds, update, notify }: ViewProps) {
       {formOpen && (
         <div style={{ padding: 16, borderBottom: '1px solid var(--line)' }}>
           <div className="form-grid">
-            <Field label="Year"><input className="input" type="number" min={2000} max={2100} value={draft.year} onChange={(e) => setDraft({ ...draft, year: e.target.value })} /></Field>
             <Field label="Holiday name"><input className="input" placeholder="e.g. Unity - Mum" value={draft.event} onChange={(e) => setDraft({ ...draft, event: e.target.value })} /></Field>
             <Field label="Start date"><input className="input" type="date" value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} /></Field>
             <Field label="End date"><input className="input" type="date" value={draft.end} onChange={(e) => setDraft({ ...draft, end: e.target.value })} /></Field>
@@ -383,7 +379,7 @@ export function Holidays({ ds, update, notify }: ViewProps) {
                   {!extra && (
                     <button
                       className="btn ghost sm"
-                      onClick={() => openCostLine({ key: trip.key, trip: row.holiday.event || 'this trip', year: row.year, start: trip.start, end: trip.end })}
+                      onClick={() => openCostLine({ key: trip.key, trip: row.holiday.event || 'this trip', year: Number(trip.start.slice(0, 4)) || row.year, start: trip.start, end: trip.end })}
                     >Add cost line</button>
                   )}
                   <button className="btn ghost sm" onClick={() => openEdit(row)}>Edit</button>
