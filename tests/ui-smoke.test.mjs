@@ -401,6 +401,7 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.match(panel, /Add link sheet/, 'link sheets stay inside the bills panel');
   assert.match(panel, /Rename link sheet/, 'a sheet can be renamed from the bills panel');
   assert.doesNotMatch(bills, /<th>Link sheet<\/th>/, 'no separate link sheet table');
+  assert.doesNotMatch(bills, /Possible subscriptions|Expiry list|Price history/, 'bills keeps only bills, bill changes and link sheets');
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
 

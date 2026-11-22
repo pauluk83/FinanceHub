@@ -12,9 +12,7 @@ import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSum
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
-import { CADENCES, billPrefill, recurringSuggestions, type RecurringSuggestion } from '../../../core/recurring';
 import { bulkEditTransactions } from '../../../core/cleanup';
-import { EXPIRY_KINDS, billPriceSummary, expiryList, newExpiryId, normaliseExpiry, type ExpiryKind } from '../../../core/billTimeline';
 import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { PeopleAccessSection } from './peoplePortal';
@@ -1080,55 +1078,6 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   const planAmount = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.amountOverridePence ?? engine.billAmount(bill, year, 1);
   const planDueDay = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.dueDayOverride ?? bill.dueDay;
 
-  const recurring = useMemo(() => recurringSuggestions(ds), [ds]);
-  const suggested = recurring.filter((entry) => !entry.suppressedBy && !entry.dismissed);
-  const coveredCount = recurring.filter((entry) => entry.suppressedBy).length;
-  const hiddenCount = (ds.recurringDismissed ?? []).length;
-  const [suggestedFor, setSuggestedFor] = useState<RecurringSuggestion | null>(null);
-  const [historyBill, setHistoryBill] = useState(ds.bills[0]?.name ?? '');
-  const [expiryDraft, setExpiryDraft] = useState({ label: '', kind: 'insurance' as ExpiryKind, date: '', lead: '30' });
-  const priceSummary = historyBill ? billPriceSummary(ds, historyBill, ds.settings.asOfDate) : null;
-  const expiries = expiryList(ds);
-
-  const addExpiry = () => {
-    const expiry = normaliseExpiry({
-      id: newExpiryId(ds.expiries ?? []),
-      label: expiryDraft.label,
-      kind: expiryDraft.kind,
-      date: expiryDraft.date,
-      leadDays: Number(expiryDraft.lead) || 30,
-    });
-    if (!expiry) return notify('Give the expiry a name and a real calendar date');
-    update((d) => { d.expiries = [...(d.expiries ?? []), expiry]; });
-    setExpiryDraft({ label: '', kind: 'insurance', date: '', lead: '30' });
-    notify(`${expiry.label} added — reminders use its lead time`);
-  };
-
-  const prefillBill = (entry: RecurringSuggestion) => {
-    const prefill = billPrefill(entry);
-    setBillDraft((current) => ({
-      name: prefill.name,
-      amount: (prefill.amountPence / 100).toFixed(2),
-      due: String(prefill.dueDay),
-      method: prefill.paymentMethod,
-      sheet: '',
-      account: current.account,
-    }));
-    setSuggestedFor(entry);
-    notify(`Bill form prefilled from ${entry.merchant} — nothing has been saved yet`);
-  };
-
-  const dismissSuggestion = (key: string) => {
-    update((d) => { d.recurringDismissed = [...new Set([...(d.recurringDismissed ?? []), key])]; });
-    setSuggestedFor(null);
-    notify('Suggestion hidden — nothing was added to the budget');
-  };
-
-  const restoreSuggestions = () => {
-    update((d) => { d.recurringDismissed = []; });
-    notify('Hidden suggestions restored');
-  };
-
   const addSheet = () => {
     const name = sheetDraft.trim();
     if (!name) return notify('Give the link sheet a name');
@@ -1331,149 +1280,6 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
           </div>
         </Section>
       )}
-
-      <Section
-        title="Price history"
-        sub="Every stored amount for one bill, with the change and annualised cost. No figure here can disagree with the bill engine."
-        actions={
-          <select className="select" value={historyBill} onChange={(e) => setHistoryBill(e.target.value)} aria-label="Bill for price history">
-            {ds.bills.length === 0 && <option value="">No bills</option>}
-            {ds.bills.map((bill) => <option key={bill.name} value={bill.name}>{bill.name}</option>)}
-          </select>
-        }
-      >
-        {priceSummary && priceSummary.points.length > 0 ? (
-          <>
-            <div className="metric-list" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-              <div className="metric"><span>Current amount</span><strong>{gbp(priceSummary.currentPence)}</strong></div>
-              <div className="metric"><span>Annualised</span><strong>{gbp(priceSummary.annualPence)}</strong></div>
-              <div className="metric"><span>Next change</span><strong>{priceSummary.nextChangeDate ? dateUk(priceSummary.nextChangeDate) : '—'}</strong></div>
-            </div>
-            <Table head={['From', 'To', 'Amount', 'Change', 'Annualised', 'Type / note']} numHead={[2, 3, 4]}>
-              {priceSummary.points.map((point, index) => (
-                <tr key={`${point.from}-${index}`}>
-                  <td className="muted nowrap">{point.from ? dateUk(point.from) : '—'}</td>
-                  <td className="muted nowrap">{point.to ? dateUk(point.to) : 'Open-ended'}</td>
-                  <td className="num"><strong>{gbp(point.amountPence)}</strong></td>
-                  <td className="num">
-                    {point.changePence === null ? '—' : (
-                      <span className={point.changePence > 0 ? 'amount neg' : 'amount pos'}>
-                        {point.changePence > 0 ? '+' : '−'}{gbp(Math.abs(point.changePence))}
-                        {point.changePct !== null && <div className="muted small">{pct(point.changePct)}</div>}
-                      </span>
-                    )}
-                  </td>
-                  <td className="num">{gbp(point.annualPence)}</td>
-                  <td className="muted small">{point.changeType}{point.note ? ` · ${point.note}` : ''}</td>
-                </tr>
-              ))}
-            </Table>
-            {priceSummary.nextChange && (
-              <div className="notice info" style={{ margin: 16 }}>
-                The next stored change takes effect on {dateUk(priceSummary.nextChangeDate)} at {gbp(priceSummary.nextChange.amountPence)}, a change of {gbp(priceSummary.nextChange.changePence ?? 0, { sign: true })}.
-              </div>
-            )}
-          </>
-        ) : <Empty>No price history yet. Add a bill amount or an effective-dated bill change.</Empty>}
-      </Section>
-
-      <Section
-        title="Expiry list"
-        sub="Contract ends, insurance, MOT, tenancy and anything else with a date. Reminders appear in Notifications (and the email digest when R6 is enabled)."
-        actions={<Badge tone={expiries.length ? 'blue' : 'neutral'}>{expiries.length} tracked</Badge>}
-      >
-        {expiries.length === 0 ? (
-          <Empty>No expiry dates yet. Add one below or record a provider contract end date.</Empty>
-        ) : (
-          <Table head={['Expiry', 'Date', 'Kind', 'Lead time', 'Source', '']} numHead={[]}>
-            {expiries.map((item) => {
-              const days = Math.round((Date.parse(`${item.date}T00:00:00Z`) - Date.parse(`${ds.settings.asOfDate}T00:00:00Z`)) / 86_400_000);
-              return (
-                <tr key={item.id}>
-                  <td><strong>{item.label}</strong>{item.notes && <div className="muted small">{item.notes}</div>}</td>
-                  <td className="muted nowrap">{dateUk(item.date)}{Number.isFinite(days) && days >= 0 && <div className="small">{days} days</div>}</td>
-                  <td>{EXPIRY_KINDS.find((kind) => kind.id === item.kind)?.label ?? item.kind}</td>
-                  <td className="num">{item.leadDays} days</td>
-                  <td>{item.source === 'provider' ? <Badge tone="blue">Provider contract</Badge> : <Badge>Manual</Badge>}</td>
-                  <td>
-                    {item.source === 'manual' && (
-                      <button className="btn ghost sm" onClick={() => update((d) => { d.expiries = (d.expiries ?? []).filter((entry) => entry.id !== item.id); })}>Remove</button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </Table>
-        )}
-        <div className="inline-form">
-          <Field label="Expiry"><input className="input" placeholder="e.g. Car insurance" value={expiryDraft.label} onChange={(e) => setExpiryDraft({ ...expiryDraft, label: e.target.value })} /></Field>
-          <Field label="Date"><input className="input" type="date" value={expiryDraft.date} onChange={(e) => setExpiryDraft({ ...expiryDraft, date: e.target.value })} /></Field>
-          <Field label="Kind">
-            <select className="select" value={expiryDraft.kind} onChange={(e) => setExpiryDraft({ ...expiryDraft, kind: e.target.value as ExpiryKind })}>
-              {EXPIRY_KINDS.map((kind) => <option key={kind.id} value={kind.id}>{kind.label}</option>)}
-            </select>
-          </Field>
-          <Field label="Lead days"><input className="input" type="number" min={0} max={365} value={expiryDraft.lead} onChange={(e) => setExpiryDraft({ ...expiryDraft, lead: e.target.value })} /></Field>
-          <button className="btn primary" onClick={addExpiry}>Add expiry</button>
-        </div>
-      </Section>
-
-      <Section
-        title="Possible subscriptions"
-        sub="Repeated expense rows with a regular rhythm. Nothing reaches the budget until you choose Add as bill."
-        actions={<Badge tone={suggested.length ? 'blue' : 'neutral'}>{suggested.length} to review</Badge>}
-      >
-        {suggested.length > 0 ? (
-          <Table head={['Merchant', 'Cadence', 'Charges', 'Last seen', 'Amount', 'Next expected', '']} numHead={[4]}>
-            {suggested.map((entry) => (
-              <tr key={entry.key}>
-                <td>
-                  <strong>{entry.merchant}</strong>
-                  <div className="muted small">{entry.confidence === 'high' ? 'High confidence' : 'Check this one'} · {entry.account}</div>
-                </td>
-                <td>{CADENCES[entry.cadence].label}</td>
-                <td className="num">{entry.occurrences}</td>
-                <td className="muted nowrap">{dateUk(entry.lastDate)}</td>
-                <td className="num">
-                  {gbp(entry.amountPence)}
-                  {entry.priceChangePence !== undefined && (
-                    <div className="small muted">
-                      {entry.priceChangePence > 0 ? '+' : '−'}{gbp(Math.abs(entry.priceChangePence))} since {gbp(entry.previousAmountPence ?? 0)}
-                    </div>
-                  )}
-                </td>
-                <td className="muted nowrap">{dateUk(entry.nextExpectedDate)}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn ghost sm" onClick={() => prefillBill(entry)}>Add as bill</button>
-                    <button className="btn ghost sm" onClick={() => dismissSuggestion(entry.key)}>Ignore</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
-        ) : (
-          <Empty>
-            No recurring charges found yet. Detection needs three or more regular expense rows for the same merchant, with the latest in the last 45 days.
-            {coveredCount > 0 ? ` ${coveredCount} merchant${coveredCount === 1 ? ' is' : 's are'} already covered by a bill.` : ''}
-          </Empty>
-        )}
-        {suggestedFor && (
-          <div style={{ padding: '0 16px 16px' }}>
-            <div className="notice info">
-              Prefilled the add-bill form for {suggestedFor.merchant} ({CADENCES[suggestedFor.cadence].label.toLowerCase()}).
-              FinanceHub schedules bills monthly, so check the amount before pressing Add bill.
-            </div>
-          </div>
-        )}
-        {hiddenCount > 0 && (
-          <div className="toolbar" style={{ borderBottom: 0 }}>
-            <span className="muted small">{hiddenCount} hidden suggestion{hiddenCount === 1 ? '' : 's'}.</span>
-            <div className="toolbar-spacer" />
-            <button className="btn ghost sm" onClick={restoreSuggestions}>Restore hidden suggestions</button>
-          </div>
-        )}
-      </Section>
 
       <Section
         title={planning ? `${year} bill plan and link sheets` : 'Bills and link sheets'}
