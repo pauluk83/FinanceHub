@@ -467,16 +467,20 @@ test('a 2027 holiday moves out of the 2026 bucket on load', async () => {
   assert.equal(normaliseHolidayYears(next), next, 'a second load changes nothing');
 });
 
-test('the AI assistant asks for a key before it chats', async () => {
+test('the AI assistant asks for a key before it chats, without the vault', async () => {
   const { AssistantView } = await server.ssrLoadModule('/src/views/assistant.tsx');
   const withoutKey = render(AssistantView, props(dataset()));
   assert.match(withoutKey, /OpenRouter key/);
+  assert.match(withoutKey, /Settings → AI/);
+  assert.doesNotMatch(withoutKey, /vault is locked/i);
+});
 
-  const ready = render(AssistantView, props(dataset(), {
-    vaultSession: { secrets: { ai: { apiKey: 'sk-or-test' } }, key: null, salt: 'salt', iterations: 600_000 },
-  }));
-  assert.match(ready, /Ask the assistant/);
-  assert.doesNotMatch(ready, /sk-or-test/);
+test('the AI settings pane saves a key without a vault passphrase', async () => {
+  const { AiSettings } = await server.ssrLoadModule('/src/views/aiSettings.tsx');
+  const html = render(AiSettings, props(dataset(), { vault: null, vaultSession: null }));
+  assert.match(html, /OpenRouter API key/);
+  assert.match(html, /Save AI settings/);
+  assert.doesNotMatch(html, /Vault passphrase/);
 });
 
 test('a holiday trip can take extra cost lines', async () => {

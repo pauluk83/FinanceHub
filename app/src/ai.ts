@@ -1,12 +1,11 @@
 import type { Dataset, Engine } from '../../core/engine';
-import { sealVault, type EncryptedVault, type UnlockedVault, type VaultSecrets } from './vault.ts';
 
 /**
- * The AI assistant talks to OpenRouter with the owner's own key. The key never
- * enters the budget document: it lives in the encrypted credential vault, in
- * this browser, and is only read while the vault is unlocked.
+ * The AI assistant talks to OpenRouter with the owner's own key. The key is a
+ * device setting, never a budget field: it is kept with the rest of the app's
+ * local settings (see aiKeyStore.ts), so the chat opens without the credential
+ * vault and the key never reaches the document, a backup or sync.
  */
-export const AI_KEY = 'ai';
 export const AI_DEFAULT_MODEL = 'openrouter/free';
 export const AI_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -15,28 +14,19 @@ export interface AiSettings {
   model: string;
 }
 
-export function aiSettings(session: UnlockedVault | null): AiSettings {
-  const stored = (session?.secrets?.[AI_KEY] ?? {}) as Record<string, unknown>;
+/** Read the key saved on this device; a missing or damaged record means no key. */
+export function parseAiSettings(raw: string | null): AiSettings {
+  let stored: Record<string, unknown> = {};
+  try {
+    const parsed = raw ? JSON.parse(raw) as unknown : null;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) stored = parsed as Record<string, unknown>;
+  } catch {
+    // An unreadable record behaves like no key so the pane can ask for one again.
+  }
   return {
     apiKey: typeof stored.apiKey === 'string' ? stored.apiKey : '',
     model: typeof stored.model === 'string' && stored.model.trim() ? stored.model.trim() : AI_DEFAULT_MODEL,
   };
-}
-
-/** Re-seal the vault with the AI settings changed; returns the new ciphertext. */
-export async function persistAiSettings(
-  session: UnlockedVault,
-  settings: AiSettings,
-): Promise<{ vault: EncryptedVault; session: UnlockedVault }> {
-  const secrets: VaultSecrets = {
-    ...session.secrets,
-    [AI_KEY]: {
-      apiKey: settings.apiKey.trim(),
-      model: settings.model.trim() || AI_DEFAULT_MODEL,
-    },
-  };
-  const vault = await sealVault(session, secrets);
-  return { vault, session: { ...session, secrets } };
 }
 
 /** A compact, read-only view of the budget for the model. Money stays in pence. */

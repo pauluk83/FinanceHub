@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { buildEngine, type Dataset } from '../core/engine.ts';
 import {
   AI_DEFAULT_MODEL,
-  aiSettings,
+  parseAiSettings,
   applyAiAction,
   budgetSnapshot,
   parseAssistantReply,
@@ -13,8 +13,25 @@ import {
 const seed = JSON.parse(readFileSync(new URL('../data/workbook.json', import.meta.url), 'utf8')) as Dataset;
 const clone = () => structuredClone(seed);
 
-test('no saved session means the free default model and no key', () => {
-  assert.deepEqual(aiSettings(null), { apiKey: '', model: AI_DEFAULT_MODEL });
+test('a missing or damaged key record means the free default model and no key', () => {
+  assert.deepEqual(parseAiSettings(null), { apiKey: '', model: AI_DEFAULT_MODEL });
+  assert.deepEqual(parseAiSettings('not json'), { apiKey: '', model: AI_DEFAULT_MODEL });
+  assert.deepEqual(parseAiSettings('[]'), { apiKey: '', model: AI_DEFAULT_MODEL });
+});
+
+test('a saved key is read back with the default model unless one is set', () => {
+  assert.deepEqual(parseAiSettings(JSON.stringify({ apiKey: 'sk-or-test' })), {
+    apiKey: 'sk-or-test',
+    model: AI_DEFAULT_MODEL,
+  });
+  assert.deepEqual(parseAiSettings(JSON.stringify({ apiKey: 'sk-or-test', model: '  ' })), {
+    apiKey: 'sk-or-test',
+    model: AI_DEFAULT_MODEL,
+  });
+  assert.deepEqual(parseAiSettings(JSON.stringify({ apiKey: 'sk-or-test', model: 'anthropic/claude-sonnet-4' })), {
+    apiKey: 'sk-or-test',
+    model: 'anthropic/claude-sonnet-4',
+  });
 });
 
 test('a JSON reply keeps its text and valid actions', () => {

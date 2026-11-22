@@ -3,13 +3,13 @@ import type { ViewProps } from '../types';
 import { Badge, Empty, Section } from '../components';
 import { gbp } from '../format';
 import {
-  aiSettings,
   applyAiAction,
   askOpenRouter,
   budgetSnapshot,
   describeAiAction,
   type AiAction,
 } from '../ai';
+import { readAiSettings } from '../aiKeyStore';
 
 type ChatEntry = {
   role: 'user' | 'assistant';
@@ -34,14 +34,14 @@ function actionSummary(action: AiAction): string {
   return `Add ${action.kind.toLowerCase()} “${action.description}” — ${gbp(action.amountPence)} on ${action.date} from ${action.account}`;
 }
 
-export function AssistantView({ ds, engine, year, month, update, notify, vault, vaultSession, go }: ViewProps) {
-  const settings = aiSettings(vaultSession);
+export function AssistantView({ ds, engine, year, month, update, notify, userId, go }: ViewProps) {
+  const [settings] = useState(() => readAiSettings(userId));
   const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const ready = Boolean(vaultSession && settings.apiKey);
+  const ready = Boolean(settings.apiKey);
 
   const send = async () => {
     const text = question.trim();
@@ -103,11 +103,7 @@ export function AssistantView({ ds, engine, year, month, update, notify, vault, 
     return (
       <Section title="AI assistant" sub="Ask about this budget or ask for a change, using your own OpenRouter key." actions={actions}>
         <Empty>
-          {!vault
-            ? 'Set up the AI section in Settings first: it creates the encrypted vault and saves your OpenRouter key.'
-            : !vaultSession
-              ? 'The credential vault is locked. Unlock it in Settings → Account, then come back here.'
-              : 'Add your OpenRouter key in Settings → AI, then come back here.'}
+          Save your OpenRouter key in Settings → AI and the chat opens here — no vault passphrase needed.
         </Empty>
       </Section>
     );

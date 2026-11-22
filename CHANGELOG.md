@@ -29,6 +29,7 @@ and the build time.
 - Show only the selected year's trips in the holiday tracker
 - Show only the selected year's trips in the holiday tracker
 - Offer a year that only holds holidays in the year bar
+- Open the AI assistant without the vault passphrase
 
 ## [2026.11.21] — 21 November 2026
 
