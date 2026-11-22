@@ -279,7 +279,7 @@ export const USER_GUIDE: GuideEntry[] = [
     id: 'bills',
     group: 'Ledger',
     title: 'Bills',
-    summary: 'Scheduled bills, base amounts, standing overrides and one-off changes.',
+    summary: 'Bill definitions, link sheets, standing overrides and one-off changes; the monthly run is on Monthly.',
     steps: [
       'Add a bill with its amount, due day, method, category and an optional provider link.',
       'Edit the base amount for the current year; use Bill changes on Bills for a dated change instead of rewriting history.',

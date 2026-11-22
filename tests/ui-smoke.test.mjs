@@ -366,6 +366,8 @@ test('the monthly view shows the same income and holiday cards', async () => {
   assert.ok(incomeCard.length > 0, 'the income card rendered');
   assert.equal(incomeCard.includes('Universal Credit (UC)'), false, 'no per-source row in the card');
   assert.doesNotMatch(html, /month-btn/, 'the dashboard owns the only month strip');
+  assert.match(html, /Scheduled bills/);
+  assert.match(html, /Paid from log/);
 });
 
 test('accounts, cards, people and bills edit their own records on their own pages', async () => {
@@ -389,6 +391,11 @@ test('accounts, cards, people and bills edit their own records on their own page
   const bills = render(Bills, viewProps);
   assert.match(bills, /Add change/);
   assert.match(bills, /Bill changes/);
+  assert.match(bills, /Bills and link sheets/);
+  assert.doesNotMatch(bills, /Bill link sheets/, 'link sheets share the bills section');
+  const billsSection = bills.slice(bills.indexOf('Bills and link sheets'));
+  assert.match(billsSection.slice(0, billsSection.indexOf('</section>')), /Add link sheet/, 'link sheets stay inside the bills panel');
+  assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
 
 test('settings links to the record pages instead of keeping second editors', async () => {

@@ -1126,7 +1126,6 @@ function EditableName({ value, onCommit, ariaLabel }: { value: string; onCommit:
 }
 
 export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
-  const scheduled = engine.scheduledBills(year, month);
   const sheets = billSheetsFor(ds);
   const [sheetDraft, setSheetDraft] = useState('');
   const [billDraft, setBillDraft] = useState({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: '', account: '' });
@@ -1417,32 +1416,6 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
         </Section>
       )}
 
-      <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid from midnight on the due date and taken from the balance; a bill whose payment is already in the transaction log says Paid from log and is counted once; inactive bills stay in history">
-        <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
-          {scheduled.map((b) => (
-            <tr key={b.name}>
-              <td><strong>{b.name}</strong></td>
-              <td className="muted">{dateUk(b.dueDate)}</td>
-              <td className="muted small">{b.paymentMethod || '—'}</td>
-              <td className="muted small">{b.account || '—'}</td>
-              <td className="muted small">{b.linkedSheet || '—'}</td>
-              <td className="num"><strong>{gbp(b.amountPence)}</strong></td>
-              <td>
-                {b.paid ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}
-                {b.paidFromLog && (
-                  <div
-                    title="This bill's payment is already in the transaction log, so the Starling balance counts it once"
-                    style={{ marginTop: 4 }}
-                  >
-                    <Badge tone="blue">Paid from log</Badge>
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-        </Table>
-      </Section>
-
       <Section
         title="Price history"
         sub="Every stored amount for one bill, with the change and annualised cost. No figure here can disagree with the bill engine."
@@ -1586,35 +1559,11 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
         )}
       </Section>
 
-      <Section title="Bill link sheets" sub="Create, rename or remove the options in every Linked sheet dropdown. Provider-linked sheets keep their automatic amount; custom sheets use the bill base amount.">
-        <Table head={['Link sheet', 'Bills', 'Type', '']} numHead={[1]}>
-          {sheets.map((sheet) => {
-            const used = ds.bills.filter((b) => b.linkedSheet === sheet.name).length;
-            return (
-              <tr key={sheet.name}>
-                <td><EditableName value={sheet.name} onCommit={(next) => renameSheet(sheet.name, next)} ariaLabel={`Link sheet ${sheet.name}`} /></td>
-                <td className="num">{used}</td>
-                <td>{sheet.providerKey ? <Badge tone="blue">Provider</Badge> : <Badge>Custom</Badge>}</td>
-                <td><button className="btn ghost sm" onClick={() => removeSheet(sheet.name)}>Remove</button></td>
-              </tr>
-            );
-          })}
-        </Table>
-        {sheets.length === 0 && <Empty>No link sheets yet. Add one to make it selectable on bills.</Empty>}
-        <div style={{ padding: '0 16px 16px' }}>
-          <div className="notice info">Renaming a provider-linked sheet keeps its provider lookup. A custom sheet is a label only, so its bills use the base amount.</div>
-        </div>
-        <div className="inline-form">
-          <Field label="New link sheet"><input className="input" placeholder="e.g. TV Licence" value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} /></Field>
-          <button className="btn primary" onClick={addSheet}>Add link sheet</button>
-        </div>
-      </Section>
-
       <Section
-        title={planning ? `${year} bill plan` : 'Bill definitions'}
+        title={planning ? `${year} bill plan and link sheets` : 'Bills and link sheets'}
         sub={planning
           ? `Amount, due day and removal apply to ${year} only. Method, account and linked sheet stay shared.`
-          : "Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available."}
+          : "Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available. Link sheets below are optional labels that group bills."}
       >
         <Table head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
           {ds.bills.map((b, i) => (
@@ -1714,6 +1663,31 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
             {sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}
           </select></Field>
           <button className="btn primary" onClick={addBill}>{planning ? `Add bill from ${year}` : 'Add bill'}</button>
+        </div>
+        <div className="panel-head" style={{ borderTop: '1px solid var(--line)' }}>
+          <div>
+            <h3 className="card-title">Link sheets</h3>
+            <p className="card-sub">Optional labels that group bills. A provider-linked sheet keeps its provider lookup when renamed; a custom sheet is a label only, so its bills use the base amount.</p>
+          </div>
+          <Badge tone={sheets.length ? 'blue' : 'neutral'}>{sheets.length} sheet{sheets.length === 1 ? '' : 's'}</Badge>
+        </div>
+        <Table head={['Link sheet', 'Bills', 'Type', '']} numHead={[1]}>
+          {sheets.map((sheet) => {
+            const used = ds.bills.filter((b) => b.linkedSheet === sheet.name).length;
+            return (
+              <tr key={sheet.name}>
+                <td><EditableName value={sheet.name} onCommit={(next) => renameSheet(sheet.name, next)} ariaLabel={`Link sheet ${sheet.name}`} /></td>
+                <td className="num">{used}</td>
+                <td>{sheet.providerKey ? <Badge tone="blue">Provider</Badge> : <Badge>Custom</Badge>}</td>
+                <td><button className="btn ghost sm" onClick={() => removeSheet(sheet.name)}>Remove</button></td>
+              </tr>
+            );
+          })}
+        </Table>
+        {sheets.length === 0 && <Empty>No link sheets yet. Add one to make it selectable on bills.</Empty>}
+        <div className="inline-form">
+          <Field label="New link sheet"><input className="input" placeholder="e.g. TV Licence" value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} /></Field>
+          <button className="btn primary" onClick={addSheet}>Add link sheet</button>
         </div>
       </Section>
 

@@ -746,18 +746,31 @@ export function Monthly({ ds, engine, year, month, setMonth, go }: ViewProps) {
         </div>
       )}
 
-      <Section title="Scheduled bills" sub="Due dates honour one-off Bill Changes">
-        <Table head={['Bill', 'Due', 'Method', 'Linked sheet', 'Amount']} numHead={[4]}>
+      <Section title="Scheduled bills" sub="Due dates honour one-off Bill Changes; a bill whose payment is already in the transaction log says Paid from log and is counted once.">
+        <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
           {(s.breakdown.bills.length ? s.breakdown.bills : engine.scheduledBills(year, month)).map((b) => (
             <tr key={b.name}>
-              <td>{b.name}</td>
+              <td><strong>{b.name}</strong></td>
               <td className="muted">{dateUk(b.dueDate)}</td>
               <td className="muted small">{b.paymentMethod || '—'}</td>
+              <td className="muted small">{b.account || '—'}</td>
               <td className="muted small">{b.linkedSheet || '—'}</td>
               <td className="num"><strong>{gbp(b.amountPence)}</strong></td>
+              <td>
+                {b.paid ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}
+                {b.paidFromLog && (
+                  <div
+                    title="This bill's payment is already in the transaction log, so the account balance counts it once"
+                    style={{ marginTop: 4 }}
+                  >
+                    <Badge tone="blue">Paid from log</Badge>
+                  </div>
+                )}
+              </td>
             </tr>
           ))}
         </Table>
+        {s.breakdown.bills.length === 0 && <Empty>No bills scheduled for this month.</Empty>}
       </Section>
 
       <div className="two-col">

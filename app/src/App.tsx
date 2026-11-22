@@ -94,7 +94,7 @@ const SUBTITLES: Record<string, string> = {
   accounts: 'Bank accounts, targets and ledger balances',
   cards: 'Credit limits, balances and utilisation',
   people: 'Lent, repaid and owed to you',
-  bills: 'Scheduled bills, overrides and one-off changes',
+  bills: 'Bill definitions, link sheets, overrides and one-off changes',
   debts: 'Loans, credit and agreements: balances, payments and due dates',
   savings: 'Savings and ISA accounts: balances, targets and regular contributions',
   holidays: 'Trips, dates, payments and booking details',

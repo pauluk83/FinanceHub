@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "fdb2d69f9730",
+  "buildId": "f0a0efd9237d",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -16,7 +16,9 @@ export const APP_CHANGELOG: AppChangelog = {
           "title": "Changed",
           "items": [
             "Move account, card and people editing onto their own pages, move rent and bill changes to Bills, and drop Monthly's duplicate month strip",
-            "Send duplicate review to Data health and fold the Guides page into one help surface"
+            "Send duplicate review to Data health and fold the Guides page into one help surface",
+            "Combine the bill definitions and link sheets sections and move the scheduled bill run to Monthly",
+            "Keep the link sheets inside the bills panel"
           ]
         }
       ]

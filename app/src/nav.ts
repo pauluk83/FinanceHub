@@ -68,7 +68,7 @@ const FIXED: NavItemDef[] = [
   { id: 'accounts', label: 'Accounts', icon: '▥', group: 'Ledger', tip: 'Bank accounts, opening balances, targets and running ledger balances.' },
   { id: 'cards', label: 'Cards', icon: '▦', group: 'Ledger', tip: 'Credit limits, balances and utilisation for each card.' },
   { id: 'people', label: 'People', icon: '◉', group: 'Ledger', tip: 'Money you lent, repayments received and what is still owed.' },
-  { id: 'bills', label: 'Bills', icon: '⌂', group: 'Ledger', tip: 'Scheduled bills, base amounts, overrides and one-off changes.' },
+  { id: 'bills', label: 'Bills', icon: '⌂', group: 'Ledger', tip: 'Bill definitions, link sheets, overrides and one-off changes; each month\'s scheduled run is on Monthly.' },
   { id: 'debts', label: 'Debts', icon: '⚖', group: 'Ledger', tip: 'Loans, credit and agreements: what is owed, the monthly payment and the due date.' },
   { id: 'savings', label: 'Savings', icon: '🏦', group: 'Ledger', tip: 'Savings and ISA accounts: balances, targets, account details and regular contributions.' },
   { id: 'holidays', label: 'Holidays', icon: '✈', group: 'Ledger', tip: 'Trips, dates, payments and booking details.' },

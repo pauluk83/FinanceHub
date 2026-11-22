@@ -10,6 +10,8 @@ and the build time.
 ### Changed
 - Move account, card and people editing onto their own pages, move rent and bill changes to Bills, and drop Monthly's duplicate month strip
 - Send duplicate review to Data health and fold the Guides page into one help surface
+- Combine the bill definitions and link sheets sections and move the scheduled bill run to Monthly
+- Keep the link sheets inside the bills panel
 
 ## [2026.11.21] — 21 November 2026
 
