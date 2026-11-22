@@ -1037,6 +1037,7 @@ function EditableName({ value, onCommit, ariaLabel }: { value: string; onCommit:
 export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   const sheets = billSheetsFor(ds);
   const [sheetDraft, setSheetDraft] = useState('');
+  const [sheetRename, setSheetRename] = useState({ from: '', to: '' });
   const [billDraft, setBillDraft] = useState({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: '', account: '' });
   const [change, setChange] = useState({ bill: ds.bills[0]?.name ?? '', from: '', to: '', amount: '', due: '', type: '' });
   const [rentChange, setRentChange] = useState(() => ({
@@ -1141,13 +1142,18 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   };
 
   const renameSheet = (oldName: string, newName: string) => {
-    if (sheets.some((sheet) => sheet.name !== oldName && sheet.name.toLowerCase() === newName.toLowerCase())) return notify('That link sheet already exists');
+    const name = newName.trim();
+    if (!name) { notify('Type the new link sheet name'); return false; }
+    if (name === oldName) { notify('That is already the link sheet name'); return false; }
+    if (sheets.some((sheet) => sheet.name !== oldName && sheet.name.toLowerCase() === name.toLowerCase())) { notify('That link sheet already exists'); return false; }
     update((d) => {
-      d.settings.billSheets = billSheetsFor(d).map((sheet) => sheet.name === oldName ? { ...sheet, name: newName } : sheet);
-      d.bills.forEach((b) => { if (b.linkedSheet === oldName) b.linkedSheet = newName; });
+      d.settings.billSheets = billSheetsFor(d).map((sheet) => sheet.name === oldName ? { ...sheet, name } : sheet);
+      d.bills.forEach((b) => { if (b.linkedSheet === oldName) b.linkedSheet = name; });
     });
-    setBillDraft((current) => current.sheet === oldName ? { ...current, sheet: newName } : current);
-    notify(`${oldName} renamed to ${newName}`);
+    setBillDraft((current) => current.sheet === oldName ? { ...current, sheet: name } : current);
+    setSheetRename((current) => current.from === oldName ? { from: '', to: '' } : current);
+    notify(`${oldName} renamed to ${name}`);
+    return true;
   };
 
   const removeSheet = (name: string) => {
@@ -1159,6 +1165,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
       d.bills.forEach((b) => { if (b.linkedSheet === name) b.linkedSheet = ''; });
     });
     setBillDraft((current) => current.sheet === name ? { ...current, sheet: '' } : current);
+    setSheetRename((current) => current.from === name ? { from: '', to: '' } : current);
     notify(`${name} removed from the linked-sheet list`);
   };
 
@@ -1580,23 +1587,40 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
           </div>
           <Badge tone={sheets.length ? 'blue' : 'neutral'}>{sheets.length} sheet{sheets.length === 1 ? '' : 's'}</Badge>
         </div>
-        <Table head={['Link sheet', 'Bills', 'Type', '']} numHead={[1]}>
-          {sheets.map((sheet) => {
-            const used = ds.bills.filter((b) => b.linkedSheet === sheet.name).length;
-            return (
-              <tr key={sheet.name}>
-                <td><EditableName value={sheet.name} onCommit={(next) => renameSheet(sheet.name, next)} ariaLabel={`Link sheet ${sheet.name}`} /></td>
-                <td className="num">{used}</td>
-                <td>{sheet.providerKey ? <Badge tone="blue">Provider</Badge> : <Badge>Custom</Badge>}</td>
-                <td><button className="btn ghost sm" onClick={() => removeSheet(sheet.name)}>Remove</button></td>
-              </tr>
-            );
-          })}
-        </Table>
-        {sheets.length === 0 && <Empty>No link sheets yet. Add one to make it selectable on bills.</Empty>}
+        <div className="muted small" style={{ padding: '0 16px 4px' }}>
+          {sheets.length === 0
+            ? 'No link sheets yet — add one below and pick it on a bill.'
+            : sheets.map((sheet) => `${sheet.name} (${sheet.providerKey ? 'provider' : 'custom'}, ${ds.bills.filter((b) => b.linkedSheet === sheet.name).length} bills)`).join(' · ')}
+        </div>
         <div className="inline-form">
           <Field label="New link sheet"><input className="input" placeholder="e.g. TV Licence" value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} /></Field>
           <button className="btn primary" onClick={addSheet}>Add link sheet</button>
+          {sheets.length > 0 && (
+            <>
+              <Field label="Rename link sheet">
+                <select
+                  className="select"
+                  value={sheetRename.from || sheets[0]?.name || ''}
+                  onChange={(e) => setSheetRename({ ...sheetRename, from: e.target.value })}
+                >
+                  {sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}
+                </select>
+              </Field>
+              <Field label="New name">
+                <input
+                  className="input"
+                  placeholder="New sheet name"
+                  value={sheetRename.to}
+                  onChange={(e) => setSheetRename({ ...sheetRename, to: e.target.value })}
+                />
+              </Field>
+              <button className="btn" onClick={() => {
+                const from = sheetRename.from || sheets[0]?.name || '';
+                if (renameSheet(from, sheetRename.to)) setSheetRename({ from: '', to: '' });
+              }}>Rename</button>
+              <button className="btn ghost" onClick={() => removeSheet(sheetRename.from || sheets[0]?.name || '')}>Remove</button>
+            </>
+          )}
         </div>
       </Section>
 

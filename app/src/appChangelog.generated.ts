@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "c20c27e14eaf",
+  "buildId": "06699ee30a03",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -20,7 +20,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Combine the bill definitions and link sheets sections and move the scheduled bill run to Monthly",
             "Keep the link sheets inside the bills panel",
             "Trim the Accounts review panels, move People sign-ins to People, and drop revoked devices from the list",
-            "Stop writing a Budget change row for every save and clear the old automatic rows"
+            "Stop writing a Budget change row for every save and clear the old automatic rows",
+            "Create and rename link sheets inside the bills panel and drop the separate link sheets table"
           ]
         }
       ]

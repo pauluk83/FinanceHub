@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.22** (bundle `index-D72DXzsN.js`), suite **541/541**, `tsc` clean,
+Current release **2026.11.22** (bundle `index-tHSjS0JZ.js`), suite **541/541**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a

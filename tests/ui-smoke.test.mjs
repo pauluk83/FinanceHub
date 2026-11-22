@@ -397,7 +397,10 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.match(bills, /Bills and link sheets/);
   assert.doesNotMatch(bills, /Bill link sheets/, 'link sheets share the bills section');
   const billsSection = bills.slice(bills.indexOf('Bills and link sheets'));
-  assert.match(billsSection.slice(0, billsSection.indexOf('</section>')), /Add link sheet/, 'link sheets stay inside the bills panel');
+  const panel = billsSection.slice(0, billsSection.indexOf('</section>'));
+  assert.match(panel, /Add link sheet/, 'link sheets stay inside the bills panel');
+  assert.match(panel, /Rename link sheet/, 'a sheet can be renamed from the bills panel');
+  assert.doesNotMatch(bills, /<th>Link sheet<\/th>/, 'no separate link sheet table');
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
 
