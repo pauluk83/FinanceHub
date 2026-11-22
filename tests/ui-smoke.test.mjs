@@ -443,6 +443,30 @@ test('data health owns the duplicate review and merge', async () => {
   assert.match(html, /Merge into row 1/);
 });
 
+test('a 2027 holiday moves out of the 2026 bucket on load', async () => {
+  const { normaliseHolidayYears } = await server.ssrLoadModule('/src/store.ts');
+  const state = {
+    version: 1,
+    dataset: dataset({
+      dataset: {
+        holidays: {
+          2026: [
+            { event: 'December', start: '2026-12-22', end: '2026-12-29', nights: 7 },
+            { event: 'Mum 2027', start: '2027-04-17', end: '2027-04-24', nights: 7 },
+          ],
+        },
+      },
+    }),
+    theme: 'dark',
+    savedAt: '2026-11-22',
+  };
+
+  const next = normaliseHolidayYears(state);
+  assert.deepEqual(next.dataset.holidays['2026'].map((row) => row.event), ['December']);
+  assert.deepEqual(next.dataset.holidays['2027'].map((row) => row.event), ['Mum 2027']);
+  assert.equal(normaliseHolidayYears(next), next, 'a second load changes nothing');
+});
+
 test('the AI assistant asks for a key before it chats', async () => {
   const { AssistantView } = await server.ssrLoadModule('/src/views/assistant.tsx');
   const withoutKey = render(AssistantView, props(dataset()));

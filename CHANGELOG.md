@@ -23,6 +23,7 @@ and the build time.
 - Show the AI key state honestly in Settings
 - Explain when the assistant cannot reach OpenRouter
 - Allow the assistant to reach OpenRouter through the production CSP
+- Re-file holidays under their start year on every build, including the hosted app
 
 ## [2026.11.21] — 21 November 2026
 

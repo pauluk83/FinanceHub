@@ -5,6 +5,7 @@ import { advanceAsOfToLatestTransaction, latestTransactionDate, type Dataset } f
 import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
+import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
@@ -228,12 +229,12 @@ export function removePersistedValue(key: string): void {
  */
 
 export function seedState(): AppState {
-  return applyDataFixes(hydrateProviderPaid(hydrateRentMatched({
+  return normaliseHolidayYears(applyDataFixes(hydrateProviderPaid(hydrateRentMatched({
     version: 1,
     dataset: structuredClone(seed) as unknown as Dataset,
     theme: 'dark',
     savedAt: new Date().toISOString(),
-  })));
+  }))));
 }
 
 const seedProviders = seed.providers as Record<string, Record<string, any>>;
@@ -366,6 +367,19 @@ function ensureAsOfCoversTransactions(state: AppState): AppState {
   return { ...state, dataset };
 }
 
+/**
+ * A holiday belongs to the year it starts, whatever year it was entered under.
+ * This runs for every build (the hosted bundle replaces the private data fixes
+ * with a no-op), so a 2027 trip saved in the 2026 bucket moves on the next load.
+ */
+export function normaliseHolidayYears(state: AppState): AppState {
+  const holidays = state.dataset.holidays;
+  if (!holidays || Array.isArray(holidays)) return state;
+  const rekeyed = rekeyHolidaysByStartYear(holidays as Record<string, { start?: string }[]>);
+  if (JSON.stringify(rekeyed) === JSON.stringify(holidays)) return state;
+  return { ...state, dataset: { ...state.dataset, holidays: rekeyed } };
+}
+
 function decodeState(raw: string | null): AppState | null {
   if (!raw) return null;
   try {
@@ -375,7 +389,7 @@ function decodeState(raw: string | null): AppState | null {
     const repaired = repairDataset(parsed.dataset);
     if (!repaired) return null;
     const base: AppState = { ...parsed, dataset: repaired.dataset, theme: parsed.theme === 'light' ? 'light' : 'dark' };
-    return ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails(base))))));
+    return normaliseHolidayYears(ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails(base)))))));
   } catch {
     return null;
   }

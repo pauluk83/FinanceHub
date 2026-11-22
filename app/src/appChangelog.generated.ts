@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "db8eacfbae53",
+  "buildId": "b54843a00ce9",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -29,7 +29,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Add Settings AI with an OpenRouter key kept in the encrypted vault, plus an AI assistant that proposes bill and transaction changes for approval",
             "Show the AI key state honestly in Settings",
             "Explain when the assistant cannot reach OpenRouter",
-            "Allow the assistant to reach OpenRouter through the production CSP"
+            "Allow the assistant to reach OpenRouter through the production CSP",
+            "Re-file holidays under their start year on every build, including the hosted app"
           ]
         }
       ]
