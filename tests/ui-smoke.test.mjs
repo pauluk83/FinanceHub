@@ -443,6 +443,23 @@ test('data health owns the duplicate review and merge', async () => {
   assert.match(html, /Merge into row 1/);
 });
 
+test('a holiday trip can take extra cost lines', async () => {
+  const { Holidays } = await server.ssrLoadModule('/src/views/holidays.tsx');
+  const ds = dataset({
+    dataset: {
+      holidays: {
+        2026: [
+          { event: 'Unity - Mum', start: '2026-08-01', end: '2026-08-05', nights: 4, totalPence: 40000, paid: '✓ Paid' },
+        ],
+      },
+    },
+  });
+  const html = render(Holidays, props(ds));
+
+  assert.match(html, /Unity - Mum/);
+  assert.match(html, /Add cost line/);
+});
+
 test('the budget changelog drops the old automatic per-save rows', async () => {
   const { ChangelogView } = await server.ssrLoadModule('/src/views/tools.tsx');
   const ds = dataset({

@@ -20,6 +20,8 @@ type Holiday = {
 
 type HolidayRow = { year: number; index: number; holiday: Holiday };
 
+type CostTarget = { key: string; trip: string; year: number; start: string; end: string };
+
 type HolidayDraft = {
   year: string;
   event: string;
@@ -101,6 +103,8 @@ function nightsLabel(holiday: Holiday): string {
 export function Holidays({ ds, update, notify }: ViewProps) {
   const [editing, setEditing] = useState<HolidayRow | null>(null);
   const [adding, setAdding] = useState(false);
+  const [costFor, setCostFor] = useState<CostTarget | null>(null);
+  const [costDraft, setCostDraft] = useState({ label: '', amount: '', paid: '✓ Paid', ref: '', notes: '' });
   const [openTrips, setOpenTrips] = useState<Set<string>>(() => new Set());
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<HolidayDraft>(() => emptyDraft(ds.settings.targetYear));
@@ -134,9 +138,42 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   });
 
   const openAdd = () => {
+    setCostFor(null);
     setEditing(null);
     setAdding(true);
     setDraft(emptyDraft(ds.settings.targetYear));
+  };
+
+  const openCostLine = (target: CostTarget) => {
+    setAdding(false);
+    setEditing(null);
+    setCostDraft({ label: '', amount: '', paid: '✓ Paid', ref: '', notes: '' });
+    setCostFor(target);
+  };
+
+  const saveCostLine = () => {
+    if (!costFor) return;
+    const label = costDraft.label.trim();
+    if (!label) return notify('Name the cost line, e.g. Hotel, car park or travel insurance');
+    const amount = costDraft.amount.trim();
+    const next: Holiday = {
+      event: label,
+      start: costFor.start,
+      end: costFor.end,
+      nights: '',
+      paid: costDraft.paid,
+      totalPence: amount ? parseMoney(amount) : null,
+      ref: costDraft.ref.trim(),
+      notes: costDraft.notes.trim(),
+    };
+    update((dataset) => {
+      dataset.holidays = dataset.holidays ?? {};
+      const key = String(costFor.year);
+      dataset.holidays[key] = [...(dataset.holidays[key] ?? []), next];
+    });
+    setOpenTrips((current) => new Set(current).add(costFor.key));
+    notify(`${label} added to ${costFor.trip}`);
+    setCostFor(null);
   };
 
   const openEdit = (row: HolidayRow) => {
@@ -148,6 +185,7 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   const closeForm = () => {
     setEditing(null);
     setAdding(false);
+    setCostFor(null);
     setDraft(emptyDraft(ds.settings.targetYear));
   };
 
@@ -217,7 +255,7 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   return (
     <Section
       title="Holiday tracker"
-      sub="Add, edit or remove trips. Cost lines fold under their trip; expand one to edit its flights, parking or insurance."
+      sub="Add, edit or remove trips, then add cost lines such as hotel, car park or travel insurance. Cost lines fold under their trip; expand one to edit them."
       actions={<button className="btn primary" onClick={formOpen ? closeForm : openAdd}>{formOpen ? 'Close form' : 'Add holiday'}</button>}
     >
       <div className="metric-list" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
@@ -226,6 +264,34 @@ export function Holidays({ ds, update, notify }: ViewProps) {
         <div className="metric"><span>Nights booked</span><strong>{totalNights}</strong></div>
         <div className="metric"><span>Recorded total</span><strong>{gbp(totalSpend)}</strong></div>
       </div>
+
+      {costFor && (
+        <div style={{ padding: 16, borderBottom: '1px solid var(--line)' }}>
+          <h3 className="card-title">Add a cost line to {costFor.trip}</h3>
+          <p className="card-sub">
+            {costFor.start ? `${dateUk(costFor.start)} → ${dateUk(costFor.end || costFor.start)}` : 'No dates on this trip'} — the cost line shares the trip's dates and is totalled with it.
+          </p>
+          <div className="form-grid">
+            <Field label="Cost" hint="What it is, e.g. Hotel, car park, travel insurance">
+              <input className="input" placeholder="e.g. Travel insurance" value={costDraft.label} onChange={(e) => setCostDraft({ ...costDraft, label: e.target.value })} />
+            </Field>
+            <Field label="Amount £"><input className="input" inputMode="decimal" placeholder="0.00" value={costDraft.amount} onChange={(e) => setCostDraft({ ...costDraft, amount: e.target.value })} /></Field>
+            <Field label="Payment">
+              <select className="select" value={costDraft.paid} onChange={(e) => setCostDraft({ ...costDraft, paid: e.target.value })}>
+                <option value="✓ Paid">Paid</option>
+                <option value="X Unpaid">Unpaid</option>
+                <option value="">Not set</option>
+              </select>
+            </Field>
+            <Field label="Reference"><input className="input" placeholder="Booking reference" value={costDraft.ref} onChange={(e) => setCostDraft({ ...costDraft, ref: e.target.value })} /></Field>
+            <Field label="Notes"><input className="input" placeholder="e.g. Annual policy" value={costDraft.notes} onChange={(e) => setCostDraft({ ...costDraft, notes: e.target.value })} /></Field>
+          </div>
+          <div className="toolbar" style={{ borderBottom: 0, padding: '12px 0 0' }}>
+            <button className="btn primary" onClick={saveCostLine}>Add cost line</button>
+            <button className="btn" onClick={() => setCostFor(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {formOpen && (
         <div style={{ padding: 16, borderBottom: '1px solid var(--line)' }}>
@@ -314,6 +380,12 @@ export function Holidays({ ds, update, notify }: ViewProps) {
                 <td className="num">{extra ? totalLabel(row.holiday) : headlineTotal}</td>
                 <td className="muted small">{row.holiday.ref || '—'}</td>
                 <td className="nowrap">
+                  {!extra && (
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => openCostLine({ key: trip.key, trip: row.holiday.event || 'this trip', year: row.year, start: trip.start, end: trip.end })}
+                    >Add cost line</button>
+                  )}
                   <button className="btn ghost sm" onClick={() => openEdit(row)}>Edit</button>
                   <button className="btn ghost sm" onClick={() => remove(row)}>Remove</button>
                 </td>
@@ -324,7 +396,7 @@ export function Holidays({ ds, update, notify }: ViewProps) {
       </Table>
       {rows.length === 0 && <Empty>No holidays recorded. Add a trip to populate the Dashboard tracker.</Empty>}
       <div style={{ padding: '0 16px 16px' }}>
-        <div className="notice info">Cost lines share a trip's dates and are totalled with the headline row. Use <strong>Show cost lines</strong> to reveal and edit flights, parking or insurance individually. Changes are included in the local/cloud budget document and update the Dashboard holiday section immediately.</div>
+        <div className="notice info">Cost lines share a trip's dates and are totalled with the headline row. Use <strong>Add cost line</strong> on a trip for a hotel, car park, travel insurance or anything else, then <strong>Show cost lines</strong> to reveal and edit them individually. Changes are included in the local/cloud budget document and update the Dashboard holiday section immediately.</div>
       </div>
     </Section>
   );

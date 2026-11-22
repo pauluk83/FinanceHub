@@ -17,6 +17,7 @@ and the build time.
 - Create and rename link sheets inside the bills panel and drop the separate link sheets table
 - Remove the price history, expiry list and possible subscriptions panels from Bills
 - Remove the payment date card from the provider sheets
+- Add cost lines such as hotel, car park and travel insurance to a holiday trip
 
 ## [2026.11.21] — 21 November 2026
 
