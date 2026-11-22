@@ -6,7 +6,7 @@ export const VAULT_MIN_PASSPHRASE = 12;
 export const VAULT_MAX_HINT = 80;
 
 const PROVIDERS = ['rent', 'water', 'councilTax', 'parkXmas', 'ovo', 'o2', 'virgin'] as const;
-const FIELDS = ['username', 'password', 'chargeLetterPassword', 'accessBill'] as const;
+const FIELDS = ['username', 'password', 'chargeLetterPassword', 'accessBill', 'apiKey', 'model'] as const;
 
 export type VaultField = (typeof FIELDS)[number];
 export type ProviderSecret = Partial<Record<VaultField, string>>;

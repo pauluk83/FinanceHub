@@ -443,6 +443,18 @@ test('data health owns the duplicate review and merge', async () => {
   assert.match(html, /Merge into row 1/);
 });
 
+test('the AI assistant asks for a key before it chats', async () => {
+  const { AssistantView } = await server.ssrLoadModule('/src/views/assistant.tsx');
+  const withoutKey = render(AssistantView, props(dataset()));
+  assert.match(withoutKey, /OpenRouter key/);
+
+  const ready = render(AssistantView, props(dataset(), {
+    vaultSession: { secrets: { ai: { apiKey: 'sk-or-test' } }, key: null, salt: 'salt', iterations: 600_000 },
+  }));
+  assert.match(ready, /Ask the assistant/);
+  assert.doesNotMatch(ready, /sk-or-test/);
+});
+
 test('a holiday trip can take extra cost lines', async () => {
   const { Holidays } = await server.ssrLoadModule('/src/views/holidays.tsx');
   const ds = dataset({

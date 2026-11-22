@@ -585,6 +585,22 @@ export const USER_GUIDE: GuideEntry[] = [
     ],
   },
   {
+    id: 'assistant',
+    group: 'Tools',
+    title: 'AI assistant',
+    summary: 'Ask about this budget, or ask for a bill or transaction change, using your own OpenRouter key.',
+    steps: [
+      'Open Settings → AI and save an OpenRouter API key. It is sealed in the encrypted credential vault; unlock the vault when asked.',
+      'Leave the model as openrouter/free for a free model, or enter another OpenRouter model ID.',
+      'Open AI assistant in Tools and ask about a balance, a bill, spending or a person.',
+      'A requested change appears as a card with Apply; nothing is saved until you press it.',
+    ],
+    notes: [
+      'The budget summary is sent to OpenRouter with each question. The key is never written to the budget, a backup or sync.',
+      'Free models are rate limited and can be wrong; check the amount before applying a change.',
+    ],
+  },
+  {
     id: 'debts',
     group: 'Ledger',
     title: 'Debts',

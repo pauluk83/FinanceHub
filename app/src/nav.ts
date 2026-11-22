@@ -82,6 +82,7 @@ const FIXED: NavItemDef[] = [
   { id: 'settings', label: 'Settings', icon: '⚙', group: 'Tools', tip: 'Budget dates and year rollover, security, the provider vault, sync, backups and the sidebar menu layout.' },
   { id: 'appChangelog', label: 'Application changelog', icon: '⤴', group: 'Tools', tip: 'Release history for each build: version, build id, dates and the Windows installer download.' },
   { id: 'changelog', label: 'Budget changelog', icon: '🕘', group: 'Tools', tip: 'Your own history: bills, balances, people and month-end figures, kept with the budget and backups.' },
+  { id: 'assistant', label: 'AI assistant', icon: '🤖', group: 'Tools', tip: 'Chat about this budget with your own OpenRouter key; a proposed bill or transaction waits for Apply.' },
   { id: 'guides', label: 'Guides', icon: '?', group: 'Tools', tip: 'One help page: the full user guide for every section, then the month-end and new-year workflows.' },
 ];
 

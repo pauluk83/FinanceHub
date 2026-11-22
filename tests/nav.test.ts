@@ -23,7 +23,7 @@ test('the default sidebar keeps the expected group order and provider order', ()
   const nav = buildNav(dataset());
   assert.deepEqual(nav.map((group) => group.group), ['Overview', 'Ledger', 'Providers', 'Tools']);
   assert.deepEqual(nav[2].items.map((item) => item.id), ['rent', 'water', 'councilTax', 'o2']);
-  assert.deepEqual(nav[3].items.map((item) => item.id), ['setup', 'statements', 'evidence', 'import', 'rules', 'alerts', 'health', 'settings', 'appChangelog', 'changelog', 'guides']);
+  assert.deepEqual(nav[3].items.map((item) => item.id), ['setup', 'statements', 'evidence', 'import', 'rules', 'alerts', 'health', 'settings', 'appChangelog', 'changelog', 'assistant', 'guides']);
 });
 
 test('a hidden item leaves the sidebar and the palette list', () => {
@@ -41,7 +41,7 @@ test('an item can be moved to another section and back', () => {
 test('Tools items can be hidden like any other item', () => {
   const ds = dataset({ hidden: ['guides', 'statements', 'health'] });
   const tools = buildNav(ds).find((group) => group.group === 'Tools');
-  assert.deepEqual(tools?.items.map((item) => item.id), ['setup', 'evidence', 'import', 'rules', 'alerts', 'settings', 'appChangelog', 'changelog']);
+  assert.deepEqual(tools?.items.map((item) => item.id), ['setup', 'evidence', 'import', 'rules', 'alerts', 'settings', 'appChangelog', 'changelog', 'assistant']);
 });
 
 test('Tools items can be moved to another section and back', () => {

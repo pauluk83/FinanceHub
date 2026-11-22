@@ -41,6 +41,7 @@ const ProviderView = lazy(() => import('./views/providers').then((m) => ({ defau
 const Rent = lazy(() => import('./views/providers').then((m) => ({ default: m.Rent })));
 const Statements = lazy(() => import('./views/providers').then((m) => ({ default: m.Statements })));
 const ChangelogView = lazy(() => import('./views/tools').then((m) => ({ default: m.ChangelogView })));
+const AssistantView = lazy(() => import('./views/assistant').then((m) => ({ default: m.AssistantView })));
 const GuidesView = lazy(() => import('./views/tools').then((m) => ({ default: m.GuidesView })));
 const ImportView = lazy(() => import('./views/tools').then((m) => ({ default: m.ImportView })));
 const SettingsView = lazy(() => import('./views/tools').then((m) => ({ default: m.SettingsView })));
@@ -687,6 +688,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       case 'settings': return <SettingsView {...props} />;
       case 'appChangelog': return <AppChangelogView {...props} />;
       case 'changelog': return <ChangelogView {...props} />;
+      case 'assistant': return <AssistantView {...props} />;
       case 'guides': return <GuidesView {...props} />;
       case 'water': return <ProviderView {...props} provider="water" title={providerDisplayName(state.dataset, 'water')} subtitle="Thames Water — monthly plan" />;
       case 'councilTax': return <ProviderView {...props} provider="councilTax" title={providerDisplayName(state.dataset, 'councilTax')} subtitle="Charges, payments and running balance" />;

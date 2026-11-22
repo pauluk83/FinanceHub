@@ -19,6 +19,7 @@ and the build time.
 - Remove the payment date card from the provider sheets
 - Add cost lines such as hotel, car park and travel insurance to a holiday trip
 - File every holiday under the year it starts, moving 2027 trips out of 2026
+- Add Settings AI with an OpenRouter key kept in the encrypted vault, plus an AI assistant that proposes bill and transaction changes for approval
 
 ## [2026.11.21] — 21 November 2026
 

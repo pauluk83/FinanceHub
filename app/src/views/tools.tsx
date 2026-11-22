@@ -4,6 +4,7 @@ import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateTimeUk, dateUk, download, gbp, MONTH_LONG, parseMoney, todayIso, toCsv } from '../format';
 import { clearState } from '../store';
 import { MenuLayoutSection } from './menuLayout';
+import { AiSettings } from './aiSettings';
 import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
 import { withoutAppUpdatePlaceholders, withoutAutomaticBudgetChanges } from '../budgetChangelog';
 import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
@@ -1096,10 +1097,11 @@ export function ImportView({ ds, update, go, notify }: ViewProps) {
 
 /* ------------------------------------------------------------------ settings */
 
-type SettingsPane = 'account' | 'budget' | 'data' | 'app';
+type SettingsPane = 'account' | 'ai' | 'budget' | 'data' | 'app';
 
 const SETTINGS_PANES: { id: SettingsPane; label: string; summary: string }[] = [
   { id: 'account', label: 'Account', summary: 'Session, passkeys, app lock, sync conflicts and the provider vault.' },
+  { id: 'ai', label: 'AI', summary: 'The OpenRouter key for the AI assistant, sealed in the encrypted vault.' },
   { id: 'budget', label: 'Budget', summary: 'Year rollover plus the core dates, account and currency every screen reads.' },
   { id: 'data', label: 'Data', summary: 'Backups, duplicate review, onboarding and reset.' },
   { id: 'app', label: 'App', summary: 'Theme, sidebar layout and legal information.' },
@@ -1579,6 +1581,10 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       </Section>
 
       <CredentialVault ds={ds} update={update} notify={notify} vault={vault} vaultSession={vaultSession} setVault={setVault} setVaultSession={setVaultSession} />
+      </div>
+
+      <div className="settings-pane" hidden={settingsPane !== 'ai'}>
+      <AiSettings vault={vault} vaultSession={vaultSession} setVault={setVault} setVaultSession={setVaultSession} notify={notify} />
       </div>
 
       <div className="settings-pane" hidden={settingsPane !== 'budget'}>
