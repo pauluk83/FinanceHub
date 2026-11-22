@@ -117,6 +117,8 @@ export function availableYears(ds: Dataset): number[] {
     for (const key of Object.keys((provider as any)?.years ?? {})) add(Number(key));
   }
   for (const key of Object.keys(ds.monthLocks ?? {})) add(Number(key.slice(0, 4)));
+  // A holiday year with no transactions still needs to be selectable.
+  for (const key of Object.keys(ds.holidays ?? {})) add(Number(key));
   for (const row of ds.transactions ?? []) add(Number(row.date?.slice(0, 4)));
   return [...years].sort((a, b) => a - b);
 }

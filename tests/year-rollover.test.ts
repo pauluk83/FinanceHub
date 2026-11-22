@@ -20,6 +20,16 @@ const load = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'workbook.
 
 test('available years include the imported later-year blocks', () => {
   assert.deepEqual(availableYears(load()), [2026, 2027, 2028]);
+
+  const holidaysOnly = {
+    ...load(),
+    settings: { ...load().settings, targetYear: 2026 },
+    transactions: [],
+    monthLocks: {},
+    providers: {},
+    holidays: { 2027: [{ event: 'Mum 2027', start: '2027-04-17' }] },
+  };
+  assert.deepEqual(availableYears(holidaysOnly), [2026, 2027], 'a holiday year can be selected without transactions');
 });
 
 test('later-year bills read their own provider block', () => {

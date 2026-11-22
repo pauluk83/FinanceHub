@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "76d4c348705c",
+  "buildId": "670e207d2e1b",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -34,7 +34,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Remove the cost-line explainer from Holidays",
             "Show only the selected year's trips in the holiday tracker",
             "Show only the selected year's trips in the holiday tracker",
-            "Show only the selected year's trips in the holiday tracker"
+            "Show only the selected year's trips in the holiday tracker",
+            "Offer a year that only holds holidays in the year bar"
           ]
         }
       ]
