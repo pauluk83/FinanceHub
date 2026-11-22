@@ -78,8 +78,8 @@ export function AiSettings({ vault, vaultSession, setVault, setVaultSession, not
     <Section
       title="AI"
       sub="Ask questions about this budget or ask for a change. Requests go from this app to OpenRouter with your own key; nothing is sent anywhere else."
-      actions={<Badge tone={vaultSession && saved.apiKey ? 'green' : vault ? 'amber' : 'neutral'}>
-        {vaultSession && saved.apiKey ? 'Key saved' : vault ? 'Vault locked' : 'Not set up'}
+      actions={<Badge tone={!vault ? 'neutral' : vaultSession && saved.apiKey ? 'green' : 'amber'}>
+        {!vault ? 'Not set up' : !vaultSession ? 'Vault locked' : saved.apiKey ? 'Key saved' : 'No key saved'}
       </Badge>}
     >
       <div style={{ padding: 16 }}>
@@ -120,7 +120,7 @@ export function AiSettings({ vault, vaultSession, setVault, setVaultSession, not
         {!vault && (
           <div className="toolbar" style={{ borderBottom: 0, padding: '12px 0 0' }}>
             <button className="btn primary" onClick={create} disabled={busy || passphrase.length < 12}>
-              {busy ? 'Working…' : 'Create vault and save key'}
+              {busy ? 'Working…' : 'Create vault'}
             </button>
           </div>
         )}
