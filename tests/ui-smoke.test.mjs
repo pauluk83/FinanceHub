@@ -494,6 +494,7 @@ test('a holiday trip can take extra cost lines', async () => {
 
   assert.match(html, /Unity - Mum/);
   assert.match(html, /Add cost line/);
+  assert.doesNotMatch(html, /Cost lines share a trip/, 'the cost-line explainer notice is gone');
 });
 
 test('the budget changelog drops the old automatic per-save rows', async () => {

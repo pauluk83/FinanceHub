@@ -391,9 +391,6 @@ export function Holidays({ ds, update, notify }: ViewProps) {
         })}
       </Table>
       {rows.length === 0 && <Empty>No holidays recorded. Add a trip to populate the Dashboard tracker.</Empty>}
-      <div style={{ padding: '0 16px 16px' }}>
-        <div className="notice info">Cost lines share a trip's dates and are totalled with the headline row. Use <strong>Add cost line</strong> on a trip for a hotel, car park, travel insurance or anything else, then <strong>Show cost lines</strong> to reveal and edit them individually. Changes are included in the local/cloud budget document and update the Dashboard holiday section immediately.</div>
-      </div>
     </Section>
   );
 }

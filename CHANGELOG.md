@@ -24,6 +24,7 @@ and the build time.
 - Explain when the assistant cannot reach OpenRouter
 - Allow the assistant to reach OpenRouter through the production CSP
 - Re-file holidays under their start year on every build, including the hosted app
+- Remove the cost-line explainer from Holidays
 
 ## [2026.11.21] — 21 November 2026
 

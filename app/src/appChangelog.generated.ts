@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "b54843a00ce9",
+  "buildId": "b81e6266f5cb",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -30,7 +30,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Show the AI key state honestly in Settings",
             "Explain when the assistant cannot reach OpenRouter",
             "Allow the assistant to reach OpenRouter through the production CSP",
-            "Re-file holidays under their start year on every build, including the hosted app"
+            "Re-file holidays under their start year on every build, including the hosted app",
+            "Remove the cost-line explainer from Holidays"
           ]
         }
       ]
