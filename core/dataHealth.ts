@@ -99,7 +99,6 @@ function duplicateCheck(ds: Dataset): HealthCheck {
       severity: 'ok',
       summary: 'No saved rows share the same date, account, type and amount.',
       items: [],
-      action: { label: 'Open duplicate check', view: 'settings' },
     };
   }
   const rows = groups.reduce((sum, group) => sum + group.rows.length, 0);
@@ -107,11 +106,10 @@ function duplicateCheck(ds: Dataset): HealthCheck {
     id: 'duplicate-transactions',
     title: 'Possible duplicate transactions',
     severity: 'warning',
-    summary: `${groups.length} group${groups.length === 1 ? '' : 's'} · ${rows} rows share the same date, account, type and amount. They have not been changed.`,
+    summary: `${groups.length} group${groups.length === 1 ? '' : 's'} · ${rows} rows share the same date, account, type and amount. They have not been changed; review and merge them below.`,
     items: groups.map((group) =>
       `${group.date} · ${group.account} · ${group.type} · ${money(group.amountPence)} · ${group.rows.length} rows`,
     ),
-    action: { label: 'Review duplicate check', view: 'settings' },
   };
 }
 

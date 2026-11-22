@@ -113,7 +113,7 @@ const SUBTITLES: Record<string, string> = {
   settings: 'The single source of truth for every screen',
   changelog: 'Your budget history — bills, balances, people and month-end figures',
   appChangelog: 'What changed in each build, with the build id and installer download',
-  guides: 'Month-End and New-Year workflows',
+  guides: 'The full user guide with the month-end and new-year workflows',
   netWorth: 'Bank accounts, savings, assets, cards and debts — and the recorded trend',
   reports: 'Category and tag spending, twelve-month trend and report-only targets',
   evidence: 'Printable and Excel evidence packs for provider disputes, month closes and benefits',

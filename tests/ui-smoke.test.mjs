@@ -404,6 +404,40 @@ test('settings links to the record pages instead of keeping second editors', asy
   assert.doesNotMatch(html, /Add card/);
   assert.doesNotMatch(html, /Add change/);
   assert.doesNotMatch(html, /Update future rent/);
+  assert.doesNotMatch(html, /Duplicate check/);
+});
+
+test('the dashboard duplicate notice sends you to data health', async () => {
+  const { Dashboard } = await server.ssrLoadModule('/src/views/overview.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const row = { date: '2026-11-03', account: 'Current', type: 'Expense', amountPence: 1_000, comments: '', status: '', budgetTreatment: '' };
+  const ds = dataset({ transactions: [{ ...row, row: 1 }, { ...row, row: 2 }] });
+  const html = render(Dashboard, props(ds, { engine: buildEngine(ds) }));
+
+  assert.match(html, /1 duplicate group/);
+  assert.match(html, /Review in Data health/);
+  assert.doesNotMatch(html, /Review duplicate check/);
+});
+
+test('data health owns the duplicate review and merge', async () => {
+  const { DataHealthView } = await server.ssrLoadModule('/src/views/health.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const row = { date: '2026-11-03', account: 'Current', type: 'Expense', amountPence: 1_000, comments: 'Shop', status: '', budgetTreatment: '' };
+  const ds = dataset({ transactions: [{ ...row, row: 1 }, { ...row, row: 2 }] });
+  const html = render(DataHealthView, props(ds, { engine: buildEngine(ds) }));
+
+  assert.match(html, /Duplicate review/);
+  assert.match(html, /Merge into row 1/);
+});
+
+test('guides are one help page with both workflows', async () => {
+  const { GuidesView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const html = render(GuidesView, props(dataset()));
+
+  assert.equal((html.match(/class="tab/g) ?? []).length, 0, 'no workflow tabs');
+  assert.match(html, /Help contents/);
+  assert.match(html, /id="guide-month-end"/);
+  assert.match(html, /id="guide-new-year"/);
 });
 
 test('email verification is required for unconfirmed email accounts only', async () => {

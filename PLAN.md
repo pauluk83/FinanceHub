@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.22** (bundle `index-_Yv7SjCP.js`), suite **536/536**, `tsc` clean,
+Current release **2026.11.22** (bundle `index-BrzCNUrx.js`), suite **539/539**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -206,15 +206,6 @@ Rules for every item here: no money rule in §2 changes; a change that touches a
 a test proving the figure unchanged in the same release; one release per item, so any item can
 be dropped without unpicking the others. Nothing here adds a feature or restyles a screen.
 
-**6.1 — Delete the second editors (Tier 1).** Bank accounts, people, cards, rent changes and
-bill changes are now edited only on the pages that hold those records; Settings links to those
-pages, and Monthly keeps the Dashboard's single month strip. Remaining: the Dashboard duplicate
-notice points at Data health instead of Settings' own check, and the static Guides page folds
-into one help surface, leaving the data-driven Explain dialogs as the per-figure answer.
-
-Exit: the duplicate check has one listing and the Guides pages become one help surface, and
-every link resolves.
-
 **6.2 — Merge four pairs of pages (Tier 2).** Accounts + Cards become "Accounts & cards";
 Calendar absorbs Notifications; Progress + Reports become "Insights"; Statements + Evidence
 packs become one print/export page. The sidebar drops from 36 destinations to about 28 with no
@@ -232,7 +223,7 @@ Savings and Debts tiles link to their pages.
 
 Exit: no figure or table appears on both screens, and each KPI row stays one height.
 
-**6.4 — Internal structure (Tier 4).** Split `views/tools.tsx` (about 2,365 lines, around twenty
+**6.4 — Internal structure (Tier 4).** Split `views/tools.tsx` (about 1,980 lines, around twenty
 unrelated tools) into `views/tools/*`; type the provider shapes that are `any` today, starting
 with the payment-day/due-day pair, so one fact stops having two interpretations.
 

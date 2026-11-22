@@ -8,7 +8,9 @@ import { lastBackupExportedAt, latestRestorePointAt } from '../backupStore';
 import { buildSupportBundle } from '../supportBundle';
 import { crashSummary } from '../crashJournal';
 import { APP_CHANGELOG } from '../appChangelog.generated';
-import { download, todayIso } from '../format';
+import { duplicateGroups } from '../../../core/importDedupe';
+import { mergeDuplicateRows, mergedRows, unmergeTransaction } from '../../../core/cleanup';
+import { dateUk, download, gbp, todayIso } from '../format';
 
 function severityLabel(severity: HealthCheck['severity']): string {
   if (severity === 'critical') return 'Critical';
@@ -27,6 +29,20 @@ function severityTone(severity: HealthCheck['severity']): string {
 export function DataHealthView({ ds, engine, go, notify, update, syncConflicts, syncHealth, userId }: ViewProps) {
   const sheets = billSheetsFor(ds);
   const [fixPreview, setFixPreview] = useState<HealthFixPlan | null>(null);
+  const [showDuplicates, setShowDuplicates] = useState(true);
+  const duplicateScan = duplicateGroups(ds.transactions.filter((t) => t.autoBill !== true && t.mergedIntoRow === undefined));
+  const mergedDuplicates = mergedRows(ds);
+  const mergeGroup = (rowNumbers: number[]) => {
+    if (!confirm(`Merge ${rowNumbers.length} rows into row ${Math.min(...rowNumbers)}? The later rows become zero-amount links, so the payment counts once. You can undo it here.`)) return;
+    let message = '';
+    update((d) => { message = mergeDuplicateRows(d, rowNumbers).message; });
+    notify(message);
+  };
+  const undoMerge = (row: number) => {
+    let message = '';
+    update((d) => { message = unmergeTransaction(d, row).message; });
+    notify(message);
+  };
   const fixPlan = buildHealthFixPlan(ds, { sheets });
   const report = buildDataHealth(ds, engine, {
     sheets,
@@ -150,6 +166,67 @@ export function DataHealthView({ ds, engine, go, notify, update, syncConflicts, 
             <div className="toolbar-spacer" />
             <button className="btn" type="button" onClick={() => setFixPreview(buildHealthFixPlan(ds, { sheets }))}>Preview {fixPlan.changeCount} change{fixPlan.changeCount === 1 ? '' : 's'}</button>
           </div>
+        )}
+      </Section>
+
+      <Section
+        title="Duplicate review"
+        sub="Merge rows that share the same date, account, type and amount. The oldest row keeps the amount; later rows become zero-amount links and can be restored here."
+        actions={<Badge tone={duplicateScan.length ? 'amber' : 'green'}>{duplicateScan.length ? `${duplicateScan.length} group${duplicateScan.length === 1 ? '' : 's'}` : 'None found'}</Badge>}
+      >
+        {duplicateScan.length === 0 ? (
+          <div style={{ padding: 16 }}><Empty>No duplicate groups in this budget.</Empty></div>
+        ) : (
+          <>
+            <div className="toolbar" style={{ borderBottom: 0 }}>
+              <span className="muted small">
+                {duplicateScan.reduce((sum, group) => sum + group.rows.length, 0)} rows across {duplicateScan.length} group{duplicateScan.length === 1 ? '' : 's'}. A merge changes the totals by removing the duplicate amount; undo restores it exactly.
+              </span>
+              <div className="toolbar-spacer" />
+              <button className="btn" onClick={() => setShowDuplicates((value) => !value)}>
+                {showDuplicates ? 'Hide groups' : 'Show groups'}
+              </button>
+            </div>
+            {showDuplicates && (
+              <Table head={['Date', 'Account', 'Type', 'Amount', 'Rows', 'Descriptions', '']} numHead={[3, 4]}>
+                {duplicateScan.map((group) => (
+                  <tr key={group.key}>
+                    <td className="muted nowrap">{dateUk(group.date)}</td>
+                    <td>{group.account}</td>
+                    <td>{group.type}</td>
+                    <td className="num">{gbp(group.amountPence)}</td>
+                    <td className="num">{group.rows.length}</td>
+                    <td className="muted small">
+                      {group.rows.map((row) => `${row.comments?.trim() || '—'} (row ${row.row})`).join(' · ')}
+                    </td>
+                    <td>
+                      <button className="btn ghost sm" onClick={() => mergeGroup(group.rows.map((row) => row.row))}>
+                        Merge into row {Math.min(...group.rows.map((row) => row.row))}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            )}
+          </>
+        )}
+        {mergedDuplicates.length > 0 && (
+          <>
+            <div className="panel-head"><div><h3 className="card-title">Merged rows</h3><p className="card-sub">Undo restores the amount and removes the link.</p></div></div>
+            <Table head={['Row', 'Date', 'Account', 'Type', 'Kept amount', 'Merged into', '']} numHead={[4]}>
+              {mergedDuplicates.map((row) => (
+                <tr key={row.row}>
+                  <td className="num">{row.row}</td>
+                  <td className="muted nowrap">{dateUk(row.date)}</td>
+                  <td>{row.account}</td>
+                  <td>{row.type}</td>
+                  <td className="num">{gbp(row.mergedFromPence ?? 0)}</td>
+                  <td className="num">{row.mergedIntoRow}</td>
+                  <td><button className="btn ghost sm" onClick={() => undoMerge(row.row)}>Undo merge</button></td>
+                </tr>
+              ))}
+            </Table>
+          </>
         )}
       </Section>
 

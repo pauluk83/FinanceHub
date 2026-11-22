@@ -147,10 +147,10 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
         <div className="notice info" role="status">
           <div>
             <strong>{duplicateReview.length} duplicate {duplicateReview.length === 1 ? 'group' : 'groups'} · {duplicateRows} rows</strong>
-            <span>These rows share a date, account, type and amount. They stay in the ledger untouched; review them in Settings before changing anything.</span>
+            <span>These rows share a date, account, type and amount. They stay in the ledger untouched; review them in Data health before changing anything.</span>
           </div>
-          <button className="btn ghost sm" type="button" onClick={() => go('settings')}>
-            Review duplicate check
+          <button className="btn ghost sm" type="button" onClick={() => go('health')}>
+            Review in Data health
           </button>
         </div>
       )}

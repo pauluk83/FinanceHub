@@ -633,11 +633,11 @@ export const USER_GUIDE: GuideEntry[] = [
     id: 'guides',
     group: 'Tools',
     title: 'Guides',
-    summary: 'This page: the complete section-by-section guide, plus the month-end and new-year workflows.',
+    summary: 'This page: the complete section-by-section guide, with the month-end and new-year workflows at the end.',
     steps: [
       'Read the Basics first: workspaces, saving and navigation.',
       'Jump to any section from the contents list.',
-      'Use the Month-End Guide and New-Year Setup tabs for step-by-step workflows.',
+      'Scroll on to the month-end and new-year workflows for step-by-step help.',
     ],
     notes: [
       'Sidebar tooltips repeat the one-line purpose of each section without leaving the current screen.',

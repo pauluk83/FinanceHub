@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Move account, card and people editing onto their own pages, move rent and bill changes to Bills, and drop Monthly's duplicate month strip
+- Send duplicate review to Data health and fold the Guides page into one help surface
 
 ## [2026.11.21] — 21 November 2026
 

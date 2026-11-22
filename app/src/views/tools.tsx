@@ -9,8 +9,7 @@ import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
 import { withoutAppUpdatePlaceholders } from '../budgetChangelog';
 import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
 import { decodeBackupDataset } from '../backup';
-import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
-import { mergeDuplicateRows, mergedRows, unmergeTransaction } from '../../../core/cleanup';
+import { detectDuplicates } from '../../../core/importDedupe';
 import { backupFileProblem, countCsvRows, csvFileProblem, csvRowProblem, importOutOfWindow, importWindowEnd } from '../../../core/importLimits';
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import {
@@ -1373,23 +1372,8 @@ function CredentialVault({ ds, update, notify, vault, vaultSession, setVault, se
 
 export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, userId, userEmail, isLocal, signOut, localAccount, workspace, vault, appLock, setAppLock, vaultSession, setVault, setVaultSession, syncConflicts, resolveSyncConflict, exportSyncConflict, purgeSyncConflicts, year, setYear }: ViewProps) {
   const restoreInput = useRef<HTMLInputElement>(null);
-  const [showDuplicates, setShowDuplicates] = useState(false);
   const [settingsPane, setSettingsPane] = useState<SettingsPane>('account');
   const activeSettingsPane = SETTINGS_PANES.find((pane) => pane.id === settingsPane) ?? SETTINGS_PANES[0];
-  const duplicateScan = duplicateGroups(ds.transactions.filter((t) => t.autoBill !== true && t.mergedIntoRow === undefined));
-  const mergedDuplicates = mergedRows(ds);
-  const mergeGroup = (rowNumbers: number[]) => {
-    if (!confirm(`Merge ${rowNumbers.length} rows into row ${Math.min(...rowNumbers)}? The later rows become zero-amount links, so the payment counts once. You can undo it here.`)) return;
-    let message = '';
-    update((d) => { message = mergeDuplicateRows(d, rowNumbers).message; });
-    notify(message);
-  };
-  const undoMerge = (row: number) => {
-    let message = '';
-    update((d) => { message = unmergeTransaction(d, row).message; });
-    notify(message);
-  };
-
   const primaryAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || '';
   const reset = () => {
     if (!confirm('Discard every local edit and restore the imported workbook data?')) return;
@@ -1693,66 +1677,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
 
       <EncryptedBackupSection ds={ds} update={update} notify={notify} userId={userId} />
 
-      <Section
-        title="Duplicate check"
-        sub="Merge rows that share the same date, account, type and amount. The oldest row keeps the amount; later rows become zero-amount links and can be restored here."
-        actions={<Badge tone={duplicateScan.length ? 'amber' : 'green'}>{duplicateScan.length ? `${duplicateScan.length} groups` : 'None found'}</Badge>}
-      >
-        {duplicateScan.length === 0 ? (
-          <div style={{ padding: 16 }}><Empty>No duplicate groups in this budget.</Empty></div>
-        ) : (
-          <>
-            <div className="toolbar" style={{ borderBottom: 0 }}>
-              <span className="muted small">
-                {duplicateScan.reduce((sum, group) => sum + group.rows.length, 0)} rows across {duplicateScan.length} groups. A merge changes the totals by removing the duplicate amount; undo restores it exactly.
-              </span>
-              <div className="toolbar-spacer" />
-              <button className="btn" onClick={() => setShowDuplicates((value) => !value)}>
-                {showDuplicates ? 'Hide groups' : 'Show groups'}
-              </button>
-            </div>
-            {showDuplicates && (
-              <Table head={['Date', 'Account', 'Type', 'Amount', 'Rows', 'Descriptions', '']} numHead={[3, 4]}>
-                {duplicateScan.map((group) => (
-                  <tr key={group.key}>
-                    <td className="muted nowrap">{dateUk(group.date)}</td>
-                    <td>{group.account}</td>
-                    <td>{group.type}</td>
-                    <td className="num">{gbp(group.amountPence)}</td>
-                    <td className="num">{group.rows.length}</td>
-                    <td className="muted small">
-                      {group.rows.map((row) => `${row.comments?.trim() || '—'} (row ${row.row})`).join(' · ')}
-                    </td>
-                    <td>
-                      <button className="btn ghost sm" onClick={() => mergeGroup(group.rows.map((row) => row.row))}>
-                        Merge into row {Math.min(...group.rows.map((row) => row.row))}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </Table>
-            )}
-          </>
-        )}
-        {mergedDuplicates.length > 0 && (
-          <>
-            <div className="panel-head"><div><h3 className="card-title">Merged rows</h3><p className="card-sub">Undo restores the amount and removes the link.</p></div></div>
-            <Table head={['Row', 'Date', 'Account', 'Type', 'Kept amount', 'Merged into', '']} numHead={[4]}>
-              {mergedDuplicates.map((row) => (
-                <tr key={row.row}>
-                  <td className="num">{row.row}</td>
-                  <td className="muted nowrap">{dateUk(row.date)}</td>
-                  <td>{row.account}</td>
-                  <td>{row.type}</td>
-                  <td className="num">{gbp(row.mergedFromPence ?? 0)}</td>
-                  <td className="num">{row.mergedIntoRow}</td>
-                  <td><button className="btn ghost sm" onClick={() => undoMerge(row.row)}>Undo merge</button></td>
-                </tr>
-              ))}
-            </Table>
-          </>
-        )}
-      </Section>
       </div>
 
       <div className="settings-pane" hidden={settingsPane !== 'app'}>
@@ -1978,11 +1902,11 @@ function UserGuideBook() {
           it sits in — except Tools, which is always fixed.
         </p>
         <p>
-          Use the contents below to read a section in depth. The Month-End Guide and New-Year Setup tabs cover the two
-          recurring workflows step by step.
+          Use the contents below to read a section in depth. The two recurring workflows — the month-end close and the
+          new-year setup — are chapters at the end of this same page.
         </p>
       </div>
-      <nav className="guide-toc" aria-label="User guide contents">
+      <nav className="guide-toc" aria-label="Help contents">
         {GUIDE_GROUPS.map((group) => (
           <div key={group}>
             <strong>{group}</strong>
@@ -1993,6 +1917,11 @@ function UserGuideBook() {
             ))}
           </div>
         ))}
+        <div>
+          <strong>Workflows</strong>
+          <button type="button" className="guide-link" onClick={() => jump('month-end')}>Month-end close</button>
+          <button type="button" className="guide-link" onClick={() => jump('new-year')}>New-year setup</button>
+        </div>
       </nav>
       {GUIDE_GROUPS.map((group) => (
         <section key={group} className="guide-group" id={`guide-group-${group.toLowerCase()}`}>
@@ -2000,33 +1929,48 @@ function UserGuideBook() {
           {all.filter((entry) => entry.group === group).map((entry) => <GuideEntryCard key={entry.id} entry={entry} />)}
         </section>
       ))}
+      <section className="guide-group" id="guide-group-workflows">
+        <h3>Workflows</h3>
+        <WorkflowGuide
+          id="month-end"
+          title="Month-end close"
+          summary="Reconcile the month, check the close summary and lock the snapshot so its figures stay fixed."
+          lines={APP_MONTH_END_GUIDE}
+        />
+        <WorkflowGuide
+          id="new-year"
+          title="New-year setup"
+          summary="Roll the current budget forward or start a clean new-year budget, without rewriting last year."
+          lines={APP_NEW_YEAR_GUIDE}
+        />
+      </section>
     </div>
   );
 }
 
+function WorkflowGuide({ id, title, summary, lines }: { id: string; title: string; summary: string; lines: string[] }) {
+  return (
+    <article className="guide-entry" id={`guide-${id}`}>
+      <h4>{title}</h4>
+      <p>{summary}</p>
+      <div className="guide" style={{ padding: '10px 0 0' }}>
+        {lines.map((line, index) => {
+          const heading = line.length < 90 && line === line.toUpperCase();
+          return <p key={index} className={heading ? 'heading' : ''}>{line}</p>;
+        })}
+      </div>
+    </article>
+  );
+}
+
 export function GuidesView(_: ViewProps) {
-  const [tab, setTab] = useState<'sections' | 'monthEnd' | 'newYear'>('sections');
-  const lines = tab === 'monthEnd' ? APP_MONTH_END_GUIDE : APP_NEW_YEAR_GUIDE;
   return (
     <Section
       title="Guides"
-      sub="The complete user guide for every section, plus the month-end and new-year workflows"
-      actions={<Badge tone="neutral">{GUIDE_BASICS.length + USER_GUIDE.length} chapters</Badge>}
+      sub="Every screen and both recurring workflows on one help page"
+      actions={<Badge tone="neutral">{GUIDE_BASICS.length + USER_GUIDE.length + 2} chapters</Badge>}
     >
-      <div className="tabs">
-        <button className={`tab ${tab === 'sections' ? 'active' : ''}`} onClick={() => setTab('sections')}>User Guide</button>
-        <button className={`tab ${tab === 'monthEnd' ? 'active' : ''}`} onClick={() => setTab('monthEnd')}>Month-End Guide</button>
-        <button className={`tab ${tab === 'newYear' ? 'active' : ''}`} onClick={() => setTab('newYear')}>New-Year Setup</button>
-      </div>
-      {tab === 'sections' ? <UserGuideBook /> : (
-        <div className="guide">
-          {lines.map((line: string, i: number) => {
-            const heading = line.length < 90 && line === line.toUpperCase();
-            return <p key={i} className={heading ? 'heading' : ''}>{line}</p>;
-          })}
-          {lines.length === 0 && <Empty>Guide text is not available.</Empty>}
-        </div>
-      )}
+      <UserGuideBook />
     </Section>
   );
 }
