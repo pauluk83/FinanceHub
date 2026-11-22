@@ -3,7 +3,6 @@ import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateTimeUk, dateUk, download, gbp, MONTH_LONG, parseMoney, todayIso, toCsv } from '../format';
 import { clearState } from '../store';
-import { PeopleAccessSection } from './peoplePortal';
 import { MenuLayoutSection } from './menuLayout';
 import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
 import { withoutAppUpdatePlaceholders } from '../budgetChangelog';
@@ -1101,7 +1100,7 @@ type SettingsPane = 'account' | 'budget' | 'data' | 'app';
 
 const SETTINGS_PANES: { id: SettingsPane; label: string; summary: string }[] = [
   { id: 'account', label: 'Account', summary: 'Session, passkeys, app lock, sync conflicts and the provider vault.' },
-  { id: 'budget', label: 'Budget', summary: 'Year rollover, core dates and the record pages that hold accounts, people and cards.' },
+  { id: 'budget', label: 'Budget', summary: 'Year rollover plus the core dates, account and currency every screen reads.' },
   { id: 'data', label: 'Data', summary: 'Backups, duplicate review, onboarding and reset.' },
   { id: 'app', label: 'App', summary: 'Theme, sidebar layout and legal information.' },
 ];
@@ -1628,15 +1627,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
         </div>
       </Section>
 
-      <Section title="Accounts, people and cards" sub="Each record is edited on the page that owns it, so there is only one copy.">
-        <div className="toolbar" style={{ borderBottom: 0 }}>
-          <button className="btn" onClick={() => go('accounts')}>Open Accounts</button>
-          <button className="btn" onClick={() => go('people')}>Open People</button>
-          <button className="btn" onClick={() => go('cards')}>Open Cards</button>
-        </div>
-      </Section>
-
-      <PeopleAccessSection ds={ds} userId={userId} notify={notify} workspace={workspace} />
       </div>
 
       <div className="settings-pane" hidden={settingsPane !== 'data'}>

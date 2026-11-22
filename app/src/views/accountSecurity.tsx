@@ -10,7 +10,7 @@ import {
   type StoredPasskey,
 } from '../account';
 import { currentDeviceId, devicesConfigured, listAccountDevices, revokeAccountDevice, signOutEverywhere } from '../devices';
-import { DEVICE_STALE_DAYS, deviceSummary, isDeviceStale, type DeviceRow } from '../../../core/devices';
+import { DEVICE_STALE_DAYS, isDeviceStale, type DeviceRow } from '../../../core/devices';
 import { dateTimeUk } from '../format';
 
 type Props = Pick<ViewProps, 'isLocal' | 'notify' | 'signOut' | 'userEmail'>;
@@ -84,12 +84,12 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
   };
 
   const revokeDevice = async (row: DeviceRow) => {
-    if (!confirm(`Revoke “${row.label}”?\n\nThe device is marked revoked in this list. Use Sign out everywhere to end its session immediately; no budget record is deleted.`)) return;
+    if (!confirm(`Revoke “${row.label}”?\n\nThe device is removed from this list. Use Sign out everywhere to end its session immediately; no budget record is deleted.`)) return;
     setDeviceBusy(true);
     setDeviceError(null);
     try {
       await revokeAccountDevice(row.id);
-      notify(`${row.label} marked revoked`);
+      notify(`${row.label} revoked and removed from the list`);
       await refreshDevices();
     } catch (next) {
       setDeviceError(next instanceof Error ? next.message : 'That device could not be revoked');
@@ -131,6 +131,9 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
       setBusy(false);
     }
   };
+
+  // A revoked device has no session left to manage, so it leaves the list.
+  const activeDevices = devices.filter((row) => !row.revokedAt);
 
   if (isLocal) {
     return (
@@ -192,30 +195,27 @@ export function AccountSecuritySection({ isLocal, notify, signOut, userEmail }: 
           <strong>Devices</strong>
           <div className="muted small" style={{ margin: '4px 0 10px' }}>
             Every browser and desktop install signed in to this account
-            {devices.length > 0 ? ` — ${deviceSummary(devices).active} active` : ''}. Revoking a device records it here;
-            Sign out everywhere ends the sessions through the auth service. No budget record is deleted.
+            {activeDevices.length > 0 ? ` — ${activeDevices.length} active` : ''}. Revoking a device removes it from
+            this list; Sign out everywhere ends the sessions through the auth service. No budget record is deleted.
           </div>
           {deviceError && <div className="notice danger" role="alert" style={{ marginBottom: 10 }}>{deviceError}</div>}
-          {devices.length === 0 ? (
+          {activeDevices.length === 0 ? (
             <div className="muted small" style={{ marginBottom: 10 }}>No devices recorded yet.</div>
           ) : (
             <div className="list" style={{ marginBottom: 10 }}>
-              {devices.map((row) => (
+              {activeDevices.map((row) => (
                 <div className="list-row" key={row.id}>
                   <div style={{ minWidth: 0 }}>
                     <div className="title">
                       {row.label}{' '}
                       {row.deviceId === thisDevice && <Badge tone="green">This device</Badge>}{' '}
-                      {row.revokedAt && <Badge tone="amber">Revoked</Badge>}{' '}
                       {isDeviceStale(row) && <Badge tone="neutral">Not seen for {DEVICE_STALE_DAYS}+ days</Badge>}
                     </div>
                     <div className="sub">
                       Last seen {dateTimeUk(row.lastSeenAt)}{row.platform ? ` · ${row.platform}` : ''}
                     </div>
                   </div>
-                  {!row.revokedAt && (
-                    <button className="btn ghost sm" disabled={deviceBusy} onClick={() => void revokeDevice(row)}>Revoke</button>
-                  )}
+                  <button className="btn ghost sm" disabled={deviceBusy} onClick={() => void revokeDevice(row)}>Revoke</button>
                 </div>
               ))}
             </div>

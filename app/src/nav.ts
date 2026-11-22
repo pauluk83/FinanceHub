@@ -79,7 +79,7 @@ const FIXED: NavItemDef[] = [
   { id: 'rules', label: 'Import rules', icon: '⌁', group: 'Tools', tip: 'Review-only merchant rules: suggest a category and tags during import without moving any total.' },
   { id: 'alerts', label: 'Notifications', icon: '🔔', group: 'Tools', tip: 'Bills due soon, low account balances and high card use, with a read state stored in this budget.' },
   { id: 'health', label: 'Data health', icon: '✚', group: 'Tools', tip: 'Read-only integrity checks for account names, duplicates, provider year chains, bill links, locked months, dormant accounts, sync and backups.' },
-  { id: 'settings', label: 'Settings', icon: '⚙', group: 'Tools', tip: 'Accounts, people, cards, bills, provider vault, sync, backups and the sidebar menu layout.' },
+  { id: 'settings', label: 'Settings', icon: '⚙', group: 'Tools', tip: 'Budget dates and year rollover, security, the provider vault, sync, backups and the sidebar menu layout.' },
   { id: 'appChangelog', label: 'Application changelog', icon: '⤴', group: 'Tools', tip: 'Release history for each build: version, build id, dates and the Windows installer download.' },
   { id: 'changelog', label: 'Budget changelog', icon: '🕘', group: 'Tools', tip: 'Your own history: bills, balances, people and month-end figures, kept with the budget and backups.' },
   { id: 'guides', label: 'Guides', icon: '?', group: 'Tools', tip: 'One help page: the full user guide for every section, then the month-end and new-year workflows.' },

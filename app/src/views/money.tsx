@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ViewProps } from '../types';
 import { createTapGuard } from '../mutationGuard';
 import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
@@ -8,7 +8,7 @@ import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { applyBillDueDay } from '../providerSetup';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
-import { PSEUDO_ACCOUNTS, accountClassifier, commentsMention, knownAccountNames, linkedAccountTransactions, linkedCommentSummary, unknownAccounts } from '../../../core/accounts';
+import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
@@ -17,6 +17,7 @@ import { bulkEditTransactions } from '../../../core/cleanup';
 import { EXPIRY_KINDS, billPriceSummary, expiryList, newExpiryId, normaliseExpiry, type ExpiryKind } from '../../../core/billTimeline';
 import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { deletePortalsForPerson, renamePortalPerson } from '../portal';
+import { PeopleAccessSection } from './peoplePortal';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
@@ -64,8 +65,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
     tags: '',
   });
 
-  const mainAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || 'the main account';
   const kindOf = accountClassifier(ds);
+  const mainAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || 'the main account';
   const accounts = useMemo(
     () => knownAccountNames(ds),
     [ds.accounts, ds.people, ds.cards],
@@ -833,28 +834,6 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
     .filter((t) => t.account === selected)
     .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row)
     .slice(0, 12);
-  const pseudoAccounts = PSEUDO_ACCOUNTS.map((name) => {
-    const rows = ds.transactions.filter((t) => t.account === name && t.date <= asOf && t.type === 'Expense' && t.budgetTreatment !== 'Transfer');
-    return { name, rows: rows.length, totalPence: rows.reduce((sum, t) => sum + t.amountPence, 0) };
-  });
-  const excludedAccounts = unknownAccounts(ds.transactions, ds, asOf).map((account) => ({
-    ...account,
-    linked: linkedCommentSummary(ds.transactions, account.name, asOf),
-    ledger: linkedAccountTransactions(ds.transactions, account.name, asOf)
-      .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row),
-    reviewPence: account.expensePence + linkedCommentSummary(ds.transactions, account.name, asOf).expensePence,
-  }));
-  const linkedPeople = ds.people
-    .filter((person) => person.trackOwed === false)
-    .map((person) => {
-      const rows = ds.transactions.filter((t) => t.account === person.shortName && t.date <= asOf);
-      const expensePence = rows.filter((t) => t.type === 'Expense').reduce((s, t) => s + t.amountPence, 0);
-      const linked = linkedCommentSummary(ds.transactions, person.shortName, asOf);
-      const ledger = linkedAccountTransactions(ds.transactions, person.shortName, asOf)
-        .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row);
-      return { name: person.shortName, rows: rows.length, expensePence, linked, ledger, reviewPence: expensePence + linked.expensePence };
-    });
-  const linkedAccounts = [...excludedAccounts, ...linkedPeople].filter((account) => account.ledger.length > 0);
 
   return (
     <>
@@ -883,79 +862,6 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
           <button className="btn primary" onClick={addAccount}>Add account</button>
         </div>
       </Section>
-
-      <Section
-        title="Pseudo-accounts and excluded rows"
-        sub="Petrol and Other are spend categories, not bank accounts. Accounts marked not counted stay in the transaction log but are excluded from every total, matching the workbook. Comment mentions link rows for review without moving or recounting them."
-      >
-        <Table head={['Account', 'Rows to as-of', 'Expense total', 'Treatment']} numHead={[1, 2]}>
-          {pseudoAccounts.map((account) => (
-            <tr key={account.name}>
-              <td><strong>{account.name}</strong></td>
-              <td className="num">{account.rows}</td>
-              <td className="num"><strong>{gbp(account.totalPence)}</strong></td>
-              <td><Badge tone="blue">Included in expenses</Badge></td>
-            </tr>
-          ))}
-        </Table>
-        {excludedAccounts.length > 0 && (
-          <Table head={['Account in the log', 'Account rows', 'Combined total', 'Linked rows', 'Treatment']} numHead={[1, 2, 3]}>
-            {excludedAccounts.map((account) => (
-              <tr key={account.name}>
-                <td><strong>{account.name}</strong></td>
-                <td className="num">{account.rows}</td>
-                <td className="num">
-                  <strong>{gbp(account.reviewPence)}</strong>
-                  <div className="muted small">{gbp(account.expensePence)} direct + {gbp(account.linked.expensePence)} linked</div>
-                </td>
-                <td className="num">{account.linked.rows > 0 ? account.linked.rows : <span className="faint">None</span>}</td>
-                <td><Badge tone="amber">Not counted</Badge></td>
-              </tr>
-            ))}
-          </Table>
-        )}
-        <div style={{ padding: '0 16px 16px' }}>
-          <div className="notice info">
-            Petrol and Other are pseudo-accounts: their spending is counted in monthly expenses but they are not bank accounts, so they do not appear in account balances or the Statement bank list. Rows whose account matches no ledger are preserved but excluded from totals; review or reassign them in Transactions. Comment-linked rows are shown for Dan-style matches but remain counted on their original account.
-          </div>
-        </div>
-      </Section>
-
-      {linkedAccounts.map((account) => (
-        <Fragment key={`${account.name}-linked`}>
-          <Section
-            title={`${account.name} — linked account`}
-          sub={account.linked.rows > 0
-            ? `Every row booked to ${account.name} or mentioning it in comments. ${account.linked.rows} linked rows stay on their original accounts.`
-            : `Every row is booked to ${account.name}.`}
-        >
-          <div className="metric-list" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-            <div className="metric"><span>Rows</span><strong>{account.ledger.length}</strong></div>
-            <div className="metric"><span>{account.name} owes — combined</span><strong>{gbp(account.reviewPence)}</strong></div>
-            <div className="metric"><span>People who owe me impact</span><strong>{gbp(0)}</strong></div>
-          </div>
-          <Table head={['Date', 'Booked account', 'Type', 'Amount', 'Comments', 'Link']} numHead={[3]}>
-            {account.ledger.map((t) => (
-              <tr key={t.row}>
-                <td className="nowrap muted">{dateUk(t.date)}</td>
-                <td>{t.account}</td>
-                <td><Badge tone={t.type === 'Income' ? 'green' : 'neutral'}>{t.type}</Badge></td>
-                <td className={`num ${t.type === 'Income' ? 'amount pos' : 'amount neg'}`}>{t.type === 'Income' ? '+' : '−'}{gbp(t.amountPence)}</td>
-                <td className="muted">{t.comments || '—'}</td>
-                <td>{t.account === account.name ? <Badge tone="amber">Booked to {account.name}</Badge> : <Badge tone="blue">Linked by comment</Badge>}</td>
-              </tr>
-            ))}
-          </Table>
-          <div style={{ padding: '0 16px 16px' }}>
-            <div className="notice info">
-              {account.linked.rows > 0
-                ? `The combined ${gbp(account.reviewPence)} is ${gbp(account.expensePence)} booked to ${account.name} plus ${gbp(account.linked.expensePence)} linked from other accounts. The ${account.linked.rows} linked rows remain on their original accounts and keep reducing those balances — nothing is moved. This ledger is a review view and adds £0.00 to People who owe me.`
-                : `All ${account.ledger.length} rows are booked to ${account.name} and reduce ${mainAccount}. This account adds £0.00 to People who owe me.`}
-            </div>
-          </div>
-          </Section>
-        </Fragment>
-      ))}
 
       <Section title={`${selected} — recent activity`} sub="Ledger view; transfers remain visible here but not in budget totals">
         <Table head={['Date', 'Type', 'Amount', 'Comments', 'Treatment']} numHead={[2]}>
@@ -1033,7 +939,7 @@ export function Cards({ ds, engine, year, month, update, notify }: ViewProps) {
   );
 }
 
-export function People({ ds, engine, year, month, update, notify, userId }: ViewProps) {
+export function People({ ds, engine, year, month, update, notify, userId, workspace }: ViewProps) {
   const asOf = engine.throughFor(year, month);
   const people = engine.owedByPerson(asOf);
   const [person, setPerson] = useState({ short: '', full: '', opening: '' });
@@ -1068,6 +974,7 @@ export function People({ ds, engine, year, month, update, notify, userId }: View
     notify(`${name} removed${used ? ` — ${used} ledger rows kept` : ''}`);
   };
   return (
+    <>
     <Section title="People accounts" sub="Owed = opening + lent − repaid. Edit names in place; removing someone keeps their ledger rows but stops counting them as owed.">
       <Table head={['Person', 'Full name', 'Opening', 'Lent', 'Repaid', 'Owed', 'Active', '']} numHead={[2, 3, 4, 5]}>
         {ds.people.map((p) => {
@@ -1099,6 +1006,8 @@ export function People({ ds, engine, year, month, update, notify, userId }: View
         <button className="btn primary" onClick={addPerson}>Add person</button>
       </div>
     </Section>
+    <PeopleAccessSection ds={ds} userId={userId} notify={notify} workspace={workspace} />
+    </>
   );
 }
 

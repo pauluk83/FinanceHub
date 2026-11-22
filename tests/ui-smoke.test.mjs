@@ -381,12 +381,15 @@ test('accounts, cards, people and bills edit their own records on their own page
   const accounts = render(Accounts, viewProps);
   assert.match(accounts, /Add account/);
   assert.match(accounts, /aria-label="Target Current"/);
+  assert.doesNotMatch(accounts, /Pseudo-accounts and excluded rows/);
+  assert.doesNotMatch(accounts, /— linked account/);
 
   assert.match(render(Cards, viewProps), /Add card/);
 
   const people = render(People, viewProps);
   assert.match(people, /Add person/);
   assert.match(people, /aria-label="Short name Dan"/);
+  assert.match(people, /People sign-ins/);
 
   const bills = render(Bills, viewProps);
   assert.match(bills, /Add change/);
@@ -398,14 +401,13 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
 
-test('settings links to the record pages instead of keeping second editors', async () => {
+test('settings keeps only its own controls, not record or sign-in editors', async () => {
   const { SettingsView } = await server.ssrLoadModule('/src/views/tools.tsx');
   const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
   const html = render(SettingsView, props(dataset(), { engine: buildEngine(dataset()) }));
 
-  assert.match(html, /Open Accounts/);
-  assert.match(html, /Open People/);
-  assert.match(html, /Open Cards/);
+  assert.doesNotMatch(html, /Open Accounts/);
+  assert.doesNotMatch(html, /People sign-ins/);
   assert.doesNotMatch(html, /Add account/);
   assert.doesNotMatch(html, /Add person/);
   assert.doesNotMatch(html, /Add card/);

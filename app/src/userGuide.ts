@@ -267,12 +267,12 @@ export const USER_GUIDE: GuideEntry[] = [
     steps: [
       'Add a person with their opening balance, then record money lent and repayments against them.',
       'Read the running balance to see what is still owed.',
-      'Use Settings → People sign-ins to give somebody a read-only statement at #people. Their page shows the budget owner, links to the main FinanceHub website, and includes a feedback box for corrections or suggestions.',
+      'Use the People sign-ins section on People to give somebody a read-only statement at #people. Their page shows the budget owner, links to the main FinanceHub website, and includes a feedback box for corrections or suggestions.',
     ],
     notes: [
       'People balances are included in Dashboard totals and month-end snapshots.',
       'Renaming a person also updates their People sign-in record on this device.',
-      'Feedback left on a statement is stored only on this device. It appears in the topbar Feedback inbox, as a Dashboard notice until read, and in Settings → People sign-ins.',
+      'Feedback left on a statement is stored only on this device. It appears in the topbar Feedback inbox, as a Dashboard notice until read, and in People sign-ins on the People page.',
     ],
   },
   {
