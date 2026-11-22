@@ -572,4 +572,5 @@ test('the Virgin page keeps only the contract and ledger', async () => {
   });
   assert.match(waterPage, /Account details/);
   assert.match(waterPage, /Account access/);
+  assert.doesNotMatch(waterPage, /Payment date/, 'no payment date card on the provider sheet');
 });

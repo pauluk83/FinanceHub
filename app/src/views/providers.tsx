@@ -764,7 +764,6 @@ function providerAccountDetails(provider: string, p: any): [string, string | und
       return [
         ['Provider account', p.accountName || 'Pure Cremation'],
         ['Payment account', p.paymentAccount],
-        ['Payment date', p.paymentDay === undefined ? undefined : String(p.paymentDay)],
         ['Monthly payments remaining', p.paymentsRemaining === undefined ? undefined : String(p.paymentsRemaining)],
       ];
     case 'councilTax':
@@ -838,13 +837,6 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   }
   const billing = providerBilling(p);
   if (billing.contractDetails) accountDetails.push(['Contract details', billing.contractDetails]);
-  // The bill's due day is the one the Bills section edits, so show that day here;
-  // a fill-in for bills with no link keeps the provider's own figure.
-  const linkedBill = (ds.bills ?? []).find((bill) => bill.providerKey === provider);
-  const paymentDay = linkedBill?.dueDay ?? billing.paymentDay;
-  if (!accountDetails.some(([label]) => /payment date/i.test(label))) {
-    accountDetails.push(['Payment date', `Day ${paymentDay}`]);
-  }
   const renderProviderDetail = (label: string, value: string | undefined) => {
     if (provider === 'water' && label === 'Account number' && p.portalUrl) {
       return <a className="account-link" href={p.portalUrl} target="_blank" rel="noreferrer"><strong>{value}</strong></a>;

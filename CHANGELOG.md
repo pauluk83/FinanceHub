@@ -16,6 +16,7 @@ and the build time.
 - Stop writing a Budget change row for every save and clear the old automatic rows
 - Create and rename link sheets inside the bills panel and drop the separate link sheets table
 - Remove the price history, expiry list and possible subscriptions panels from Bills
+- Remove the payment date card from the provider sheets
 
 ## [2026.11.21] — 21 November 2026
 

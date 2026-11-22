@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "11217b2c630c",
+  "buildId": "c71e6fbfd27d",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -22,7 +22,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Trim the Accounts review panels, move People sign-ins to People, and drop revoked devices from the list",
             "Stop writing a Budget change row for every save and clear the old automatic rows",
             "Create and rename link sheets inside the bills panel and drop the separate link sheets table",
-            "Remove the price history, expiry list and possible subscriptions panels from Bills"
+            "Remove the price history, expiry list and possible subscriptions panels from Bills",
+            "Remove the payment date card from the provider sheets"
           ]
         }
       ]
