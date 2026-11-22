@@ -21,6 +21,7 @@ and the build time.
 - File every holiday under the year it starts, moving 2027 trips out of 2026
 - Add Settings AI with an OpenRouter key kept in the encrypted vault, plus an AI assistant that proposes bill and transaction changes for approval
 - Show the AI key state honestly in Settings
+- Explain when the assistant cannot reach OpenRouter
 
 ## [2026.11.21] — 21 November 2026
 

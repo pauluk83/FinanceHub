@@ -223,7 +223,9 @@ export interface AskOptions {
 
 export async function askOpenRouter({ settings, history, question, snapshot, referer }: AskOptions): Promise<AiReply> {
   if (!settings.apiKey) throw new Error('Add an OpenRouter API key in Settings → AI first.');
-  const response = await fetch(AI_ENDPOINT, {
+  let response: Response;
+  try {
+    response = await fetch(AI_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${settings.apiKey}`,
@@ -240,7 +242,10 @@ export async function askOpenRouter({ settings, history, question, snapshot, ref
         { role: 'user', content: question },
       ],
     }),
-  });
+    });
+  } catch {
+    throw new Error('Could not reach OpenRouter from this app. Check the connection and try again.');
+  }
 
   if (!response.ok) {
     const detail = (await response.text()).replace(/\s+/g, ' ').slice(0, 200);
