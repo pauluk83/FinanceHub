@@ -185,7 +185,7 @@ export function PeopleAccessSection({
             The demo workspace has no people sign-ins. Open your own workspace to create one.
           </div>
         ) : ds.people.length === 0 ? (
-          <Empty>Add a person in the People section above, then create their sign-in here.</Empty>
+          <Empty>Add a person on the People page first, then create their sign-in here.</Empty>
         ) : (
           <form onSubmit={(event) => void create(event)} style={{ display: 'grid', gap: 12 }}>
             <div className="form-grid">

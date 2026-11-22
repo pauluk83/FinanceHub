@@ -688,28 +688,9 @@ export function Monthly({ ds, engine, year, month, setMonth, go }: ViewProps) {
   const asOf = engine.throughFor(year, month);
   const accounts = engine.accountBalances(asOf);
   const people = engine.owedByPerson(asOf);
-  const cells = MONTHS.map((label, i) => ({ label, ...engine.monthlySummary(year, i + 1) }));
 
   return (
     <>
-      <Section
-        title={`${MONTH_LONG[month - 1]} ${year}`}
-        sub={s.locked ? (s.source === 'manual-lock' ? 'Locked month — snapshot saved at month-end close' : 'Locked month — read-only snapshot from the workbook') : 'Open month — recalculated live'}
-        actions={<Badge tone={s.locked ? 'amber' : 'green'}>{s.locked ? '🔒 Locked' : '● Open'}</Badge>}
-      >
-        <div style={{ padding: 14 }}>
-          <div className="month-strip">
-            {cells.map((c) => (
-              <button key={c.label} className={`month-btn ${month === c.month ? 'active' : ''}`} onClick={() => setMonth(c.month)}>
-                <div className="month-name">{c.label}</div>
-                <div className="month-net">{gbp(c.netPence)}</div>
-                <span className="month-lock">{c.locked ? '🔒' : ' '}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </Section>
-
       <div className="kpi-grid">
         <Card title="Income" value={gbp(s.incomePence)} tone="pos" />
         <Card title="Expenses" value={gbp(s.expensesPence)} tone="neg" />

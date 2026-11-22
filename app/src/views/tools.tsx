@@ -8,7 +8,6 @@ import { MenuLayoutSection } from './menuLayout';
 import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
 import { withoutAppUpdatePlaceholders } from '../budgetChangelog';
 import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
-import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { decodeBackupDataset } from '../backup';
 import { detectDuplicates, duplicateGroups } from '../../../core/importDedupe';
 import { mergeDuplicateRows, mergedRows, unmergeTransaction } from '../../../core/cleanup';
@@ -30,7 +29,6 @@ import {
   type EnableBankingAccount,
   type EnableBankingAspsp,
 } from '../../../core/enableBanking';
-import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { createVault, legacySecrets, rotateVault, sealVault, stripLegacySecrets, unlockVault, VAULT_MAX_HINT, VAULT_MIN_PASSPHRASE, type VaultField, type VaultSecrets } from '../vault';
 import { AppLockSection } from './appLock';
 import { planYearRollover, rolloverYear } from '../../../core/yearRollover';
@@ -119,29 +117,6 @@ function YearRolloverSection({ ds, year, update, setYear, notify }: Pick<ViewPro
         </div>
       </div>
     </Section>
-  );
-}
-
-function EditableName({ value, onCommit, ariaLabel }: { value: string; onCommit: (next: string) => void; ariaLabel: string }) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  const commit = () => {
-    const next = draft.trim();
-    if (!next) { setDraft(value); return; }
-    if (next !== value) onCommit(next);
-  };
-  return (
-    <input
-      className="table-input"
-      aria-label={ariaLabel}
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
-        if (e.key === 'Escape') { setDraft(value); e.currentTarget.blur(); }
-      }}
-    />
   );
 }
 
@@ -1123,18 +1098,11 @@ export function ImportView({ ds, update, go, notify }: ViewProps) {
 
 /* ------------------------------------------------------------------ settings */
 
-function nextAprilDate(asOfDate: string): string {
-  const year = Number(asOfDate.slice(0, 4)) || new Date().getFullYear();
-  const month = Number(asOfDate.slice(5, 7)) || 1;
-  return `${month >= 4 ? year + 1 : year}-04-01`;
-}
-
-type SettingsPane = 'account' | 'budget' | 'bills' | 'data' | 'app';
+type SettingsPane = 'account' | 'budget' | 'data' | 'app';
 
 const SETTINGS_PANES: { id: SettingsPane; label: string; summary: string }[] = [
   { id: 'account', label: 'Account', summary: 'Session, passkeys, app lock, sync conflicts and the provider vault.' },
-  { id: 'budget', label: 'Budget', summary: 'Year rollover, core dates, accounts, people, access and cards.' },
-  { id: 'bills', label: 'Bills', summary: 'Rent changes and dated overrides for every bill.' },
+  { id: 'budget', label: 'Budget', summary: 'Year rollover, core dates and the record pages that hold accounts, people and cards.' },
   { id: 'data', label: 'Data', summary: 'Backups, duplicate review, onboarding and reset.' },
   { id: 'app', label: 'App', summary: 'Theme, sidebar layout and legal information.' },
 ];
@@ -1404,15 +1372,6 @@ function CredentialVault({ ds, update, notify, vault, vaultSession, setVault, se
 }
 
 export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, userId, userEmail, isLocal, signOut, localAccount, workspace, vault, appLock, setAppLock, vaultSession, setVault, setVaultSession, syncConflicts, resolveSyncConflict, exportSyncConflict, purgeSyncConflicts, year, setYear }: ViewProps) {
-  const [acct, setAcct] = useState({ name: '', target: '', opening: '' });
-  const [person, setPerson] = useState({ short: '', full: '', opening: '' });
-  const [card, setCard] = useState({ name: '', limit: '', opening: '' });
-  const [change, setChange] = useState({ bill: ds.bills[0]?.name ?? '', from: '', to: '', amount: '', due: '', type: '', note: '' });
-  const [rentChange, setRentChange] = useState(() => ({
-    amount: typeof ds.providers.rent?.monthlyRentPence === 'number' ? (ds.providers.rent.monthlyRentPence / 100).toFixed(2) : '',
-    payment: typeof ds.providers.rent?.monthlyPaymentPence === 'number' ? (ds.providers.rent.monthlyPaymentPence / 100).toFixed(2) : '',
-    from: nextAprilDate(ds.settings.asOfDate),
-  }));
   const restoreInput = useRef<HTMLInputElement>(null);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [settingsPane, setSettingsPane] = useState<SettingsPane>('account');
@@ -1432,160 +1391,6 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
   };
 
   const primaryAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || '';
-  const rentProvider = ds.providers.rent;
-  const rentMonthlyDraft = parseMoney(rentChange.amount);
-  const rentPaymentDraft = parseMoney(rentChange.payment);
-  const rentWeeklyDraft = weeklyRentPence(rentMonthlyDraft);
-  const rentTargets = rentProvider && rentChange.from
-    ? rentChangeTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
-    : [];
-  const rentPaymentRows = rentProvider && rentChange.from
-    ? rentPaymentTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
-    : [];
-  const nameExists = (name: string, old?: string) =>
-    ds.accounts.some((a) => a.name === name && a.name !== old)
-    || ds.people.some((p) => p.shortName === name && p.shortName !== old)
-    || ds.cards.some((c) => c.name === name && c.name !== old);
-
-  const addAccount = () => {
-    const name = acct.name.trim();
-    if (!name) return notify('Give the account a name');
-    if (ds.accounts.some((a) => a.name === name)) return notify('An account with that name already exists');
-    update((d) => d.accounts.push({ name, targetPence: parseMoney(acct.target), openingPence: parseMoney(acct.opening), sortOrder: d.accounts.length + 1, active: true }));
-    setAcct({ name: '', target: '', opening: '' });
-    notify(`${name} added everywhere`);
-  };
-
-  const renameAccount = (oldName: string, newName: string) => {
-    if (nameExists(newName, oldName)) return notify('That name is already used by an account, person or card');
-    update((d) => {
-      const a = d.accounts.find((x) => x.name === oldName);
-      if (!a) return;
-      a.name = newName;
-      d.transactions.forEach((t) => { if (t.account === oldName) t.account = newName; });
-      if (d.settings.primaryAccount === oldName) d.settings.primaryAccount = newName;
-    });
-    notify(`${oldName} renamed to ${newName}`);
-  };
-
-  const removeAccount = (name: string) => {
-    const isPrimary = name === primaryAccount;
-    const used = ds.transactions.filter((t) => t.account === name).length;
-    const other = ds.accounts.find((a) => a.name !== name)?.name ?? '';
-    if (isPrimary && !other) return notify('Add another account before removing the main account');
-    const destination = isPrimary ? other : ds.accounts.some((a) => a.name === primaryAccount) ? primaryAccount : other;
-    if (used > 0 && !destination) return notify('Add another account before removing this one');
-    const detail = used ? ` ${used} transactions will move to ${destination}.` : '';
-    if (!confirm(`Remove ${name}?${detail}`)) return;
-    update((d) => {
-      if (used) d.transactions.forEach((t) => { if (t.account === name) t.account = destination; });
-      d.accounts = d.accounts.filter((a) => a.name !== name);
-      if (isPrimary) d.settings.primaryAccount = destination;
-    });
-    notify(`${name} removed${used ? ` — ledger moved to ${destination}` : ''}`);
-  };
-
-  const addPerson = () => {
-    const short = person.short.trim();
-    if (!short) return notify('Give the person a short name');
-    if (ds.people.some((p) => p.shortName === short)) return notify('That person already exists');
-    update((d) => d.people.push({ shortName: short, fullName: person.full.trim() || short, openingPence: parseMoney(person.opening), sortOrder: d.people.length + 1, active: true }));
-    setPerson({ short: '', full: '', opening: '' });
-    notify(`${short} added everywhere`);
-  };
-
-  const renamePerson = (oldName: string, newName: string) => {
-    if (nameExists(newName, oldName)) return notify('That name is already used by an account, person or card');
-    update((d) => {
-      const p = d.people.find((x) => x.shortName === oldName);
-      if (!p) return;
-      p.shortName = newName;
-      d.transactions.forEach((t) => { if (t.account === oldName) t.account = newName; });
-    });
-    renamePortalPerson(userId, oldName, newName);
-    notify(`${oldName} renamed to ${newName}`);
-  };
-
-  const removePerson = (name: string) => {
-    const used = ds.transactions.filter((t) => t.account === name).length;
-    if (used > 0 && !confirm(`${name} has ${used} ledger rows. Removing the person leaves those rows in the transaction log but they will no longer count towards anyone. Remove ${name}?`)) return;
-    update((d) => { d.people = d.people.filter((p) => p.shortName !== name); });
-    deletePortalsForPerson(userId, name);
-    notify(`${name} removed${used ? ` — ${used} ledger rows kept` : ''}`);
-  };
-
-  const addCard = () => {
-    const name = card.name.trim();
-    if (!name) return notify('Give the card a name');
-    if (ds.cards.some((c) => c.name === name)) return notify('That card already exists');
-    update((d) => d.cards.push({ name, limitPence: parseMoney(card.limit), openingPence: parseMoney(card.opening), sortOrder: d.cards.length + 1, active: true }));
-    setCard({ name: '', limit: '', opening: '' });
-    notify(`${name} added everywhere`);
-  };
-
-  const removeCard = (name: string) => {
-    const used = ds.transactions.filter((t) => t.account === name).length;
-    if (used > 0) return notify(`${name} has ${used} transactions — deactivate instead`);
-    if (!confirm(`Remove ${name}?`)) return;
-    update((d) => { d.cards = d.cards.filter((c) => c.name !== name); });
-  };
-
-  const applyRentChange = () => {
-    if (!rentProvider) return notify('No Rent ledger is loaded');
-    if (!rentChange.from) return notify('Choose the date the new rent starts');
-    if (rentMonthlyDraft <= 0) return notify('Enter a monthly rent above zero');
-    if (!confirm(
-      `Change the monthly rent to ${gbp(rentMonthlyDraft)} from ${dateUk(rentChange.from)}?\n\n`
-      + `The weekly charge will be ${gbp(rentWeeklyDraft)}. ${rentTargets.length} future Rent Charge row${rentTargets.length === 1 ? '' : 's'} will update; `
-      + `entries on or before ${dateUk(ds.settings.asOfDate)} stay unchanged.`,
-    )) return;
-    update((d) => {
-      applyMonthlyRentChange(d.providers.rent, d.settings.asOfDate, rentMonthlyDraft, rentChange.from);
-    });
-    setRentChange({ ...rentChange, amount: (rentMonthlyDraft / 100).toFixed(2) });
-    notify(rentTargets.length
-      ? `Rent updated — ${rentTargets.length} future weekly charge${rentTargets.length === 1 ? '' : 's'} changed`
-      : 'Rent updated — no future weekly charges matched');
-  };
-
-  const applyRentPaymentChange = () => {
-    if (!rentProvider) return notify('No Rent ledger is loaded');
-    if (!rentChange.from) return notify('Choose the date the new payment starts');
-    if (rentPaymentDraft <= 0) return notify('Enter a monthly payment above zero');
-    if (!confirm(
-      `Change the monthly Rent payment to ${gbp(rentPaymentDraft)} from ${dateUk(rentChange.from)}?\n\n`
-      + `${rentPaymentRows.length} future rent payment row${rentPaymentRows.length === 1 ? '' : 's'} will update. `
-      + 'Earlier payment rows and earlier Rent bill months stay unchanged.',
-    )) return;
-    update((d) => {
-      applyMonthlyPaymentChange(d.providers.rent, d.settings.asOfDate, rentPaymentDraft, rentChange.from);
-      const rentBill = d.bills.find((bill) => bill.name === 'Rent');
-      if (rentBill) {
-        rentBill.baseAmountPence = rentPaymentDraft;
-        rentBill.amountPence = rentPaymentDraft;
-      }
-    });
-    setRentChange({ ...rentChange, payment: (rentPaymentDraft / 100).toFixed(2) });
-    notify(rentPaymentRows.length
-      ? `Rent payment updated — ${rentPaymentRows.length} future payment row${rentPaymentRows.length === 1 ? '' : 's'} changed`
-      : 'Rent payment updated — no future payment rows matched');
-  };
-
-  const addChange = () => {
-    if (!change.bill) return notify('Choose a bill');
-    update((d) => d.billChanges.push({
-      bill: change.bill,
-      appliesFrom: change.from,
-      appliesTo: change.to,
-      amountOverridePence: change.amount.trim() ? parseMoney(change.amount) : null,
-      dueDateOverride: change.due,
-      changeType: change.type,
-      note: change.note,
-    }));
-    setChange({ ...change, from: '', to: '', amount: '', due: '', type: '', note: '' });
-    notify('Bill change added');
-  };
-
   const reset = () => {
     if (!confirm('Discard every local edit and restore the imported workbook data?')) return;
     clearState(userId);
@@ -1839,153 +1644,15 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
         </div>
       </Section>
 
-      <Section title="Bank accounts" sub="Edit a name in place (Enter saves, Esc cancels); removing an account moves its transactions to the main account">
-        <Table head={['Name', 'Target £', 'Opening £', 'Sort', 'Active', '']} numHead={[1, 2, 3]}>
-          {ds.accounts.map((a, i) => (
-            <tr key={a.name}>
-              <td><EditableName value={a.name} onCommit={(next) => renameAccount(a.name, next)} ariaLabel={`Account name ${a.name}`} /></td>
-              <td className="num"><input className="table-input" inputMode="decimal" value={(a.targetPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.accounts[i].targetPence = parseMoney(e.target.value); })} /></td>
-              <td className="num"><input className="table-input" inputMode="decimal" value={(a.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.accounts[i].openingPence = parseMoney(e.target.value); })} /></td>
-              <td className="num muted">{a.sortOrder}</td>
-              <td><input type="checkbox" checked={a.active} onChange={(e) => update((d) => { d.accounts[i].active = e.target.checked; })} /></td>
-              <td><button className="btn ghost sm" onClick={() => removeAccount(a.name)}>Remove</button></td>
-            </tr>
-          ))}
-        </Table>
-        <div className="inline-form">
-          <Field label="New account"><input className="input" placeholder="Name" value={acct.name} onChange={(e) => setAcct({ ...acct, name: e.target.value })} /></Field>
-          <Field label="Target £"><input className="input" inputMode="decimal" value={acct.target} onChange={(e) => setAcct({ ...acct, target: e.target.value })} /></Field>
-          <Field label="Opening £"><input className="input" inputMode="decimal" value={acct.opening} onChange={(e) => setAcct({ ...acct, opening: e.target.value })} /></Field>
-          <button className="btn primary" onClick={addAccount}>Add account</button>
-        </div>
-      </Section>
-
-      <Section title="People" sub="Edit names in place; removing someone keeps their ledger rows but stops counting them as owed">
-        <Table head={['Short name', 'Full name', 'Opening £', 'Active', '']} numHead={[2]}>
-          {ds.people.map((p, i) => (
-            <tr key={p.shortName}>
-              <td><EditableName value={p.shortName} onCommit={(next) => renamePerson(p.shortName, next)} ariaLabel={`Short name ${p.shortName}`} /></td>
-              <td><EditableName value={p.fullName} onCommit={(next) => update((d) => { d.people[i].fullName = next; })} ariaLabel={`Full name ${p.fullName}`} /></td>
-              <td className="num"><input className="table-input" inputMode="decimal" value={(p.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.people[i].openingPence = parseMoney(e.target.value); })} /></td>
-              <td><input type="checkbox" checked={p.active} onChange={(e) => update((d) => { d.people[i].active = e.target.checked; })} /></td>
-              <td><button className="btn ghost sm" onClick={() => removePerson(p.shortName)}>Remove</button></td>
-            </tr>
-          ))}
-        </Table>
-        <div className="inline-form">
-          <Field label="Short name"><input className="input" value={person.short} onChange={(e) => setPerson({ ...person, short: e.target.value })} /></Field>
-          <Field label="Full name"><input className="input" value={person.full} onChange={(e) => setPerson({ ...person, full: e.target.value })} /></Field>
-          <Field label="Opening £"><input className="input" inputMode="decimal" value={person.opening} onChange={(e) => setPerson({ ...person, opening: e.target.value })} /></Field>
-          <button className="btn primary" onClick={addPerson}>Add person</button>
+      <Section title="Accounts, people and cards" sub="Each record is edited on the page that owns it, so there is only one copy.">
+        <div className="toolbar" style={{ borderBottom: 0 }}>
+          <button className="btn" onClick={() => go('accounts')}>Open Accounts</button>
+          <button className="btn" onClick={() => go('people')}>Open People</button>
+          <button className="btn" onClick={() => go('cards')}>Open Cards</button>
         </div>
       </Section>
 
       <PeopleAccessSection ds={ds} userId={userId} notify={notify} workspace={workspace} />
-
-      <Section title="Credit cards" sub="Limits and opening balances">
-        <Table head={['Card', 'Limit £', 'Opening £', 'Active', '']} numHead={[1, 2]}>
-          {ds.cards.map((c, i) => (
-            <tr key={c.name}>
-              <td><strong>{c.name}</strong></td>
-              <td className="num"><input className="table-input" inputMode="decimal" value={(c.limitPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.cards[i].limitPence = parseMoney(e.target.value); })} /></td>
-              <td className="num"><input className="table-input" inputMode="decimal" value={(c.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.cards[i].openingPence = parseMoney(e.target.value); })} /></td>
-              <td><input type="checkbox" checked={c.active} onChange={(e) => update((d) => { d.cards[i].active = e.target.checked; })} /></td>
-              <td><button className="btn ghost sm" onClick={() => removeCard(c.name)}>Remove</button></td>
-            </tr>
-          ))}
-        </Table>
-        <div className="inline-form">
-          <Field label="New card"><input className="input" value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} /></Field>
-          <Field label="Limit £"><input className="input" inputMode="decimal" value={card.limit} onChange={(e) => setCard({ ...card, limit: e.target.value })} /></Field>
-          <Field label="Opening £"><input className="input" inputMode="decimal" value={card.opening} onChange={(e) => setCard({ ...card, opening: e.target.value })} /></Field>
-          <button className="btn primary" onClick={addCard}>Add card</button>
-        </div>
-      </Section>
-      </div>
-
-      <div className="settings-pane" hidden={settingsPane !== 'bills'}>
-      {rentProvider && (
-        <Section title="Rent" sub="Change the monthly rent or payment from the chosen date; passed history stays intact">
-          <div className="inline-form">
-            <Field label="Monthly rent £" hint={`Current ${gbp(rentProvider.monthlyRentPence)}`}>
-              <input
-                className="input"
-                aria-label="Monthly rent"
-                inputMode="decimal"
-                value={rentChange.amount}
-                onChange={(e) => setRentChange({ ...rentChange, amount: e.target.value })}
-              />
-            </Field>
-            <Field label="Apply from" hint="Passed and zero/free-week rows stay untouched">
-              <input
-                className="input"
-                aria-label="Rent change effective date"
-                type="date"
-                value={rentChange.from}
-                onChange={(e) => setRentChange({ ...rentChange, from: e.target.value })}
-              />
-            </Field>
-            <button className="btn primary" onClick={applyRentChange}>Update future rent</button>
-          </div>
-          <div className="notice info" style={{ margin: '0 16px 12px' }}>
-            Weekly charge will be <strong>{gbp(rentWeeklyDraft)}</strong> (monthly rent ÷ 4).{' '}
-            {rentTargets.length} future Rent Charge row{rentTargets.length === 1 ? '' : 's'} will update.
-            <div className="muted small" style={{ marginTop: 4 }}>
-              Entries on or before As-Of {dateUk(ds.settings.asOfDate)} and zero/free-week rows are retained.
-            </div>
-          </div>
-          <div className="inline-form" style={{ borderTop: '1px solid var(--border)' }}>
-            <Field label="Monthly payment £" hint={`Current ${gbp(rentProvider.monthlyPaymentPence)}`}>
-              <input
-                className="input"
-                aria-label="Monthly payment"
-                inputMode="decimal"
-                value={rentChange.payment}
-                onChange={(e) => setRentChange({ ...rentChange, payment: e.target.value })}
-              />
-            </Field>
-            <button className="btn primary" onClick={applyRentPaymentChange}>Update future payment</button>
-          </div>
-          <div className="notice info" style={{ margin: '0 16px 16px' }}>
-            Payment will be <strong>{gbp(rentPaymentDraft)}</strong> from {dateUk(rentChange.from)}.{' '}
-            {rentPaymentRows.length} future rent payment row{rentPaymentRows.length === 1 ? '' : 's'} will update.
-            <div className="muted small" style={{ marginTop: 4 }}>
-              The payment card updates now; the Rent bill applies from this date. Earlier payment rows, zero-payment months, and earlier bill months are retained.
-            </div>
-          </div>
-        </Section>
-      )}
-
-      <Section title="Bill changes" sub="Bill definitions and link sheets live in Bills. Add one-off or dated overrides here.">
-        <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Due day', 'Type', 'Note', '']} numHead={[3]}>
-          {ds.billChanges.map((c, i) => (
-            <tr key={i}>
-              <td>{c.bill}</td>
-              <td className="muted">{dateUk(c.appliesFrom)}</td>
-              <td className="muted">{dateUk(c.appliesTo)}</td>
-              <td className="num">{c.amountOverridePence === null ? '—' : gbp(c.amountOverridePence)}</td>
-              <td className="muted">{c.dueDateOverride ? dateUk(c.dueDateOverride) : '—'}</td>
-              <td className="muted">{typeof c.dueDayOverride === 'number' ? `Day ${c.dueDayOverride}` : '—'}</td>
-              <td className="muted small">{c.skip ? `Removed${c.changeType ? ` — ${c.changeType}` : ''}` : c.changeType || '—'}</td>
-              <td className="muted small">{c.note || '—'}</td>
-              <td><button className="btn ghost sm" onClick={() => update((d) => { d.billChanges.splice(i, 1); })}>Remove</button></td>
-            </tr>
-          ))}
-        </Table>
-        <div className="inline-form">
-          <Field label="Bill">
-            <select className="select" value={change.bill} onChange={(e) => setChange({ ...change, bill: e.target.value })}>
-              {ds.bills.map((b) => <option key={b.name} value={b.name}>{b.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Applies from"><input className="input" type="date" value={change.from} onChange={(e) => setChange({ ...change, from: e.target.value })} /></Field>
-          <Field label="Applies to"><input className="input" type="date" value={change.to} onChange={(e) => setChange({ ...change, to: e.target.value })} /></Field>
-          <Field label="Amount £"><input className="input" inputMode="decimal" value={change.amount} onChange={(e) => setChange({ ...change, amount: e.target.value })} /></Field>
-          <Field label="Due override"><input className="input" type="date" value={change.due} onChange={(e) => setChange({ ...change, due: e.target.value })} /></Field>
-          <Field label="Type"><input className="input" value={change.type} onChange={(e) => setChange({ ...change, type: e.target.value })} /></Field>
-          <button className="btn primary" onClick={addChange}>Add change</button>
-        </div>
-      </Section>
       </div>
 
       <div className="settings-pane" hidden={settingsPane !== 'data'}>
@@ -2243,7 +1910,7 @@ const APP_NEW_YEAR_GUIDE = [
   '2 — For a continuous ledger, leave Balance anchor date and every opening balance unchanged. FinanceHub calculates balances from the original anchor across the whole ledger. To start the new year from the 31 December close instead, tick Carry over balances in Settings → Year rollover: it records a year-opening checkpoint without deleting earlier rows, so the same history is not counted twice.',
   '3 — Set As-of date to the date you have actually reconciled to. Move it forward only when the matching records exist.',
   '4 — Leave past month locks alone. They are stored by year and month and are not recalculated when the target year changes.',
-  '5 — Change the top-bar year to a future year and review Bills. Amount, due-day and remove edits there create a plan for that year only; the base definitions and earlier years stay untouched. Use a dated Bill change in Settings → Bill changes for a one-off month or a range that is not a whole year. The latest matching change wins.',
+  '5 — Change the top-bar year to a future year and review Bills. Amount, due-day and remove edits there create a plan for that year only; the base definitions and earlier years stay untouched. Use a dated Bill change in Bill changes on Bills for a one-off month or a range that is not a whole year. The latest matching change wins.',
   '6 — Review the link sheets under Bills. A provider-linked sheet keeps its provider lookup when renamed; a custom sheet is a label and uses the bill’s base amount. Add, rename or remove sheets in Bills.',
   '7 — Provider ledgers keep each year in its own block. Choose a future year in the top bar to add, amend or remove that year’s rows and balance anchors without touching the live year. Editing any year carries its new closing balance into the next block and recalculates the rest of the chain; use Recalculate later years on a provider to rebuild every saved block from the live close on demand. Carry over balances rotates a future block into the live ledger and keeps the old year read-only. A provider-linked bill reads the block for the selected year.',
   '8 — Add new-year transactions through Import or Transactions. Imports never post until you confirm them, and locked months reject new rows.',
@@ -2252,7 +1919,7 @@ const APP_NEW_YEAR_GUIDE = [
   '2 — In Budget basics, set the new Budget year, As-of date and Balance anchor date. If the opening balances are the 31 December close, use 31 December as the anchor.',
   '3 — In Start from a clean slate, enter the main account and its opening balance, then choose Start blank budget. A JSON backup downloads before accounts, people, cards, bills, transactions, holidays and provider ledgers are cleared.',
   '4 — Add the remaining accounts, people and cards. Use the confirmed 31 December closing balances as the new opening balances. Do not import last year’s transactions into the new budget.',
-  '5 — Open Bills to add the new year’s bills and link sheets, and Settings → Bill changes for dated changes. A clean budget has no provider history, so a provider-linked bill uses its base amount; a custom sheet is the simplest label.',
+  '5 — Open Bills to add the new year’s bills and link sheets, and Bill changes on Bills for dated changes. A clean budget has no provider history, so a provider-linked bill uses its base amount; a custom sheet is the simplest label.',
   '6 — Import the first new-year bank CSV or add transactions manually. The opening balance belongs in the account record, not in a transaction.',
   'BILLS, INCOME AND BALANCES',
   '• Base amount changes apply to every open month unless a dated Bill change overrides them. Use 1 January changes to preserve the finished year.',

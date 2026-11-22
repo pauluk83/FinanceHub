@@ -15,8 +15,16 @@ import { printHtml } from '../print';
 import { CADENCES, billPrefill, recurringSuggestions, type RecurringSuggestion } from '../../../core/recurring';
 import { bulkEditTransactions } from '../../../core/cleanup';
 import { EXPIRY_KINDS, billPriceSummary, expiryList, newExpiryId, normaliseExpiry, type ExpiryKind } from '../../../core/billTimeline';
+import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
+import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
+
+function nextAprilDate(asOfDate: string): string {
+  const year = Number(asOfDate.slice(0, 4)) || new Date().getFullYear();
+  const month = Number(asOfDate.slice(5, 7)) || 1;
+  return `${month >= 4 ? year + 1 : year}-04-01`;
+}
 
 function auditActionLabel(entry: AuditEntry): string {
   if (entry.action === 'update') return `Edited · ${entry.label}`;
@@ -773,13 +781,54 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   );
 }
 
-export function Accounts({ ds, engine, year, month }: ViewProps) {
+export function Accounts({ ds, engine, year, month, update, notify }: ViewProps) {
   const asOf = engine.throughFor(year, month);
   const balances = engine.accountBalances(asOf);
   const [selected, setSelected] = useState(
     ds.accounts.find((a) => a.name === (ds.settings.primaryAccount || ds.accounts[0]?.name))?.name ?? balances[0]?.name ?? '',
   );
+  const [acct, setAcct] = useState({ name: '', target: '', opening: '' });
   const mainAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || 'the main account';
+  const nameInUse = (name: string, old?: string) =>
+    ds.accounts.some((a) => a.name === name && a.name !== old)
+    || ds.people.some((p) => p.shortName === name && p.shortName !== old)
+    || ds.cards.some((c) => c.name === name && c.name !== old);
+  const addAccount = () => {
+    const name = acct.name.trim();
+    if (!name) return notify('Give the account a name');
+    if (ds.accounts.some((a) => a.name === name)) return notify('An account with that name already exists');
+    update((d) => d.accounts.push({ name, targetPence: parseMoney(acct.target), openingPence: parseMoney(acct.opening), sortOrder: d.accounts.length + 1, active: true }));
+    setAcct({ name: '', target: '', opening: '' });
+    notify(`${name} added everywhere`);
+  };
+  const renameAccount = (oldName: string, newName: string) => {
+    if (nameInUse(newName, oldName)) return notify('That name is already used by an account, person or card');
+    update((d) => {
+      const account = d.accounts.find((x) => x.name === oldName);
+      if (!account) return;
+      account.name = newName;
+      d.transactions.forEach((t) => { if (t.account === oldName) t.account = newName; });
+      if (d.settings.primaryAccount === oldName) d.settings.primaryAccount = newName;
+    });
+    setSelected((current) => (current === oldName ? newName : current));
+    notify(`${oldName} renamed to ${newName}`);
+  };
+  const removeAccount = (name: string) => {
+    const isPrimary = name === mainAccount;
+    const used = ds.transactions.filter((t) => t.account === name).length;
+    const other = ds.accounts.find((a) => a.name !== name)?.name ?? '';
+    if (isPrimary && !other) return notify('Add another account before removing the main account');
+    const destination = isPrimary ? other : ds.accounts.some((a) => a.name === mainAccount) ? mainAccount : other;
+    if (used > 0 && !destination) return notify('Add another account before removing this one');
+    const detail = used ? ` ${used} transactions will move to ${destination}.` : '';
+    if (!confirm(`Remove ${name}?${detail}`)) return;
+    update((d) => {
+      if (used) d.transactions.forEach((t) => { if (t.account === name) t.account = destination; });
+      d.accounts = d.accounts.filter((a) => a.name !== name);
+      if (isPrimary) d.settings.primaryAccount = destination;
+    });
+    notify(`${name} removed${used ? ` — ledger moved to ${destination}` : ''}`);
+  };
   const recent = ds.transactions
     .filter((t) => t.account === selected)
     .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row)
@@ -809,19 +858,30 @@ export function Accounts({ ds, engine, year, month }: ViewProps) {
 
   return (
     <>
-      <Section title="Bank accounts" sub={`Balances as of ${dateUk(asOf)} · targets are managed in Settings`}>
-        <Table head={['Account', 'Opening', 'Balance', 'Target', 'Progress', 'Active']} numHead={[1, 2, 3]}>
-          {balances.map((a) => (
-            <tr key={a.name} className={a.name === selected ? 'selected' : ''} onClick={() => setSelected(a.name)} style={{ cursor: 'pointer' }}>
-              <td><strong>{a.name}</strong></td>
-              <td className="num muted">{gbp(a.openingPence)}</td>
-              <td className="num"><strong>{gbp(a.balancePence)}</strong></td>
-              <td className="num muted">{gbp(a.targetPence)}</td>
-              <td style={{ width: 150 }}><Bar value={a.targetPence === 0 ? 0 : a.balancePence / a.targetPence} /></td>
-              <td>{a.active ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>}</td>
-            </tr>
-          ))}
+      <Section title="Bank accounts" sub={`Balances as of ${dateUk(asOf)}. Edit a name in place (Enter saves, Esc cancels); removing an account moves its transactions to the main account.`}>
+        <Table head={['Account', 'Opening', 'Balance', 'Target', 'Progress', 'Active', '']} numHead={[1, 2, 3]}>
+          {balances.map((a) => {
+            const index = ds.accounts.findIndex((entry) => entry.name === a.name);
+            return (
+              <tr key={a.name} className={a.name === selected ? 'selected' : ''} onClick={() => setSelected(a.name)} style={{ cursor: 'pointer' }}>
+                <td><EditableName value={a.name} onCommit={(next) => renameAccount(a.name, next)} ariaLabel={`Account name ${a.name}`} /></td>
+                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Opening ${a.name}`} value={(a.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.accounts[index].openingPence = parseMoney(e.target.value); })} /></td>
+                <td className="num"><strong>{gbp(a.balancePence)}</strong></td>
+                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Target ${a.name}`} value={(a.targetPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.accounts[index].targetPence = parseMoney(e.target.value); })} /></td>
+                <td style={{ width: 150 }}><Bar value={a.targetPence === 0 ? 0 : a.balancePence / a.targetPence} /></td>
+                <td><input type="checkbox" aria-label={`${a.name} active`} checked={a.active} onChange={(e) => update((d) => { d.accounts[index].active = e.target.checked; })} /></td>
+                <td><button className="btn ghost sm" onClick={(event) => { event.stopPropagation(); removeAccount(a.name); }}>Remove</button></td>
+              </tr>
+            );
+          })}
         </Table>
+        {ds.accounts.length === 0 && <Empty>No accounts yet — add the first one below.</Empty>}
+        <div className="inline-form">
+          <Field label="New account"><input className="input" placeholder="Name" value={acct.name} onChange={(e) => setAcct({ ...acct, name: e.target.value })} /></Field>
+          <Field label="Target £"><input className="input" inputMode="decimal" value={acct.target} onChange={(e) => setAcct({ ...acct, target: e.target.value })} /></Field>
+          <Field label="Opening £"><input className="input" inputMode="decimal" value={acct.opening} onChange={(e) => setAcct({ ...acct, opening: e.target.value })} /></Field>
+          <button className="btn primary" onClick={addAccount}>Add account</button>
+        </div>
       </Section>
 
       <Section
@@ -915,11 +975,26 @@ export function Accounts({ ds, engine, year, month }: ViewProps) {
   );
 }
 
-export function Cards({ ds, engine, year, month }: ViewProps) {
+export function Cards({ ds, engine, year, month, update, notify }: ViewProps) {
   const asOf = engine.throughFor(year, month);
   const cards = engine.cardBalances(asOf);
+  const [card, setCard] = useState({ name: '', limit: '', opening: '' });
   const totalBalance = cards.reduce((s, c) => s + c.balancePence, 0);
   const totalLimit = cards.reduce((s, c) => s + c.limitPence, 0);
+  const addCard = () => {
+    const name = card.name.trim();
+    if (!name) return notify('Give the card a name');
+    if (ds.cards.some((c) => c.name === name)) return notify('That card already exists');
+    update((d) => d.cards.push({ name, limitPence: parseMoney(card.limit), openingPence: parseMoney(card.opening), sortOrder: d.cards.length + 1, active: true }));
+    setCard({ name: '', limit: '', opening: '' });
+    notify(`${name} added everywhere`);
+  };
+  const removeCard = (name: string) => {
+    const used = ds.transactions.filter((t) => t.account === name).length;
+    if (used > 0) return notify(`${name} has ${used} transactions — deactivate instead`);
+    if (!confirm(`Remove ${name}?`)) return;
+    update((d) => { d.cards = d.cards.filter((c) => c.name !== name); });
+  };
   return (
     <>
       <div className="kpi-grid">
@@ -929,48 +1004,100 @@ export function Cards({ ds, engine, year, month }: ViewProps) {
         <div className="card"><div className="card-title">Available</div><div className="kpi-value pos">{gbp(totalLimit - totalBalance)}</div></div>
       </div>
       <Section title="Credit cards" sub="Balance = opening + charges − refunds/payments">
-        <Table head={['Card', 'Opening', 'Balance', 'Limit', 'Available', 'Used', '']} numHead={[1, 2, 3, 4, 5]}>
-          {cards.map((c) => (
-            <tr key={c.name}>
-              <td><strong>{c.name}</strong></td>
-              <td className="num muted">{gbp(c.openingPence)}</td>
-              <td className="num"><strong>{gbp(c.balancePence)}</strong></td>
-              <td className="num muted">{gbp(c.limitPence)}</td>
-              <td className="num">{gbp(c.availablePence)}</td>
-              <td className="num">{pct(c.utilisation)}</td>
-              <td style={{ width: 100 }}><Bar value={c.utilisation} tone={c.utilisation > 0.5 ? 'red' : 'accent'} /></td>
-            </tr>
-          ))}
+        <Table head={['Card', 'Opening', 'Balance', 'Limit', 'Available', 'Used', 'Active', '']} numHead={[1, 2, 3, 4, 5]}>
+          {cards.map((c) => {
+            const index = ds.cards.findIndex((entry) => entry.name === c.name);
+            return (
+              <tr key={c.name}>
+                <td><strong>{c.name}</strong></td>
+                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Opening ${c.name}`} value={(c.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.cards[index].openingPence = parseMoney(e.target.value); })} /></td>
+                <td className="num"><strong>{gbp(c.balancePence)}</strong></td>
+                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Limit ${c.name}`} value={(c.limitPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.cards[index].limitPence = parseMoney(e.target.value); })} /></td>
+                <td className="num">{gbp(c.availablePence)}</td>
+                <td className="num">{pct(c.utilisation)}</td>
+                <td><input type="checkbox" aria-label={`${c.name} active`} checked={c.active} onChange={(e) => update((d) => { d.cards[index].active = e.target.checked; })} /></td>
+                <td><button className="btn ghost sm" onClick={() => removeCard(c.name)}>Remove</button></td>
+              </tr>
+            );
+          })}
         </Table>
+        {ds.cards.length === 0 && <Empty>No credit cards yet — add the first one below.</Empty>}
+        <div className="inline-form">
+          <Field label="New card"><input className="input" value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} /></Field>
+          <Field label="Limit £"><input className="input" inputMode="decimal" value={card.limit} onChange={(e) => setCard({ ...card, limit: e.target.value })} /></Field>
+          <Field label="Opening £"><input className="input" inputMode="decimal" value={card.opening} onChange={(e) => setCard({ ...card, opening: e.target.value })} /></Field>
+          <button className="btn primary" onClick={addCard}>Add card</button>
+        </div>
       </Section>
     </>
   );
 }
 
-export function People({ ds, engine, year, month }: ViewProps) {
+export function People({ ds, engine, year, month, update, notify, userId }: ViewProps) {
   const asOf = engine.throughFor(year, month);
   const people = engine.owedByPerson(asOf);
+  const [person, setPerson] = useState({ short: '', full: '', opening: '' });
+  const nameInUse = (name: string, old?: string) =>
+    ds.accounts.some((a) => a.name === name && a.name !== old)
+    || ds.people.some((p) => p.shortName === name && p.shortName !== old)
+    || ds.cards.some((c) => c.name === name && c.name !== old);
+  const addPerson = () => {
+    const short = person.short.trim();
+    if (!short) return notify('Give the person a short name');
+    if (ds.people.some((p) => p.shortName === short)) return notify('That person already exists');
+    update((d) => d.people.push({ shortName: short, fullName: person.full.trim() || short, openingPence: parseMoney(person.opening), sortOrder: d.people.length + 1, active: true }));
+    setPerson({ short: '', full: '', opening: '' });
+    notify(`${short} added everywhere`);
+  };
+  const renamePerson = (oldName: string, newName: string) => {
+    if (nameInUse(newName, oldName)) return notify('That name is already used by an account, person or card');
+    update((d) => {
+      const record = d.people.find((x) => x.shortName === oldName);
+      if (!record) return;
+      record.shortName = newName;
+      d.transactions.forEach((t) => { if (t.account === oldName) t.account = newName; });
+    });
+    renamePortalPerson(userId, oldName, newName);
+    notify(`${oldName} renamed to ${newName}`);
+  };
+  const removePerson = (name: string) => {
+    const used = ds.transactions.filter((t) => t.account === name).length;
+    if (used > 0 && !confirm(`${name} has ${used} ledger rows. Removing the person leaves those rows in the transaction log but they will no longer count towards anyone. Remove ${name}?`)) return;
+    update((d) => { d.people = d.people.filter((p) => p.shortName !== name); });
+    deletePortalsForPerson(userId, name);
+    notify(`${name} removed${used ? ` — ${used} ledger rows kept` : ''}`);
+  };
   return (
-    <Section title="People accounts" sub="Owed = opening + lent − repaid · accounts are managed in Settings">
-      <Table head={['Person', 'Full name', 'Opening', 'Lent', 'Repaid', 'Owed']} numHead={[2, 3, 4, 5]}>
-        {people.map((p) => {
+    <Section title="People accounts" sub="Owed = opening + lent − repaid. Edit names in place; removing someone keeps their ledger rows but stops counting them as owed.">
+      <Table head={['Person', 'Full name', 'Opening', 'Lent', 'Repaid', 'Owed', 'Active', '']} numHead={[2, 3, 4, 5]}>
+        {ds.people.map((p) => {
+          const owed = people.find((entry) => entry.shortName === p.shortName);
           const lent = ds.transactions.filter((t) => t.account === p.shortName && t.type === 'Expense').reduce((s, t) => s + t.amountPence, 0);
           const repaid = ds.transactions.filter((t) => t.account === p.shortName && t.type === 'Income').reduce((s, t) => s + t.amountPence, 0);
           return (
             <tr key={p.shortName}>
-              <td><strong>{p.shortName}</strong></td>
-              <td className="muted">{p.fullName}</td>
-              <td className="num muted">{gbp(p.openingPence)}</td>
+              <td><EditableName value={p.shortName} onCommit={(next) => renamePerson(p.shortName, next)} ariaLabel={`Short name ${p.shortName}`} /></td>
+              <td><EditableName value={p.fullName} onCommit={(next) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.fullName = next; })} ariaLabel={`Full name ${p.fullName}`} /></td>
+              <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Opening ${p.shortName}`} value={(p.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.openingPence = parseMoney(e.target.value); })} /></td>
               <td className="num">{gbp(lent)}</td>
               <td className="num">{gbp(repaid)}</td>
               <td className="num">
-                <strong>{gbp(p.balancePence)}</strong>
-                {p.trackOwed === false && <div className="muted small">No amount owed</div>}
+                <strong>{gbp(owed?.balancePence ?? p.openingPence + lent - repaid)}</strong>
+                {owed?.trackOwed === false && <div className="muted small">No amount owed</div>}
               </td>
+              <td><input type="checkbox" aria-label={`${p.shortName} active`} checked={p.active} onChange={(e) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.active = e.target.checked; })} /></td>
+              <td><button className="btn ghost sm" onClick={() => removePerson(p.shortName)}>Remove</button></td>
             </tr>
           );
         })}
       </Table>
+      {ds.people.length === 0 && <Empty>No people yet — add the first one below.</Empty>}
+      <div className="inline-form">
+        <Field label="Short name"><input className="input" value={person.short} onChange={(e) => setPerson({ ...person, short: e.target.value })} /></Field>
+        <Field label="Full name"><input className="input" value={person.full} onChange={(e) => setPerson({ ...person, full: e.target.value })} /></Field>
+        <Field label="Opening £"><input className="input" inputMode="decimal" value={person.opening} onChange={(e) => setPerson({ ...person, opening: e.target.value })} /></Field>
+        <button className="btn primary" onClick={addPerson}>Add person</button>
+      </div>
     </Section>
   );
 }
@@ -1003,6 +1130,12 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   const sheets = billSheetsFor(ds);
   const [sheetDraft, setSheetDraft] = useState('');
   const [billDraft, setBillDraft] = useState({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: '', account: '' });
+  const [change, setChange] = useState({ bill: ds.bills[0]?.name ?? '', from: '', to: '', amount: '', due: '', type: '' });
+  const [rentChange, setRentChange] = useState(() => ({
+    amount: typeof ds.providers.rent?.monthlyRentPence === 'number' ? (ds.providers.rent.monthlyRentPence / 100).toFixed(2) : '',
+    payment: typeof ds.providers.rent?.monthlyPaymentPence === 'number' ? (ds.providers.rent.monthlyPaymentPence / 100).toFixed(2) : '',
+    from: nextAprilDate(ds.settings.asOfDate),
+  }));
   const planning = year > ds.settings.targetYear;
   const planStart = `${year}-01-01`;
   const planEnd = `${year}-12-31`;
@@ -1163,8 +1296,127 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
     notify(`${name} removed`);
   };
 
+  const addChange = () => {
+    if (!change.bill) return notify('Choose a bill');
+    update((d) => d.billChanges.push({
+      bill: change.bill,
+      appliesFrom: change.from,
+      appliesTo: change.to,
+      amountOverridePence: change.amount.trim() ? parseMoney(change.amount) : null,
+      dueDateOverride: change.due,
+      changeType: change.type,
+      note: '',
+    }));
+    setChange({ ...change, from: '', to: '', amount: '', due: '', type: '' });
+    notify('Bill change added');
+  };
+
+  const rentProvider = ds.providers.rent;
+  const rentMonthlyDraft = parseMoney(rentChange.amount);
+  const rentPaymentDraft = parseMoney(rentChange.payment);
+  const rentWeeklyDraft = weeklyRentPence(rentMonthlyDraft);
+  const rentTargets = rentProvider && rentChange.from
+    ? rentChangeTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
+    : [];
+  const rentPaymentRows = rentProvider && rentChange.from
+    ? rentPaymentTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
+    : [];
+
+  const applyRentChange = () => {
+    if (!rentProvider) return notify('No Rent ledger is loaded');
+    if (!rentChange.from) return notify('Choose the date the new rent starts');
+    if (rentMonthlyDraft <= 0) return notify('Enter a monthly rent above zero');
+    if (!confirm(
+      `Change the monthly rent to ${gbp(rentMonthlyDraft)} from ${dateUk(rentChange.from)}?\n\n`
+      + `The weekly charge will be ${gbp(rentWeeklyDraft)}. ${rentTargets.length} future Rent Charge row${rentTargets.length === 1 ? '' : 's'} will update; `
+      + `entries on or before ${dateUk(ds.settings.asOfDate)} stay unchanged.`,
+    )) return;
+    update((d) => {
+      applyMonthlyRentChange(d.providers.rent, d.settings.asOfDate, rentMonthlyDraft, rentChange.from);
+    });
+    setRentChange({ ...rentChange, amount: (rentMonthlyDraft / 100).toFixed(2) });
+    notify(rentTargets.length
+      ? `Rent updated — ${rentTargets.length} future weekly charge${rentTargets.length === 1 ? '' : 's'} changed`
+      : 'Rent updated — no future weekly charges matched');
+  };
+
+  const applyRentPaymentChange = () => {
+    if (!rentProvider) return notify('No Rent ledger is loaded');
+    if (!rentChange.from) return notify('Choose the date the new payment starts');
+    if (rentPaymentDraft <= 0) return notify('Enter a monthly payment above zero');
+    if (!confirm(
+      `Change the monthly Rent payment to ${gbp(rentPaymentDraft)} from ${dateUk(rentChange.from)}?\n\n`
+      + `${rentPaymentRows.length} future rent payment row${rentPaymentRows.length === 1 ? '' : 's'} will update. `
+      + 'Earlier payment rows and earlier Rent bill months stay unchanged.',
+    )) return;
+    update((d) => {
+      applyMonthlyPaymentChange(d.providers.rent, d.settings.asOfDate, rentPaymentDraft, rentChange.from);
+      const rentBill = d.bills.find((bill) => bill.name === 'Rent');
+      if (rentBill) {
+        rentBill.baseAmountPence = rentPaymentDraft;
+        rentBill.amountPence = rentPaymentDraft;
+      }
+    });
+    setRentChange({ ...rentChange, payment: (rentPaymentDraft / 100).toFixed(2) });
+    notify(rentPaymentRows.length
+      ? `Rent payment updated — ${rentPaymentRows.length} future payment row${rentPaymentRows.length === 1 ? '' : 's'} changed`
+      : 'Rent payment updated — no future payment rows matched');
+  };
+
   return (
     <>
+      {rentProvider && (
+        <Section title="Rent" sub="Change the monthly rent or payment from the chosen date; passed history stays intact">
+          <div className="inline-form">
+            <Field label="Monthly rent £" hint={`Current ${gbp(rentProvider.monthlyRentPence ?? 0)}`}>
+              <input
+                className="input"
+                aria-label="Monthly rent"
+                inputMode="decimal"
+                value={rentChange.amount}
+                onChange={(e) => setRentChange({ ...rentChange, amount: e.target.value })}
+              />
+            </Field>
+            <Field label="Apply from" hint="Passed and zero/free-week rows stay untouched">
+              <input
+                className="input"
+                aria-label="Rent change effective date"
+                type="date"
+                value={rentChange.from}
+                onChange={(e) => setRentChange({ ...rentChange, from: e.target.value })}
+              />
+            </Field>
+            <button className="btn primary" onClick={applyRentChange}>Update future rent</button>
+          </div>
+          <div className="notice info" style={{ margin: '0 16px 12px' }}>
+            Weekly charge will be <strong>{gbp(rentWeeklyDraft)}</strong> (monthly rent ÷ 4).{' '}
+            {rentTargets.length} future Rent Charge row{rentTargets.length === 1 ? '' : 's'} will update.
+            <div className="muted small" style={{ marginTop: 4 }}>
+              Entries on or before As-Of {dateUk(ds.settings.asOfDate)} and zero/free-week rows are retained.
+            </div>
+          </div>
+          <div className="inline-form" style={{ borderTop: '1px solid var(--border)' }}>
+            <Field label="Monthly payment £" hint={`Current ${gbp(rentProvider.monthlyPaymentPence ?? 0)}`}>
+              <input
+                className="input"
+                aria-label="Monthly payment"
+                inputMode="decimal"
+                value={rentChange.payment}
+                onChange={(e) => setRentChange({ ...rentChange, payment: e.target.value })}
+              />
+            </Field>
+            <button className="btn primary" onClick={applyRentPaymentChange}>Update future payment</button>
+          </div>
+          <div className="notice info" style={{ margin: '0 16px 16px' }}>
+            Payment will be <strong>{gbp(rentPaymentDraft)}</strong> from {dateUk(rentChange.from)}.{' '}
+            {rentPaymentRows.length} future rent payment row{rentPaymentRows.length === 1 ? '' : 's'} will update.
+            <div className="muted small" style={{ marginTop: 4 }}>
+              The payment card updates now; the Rent bill applies from this date. Earlier payment rows, zero-payment months, and earlier bill months are retained.
+            </div>
+          </div>
+        </Section>
+      )}
+
       <Section title={`Scheduled for ${MONTH_LONG[month - 1]} ${year}`} sub="Marked paid from midnight on the due date and taken from the balance; a bill whose payment is already in the transaction log says Paid from log and is counted once; inactive bills stay in history">
         <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
           {scheduled.map((b) => (
@@ -1465,7 +1717,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
         </div>
       </Section>
 
-      <Section title={planning ? `Bill changes for ${year}` : 'Bill changes'} sub="Latest matching override wins; same From/To month is a one-off. Add or edit changes in Settings.">
+      <Section title={planning ? `Bill changes for ${year}` : 'Bill changes'} sub="Latest matching override wins; same From/To month is a one-off. A dated change is the way to alter one month without rewriting the bill's base amount.">
         <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Type', 'Note', '']} numHead={[3]}>
           {ds.billChanges.filter((c) => !planning || ((!c.appliesFrom || c.appliesFrom <= planEnd) && (!c.appliesTo || c.appliesTo >= planStart))).map((c, i) => (
             <tr key={`${c.bill}-${c.appliesFrom}-${c.appliesTo}-${i}`}>
@@ -1480,6 +1732,21 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
             </tr>
           ))}
         </Table>
+        {ds.billChanges.length === 0 && <Empty>No bill changes yet. Add one below for a one-off month or a dated range.</Empty>}
+        <div className="inline-form">
+          <Field label="Bill">
+            <select className="select" value={change.bill} onChange={(e) => setChange({ ...change, bill: e.target.value })}>
+              {ds.bills.length === 0 && <option value="">No bills</option>}
+              {ds.bills.map((b) => <option key={b.name} value={b.name}>{b.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Applies from"><input className="input" type="date" value={change.from} onChange={(e) => setChange({ ...change, from: e.target.value })} /></Field>
+          <Field label="Applies to"><input className="input" type="date" value={change.to} onChange={(e) => setChange({ ...change, to: e.target.value })} /></Field>
+          <Field label="Amount £"><input className="input" inputMode="decimal" value={change.amount} onChange={(e) => setChange({ ...change, amount: e.target.value })} /></Field>
+          <Field label="Due override"><input className="input" type="date" value={change.due} onChange={(e) => setChange({ ...change, due: e.target.value })} /></Field>
+          <Field label="Type"><input className="input" value={change.type} onChange={(e) => setChange({ ...change, type: e.target.value })} /></Field>
+          <button className="btn primary" onClick={addChange}>Add change</button>
+        </div>
       </Section>
     </>
   );

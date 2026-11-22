@@ -282,7 +282,7 @@ export const USER_GUIDE: GuideEntry[] = [
     summary: 'Scheduled bills, base amounts, standing overrides and one-off changes.',
     steps: [
       'Add a bill with its amount, due day, method, category and an optional provider link.',
-      'Edit the base amount for the current year; use Settings → Bill changes for a dated change instead of rewriting history.',
+      'Edit the base amount for the current year; use Bill changes on Bills for a dated change instead of rewriting history.',
       'Mark a bill inactive to stop it appearing in future months while keeping its past rows.',
     ],
     notes: [
@@ -312,7 +312,7 @@ export const USER_GUIDE: GuideEntry[] = [
     summary: 'The rent agreement and ledger: liability, payment date, weekly charge and running balance.',
     steps: [
       'Use Guided setup → Rent agreement to record the landlord, rent you are liable for, agreement type and payment day.',
-      'Use Settings → Rent payment change for a dated change that keeps earlier months intact.',
+      'Use Rent on Bills for a dated change that keeps earlier months intact.',
       'Add ledger entries for charges and payments; the balance rolls forward month by month.',
     ],
     notes: [

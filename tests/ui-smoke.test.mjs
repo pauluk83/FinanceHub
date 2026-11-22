@@ -365,6 +365,45 @@ test('the monthly view shows the same income and holiday cards', async () => {
   const incomeCard = cards.find((card) => card.includes('Income due')) ?? '';
   assert.ok(incomeCard.length > 0, 'the income card rendered');
   assert.equal(incomeCard.includes('Universal Credit (UC)'), false, 'no per-source row in the card');
+  assert.doesNotMatch(html, /month-btn/, 'the dashboard owns the only month strip');
+});
+
+test('accounts, cards, people and bills edit their own records on their own pages', async () => {
+  const { Accounts, Cards, People, Bills } = await server.ssrLoadModule('/src/views/money.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const ds = dataset({
+    dataset: { people: [{ shortName: 'Dan', fullName: 'Dan Smith', openingPence: 0, sortOrder: 1, active: true }] },
+  });
+  const viewProps = props(ds, { engine: buildEngine(ds) });
+
+  const accounts = render(Accounts, viewProps);
+  assert.match(accounts, /Add account/);
+  assert.match(accounts, /aria-label="Target Current"/);
+
+  assert.match(render(Cards, viewProps), /Add card/);
+
+  const people = render(People, viewProps);
+  assert.match(people, /Add person/);
+  assert.match(people, /aria-label="Short name Dan"/);
+
+  const bills = render(Bills, viewProps);
+  assert.match(bills, /Add change/);
+  assert.match(bills, /Bill changes/);
+});
+
+test('settings links to the record pages instead of keeping second editors', async () => {
+  const { SettingsView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const html = render(SettingsView, props(dataset(), { engine: buildEngine(dataset()) }));
+
+  assert.match(html, /Open Accounts/);
+  assert.match(html, /Open People/);
+  assert.match(html, /Open Cards/);
+  assert.doesNotMatch(html, /Add account/);
+  assert.doesNotMatch(html, /Add person/);
+  assert.doesNotMatch(html, /Add card/);
+  assert.doesNotMatch(html, /Add change/);
+  assert.doesNotMatch(html, /Update future rent/);
 });
 
 test('email verification is required for unconfirmed email accounts only', async () => {

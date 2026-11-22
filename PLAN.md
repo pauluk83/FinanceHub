@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.21** (bundle `index-CbysRVPe.js`), suite **534/534**, `tsc` clean,
+Current release **2026.11.22** (bundle `index-_Yv7SjCP.js`), suite **536/536**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -206,14 +206,14 @@ Rules for every item here: no money rule in §2 changes; a change that touches a
 a test proving the figure unchanged in the same release; one release per item, so any item can
 be dropped without unpicking the others. Nothing here adds a feature or restyles a screen.
 
-**6.1 — Delete the second editors (Tier 1).** Settings loses its Bank accounts, People and
-Credit cards sections and links to the pages that own those records; Monthly loses its
-duplicate month strip, keeping the Dashboard's; the Dashboard duplicate notice points at Data
-health instead of Settings' own check; the static Guides page folds into one help surface,
-leaving the data-driven Explain dialogs as the per-figure answer.
+**6.1 — Delete the second editors (Tier 1).** Bank accounts, people, cards, rent changes and
+bill changes are now edited only on the pages that hold those records; Settings links to those
+pages, and Monthly keeps the Dashboard's single month strip. Remaining: the Dashboard duplicate
+notice points at Data health instead of Settings' own check, and the static Guides page folds
+into one help surface, leaving the data-driven Explain dialogs as the per-figure answer.
 
-Exit: accounts, people, cards, the month strip and the duplicate check each have exactly one
-editor or one listing, and every link resolves.
+Exit: the duplicate check has one listing and the Guides pages become one help surface, and
+every link resolves.
 
 **6.2 — Merge four pairs of pages (Tier 2).** Accounts + Cards become "Accounts & cards";
 Calendar absorbs Notifications; Progress + Reports become "Insights"; Statements + Evidence

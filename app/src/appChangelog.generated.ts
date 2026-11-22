@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.21",
-  "buildId": "8e1a8ae94338",
-  "builtAt": "2026-11-21",
+  "version": "2026.11.22",
+  "buildId": "c9943ee41972",
+  "builtAt": "2026-11-22",
   "releases": [
+    {
+      "version": "2026.11.22",
+      "date": "22 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Move account, card and people editing onto their own pages, move rent and bill changes to Bills, and drop Monthly's duplicate month strip"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.21",
       "date": "21 November 2026",
