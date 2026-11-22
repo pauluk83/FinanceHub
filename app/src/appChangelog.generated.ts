@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.22",
-  "buildId": "014c0e38fbe6",
+  "buildId": "4fcfadfa68a6",
   "builtAt": "2026-11-22",
   "releases": [
     {
@@ -36,7 +36,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Show only the selected year's trips in the holiday tracker",
             "Show only the selected year's trips in the holiday tracker",
             "Offer a year that only holds holidays in the year bar",
-            "Open the AI assistant without the vault passphrase"
+            "Open the AI assistant without the vault passphrase",
+            "Seal the hosted AI key with a device-held browser key"
           ]
         }
       ]

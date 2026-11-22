@@ -1,24 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Field, Section } from '../components';
-import { AI_DEFAULT_MODEL } from '../ai';
-import { readAiSettings, writeAiSettings } from '../aiKeyStore';
+import { AI_DEFAULT_MODEL, type AiSettings as AiSettingsValue } from '../ai';
+import { useAiSettings } from '../aiKeyStore';
 
 /**
  * Settings → AI. The key is a device setting saved alongside the app's other
  * settings, so the assistant opens without unlocking the credential vault.
  */
 export function AiSettings({ userId, vaultSession, notify }: Pick<ViewProps, 'userId' | 'vaultSession' | 'notify'>) {
-  const stored = readAiSettings(userId);
+  const { settings: stored, loading, save } = useAiSettings(userId);
   // A key saved in the vault before this change is offered once so it is not lost.
-  const [apiKey, setApiKey] = useState(stored.apiKey || vaultSession?.secrets?.ai?.apiKey || '');
+  const vaultKey = vaultSession?.secrets?.ai?.apiKey ?? '';
+  const [apiKey, setApiKey] = useState(stored.apiKey || vaultKey);
   const [model, setModel] = useState(stored.model);
   const [saved, setSaved] = useState(Boolean(stored.apiKey));
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const save = () => {
+  useEffect(() => {
+    setApiKey(stored.apiKey || vaultKey);
+    setModel(stored.model);
+    setSaved(Boolean(stored.apiKey));
+  }, [stored.apiKey, stored.model]);
+
+  const commit = async (next: AiSettingsValue) => {
+    setBusy(true);
     setError('');
-    if (!writeAiSettings(userId, { apiKey, model })) {
+    const ok = await save(next);
+    setBusy(false);
+    return ok;
+  };
+
+  const saveKey = async () => {
+    if (!(await commit({ apiKey, model }))) {
       setError('This browser could not save the key. Allow site data for FinanceHub and try again.');
       return;
     }
@@ -26,9 +41,8 @@ export function AiSettings({ userId, vaultSession, notify }: Pick<ViewProps, 'us
     notify(apiKey.trim() ? 'AI key saved on this device' : 'AI key removed');
   };
 
-  const remove = () => {
-    setError('');
-    if (!writeAiSettings(userId, { apiKey: '', model })) {
+  const remove = async () => {
+    if (!(await commit({ apiKey: '', model }))) {
       setError('This browser could not remove the key. Allow site data for FinanceHub and try again.');
       return;
     }
@@ -46,8 +60,9 @@ export function AiSettings({ userId, vaultSession, notify }: Pick<ViewProps, 'us
       <div style={{ padding: 16 }}>
         <div className="notice info">
           The key is kept in this device's FinanceHub settings, so the assistant works without unlocking the credential
-          vault. It is never written to the budget document, a backup or sync, but it is not encrypted at rest — anyone
-          who can open FinanceHub on this device can use it. The free default model <code>{AI_DEFAULT_MODEL}</code> lets
+          vault. On Windows the OS encrypts it (DPAPI) like the rest of the app's data; in the hosted web build it is
+          sealed with a device key the browser holds, so a copied browser profile yields only ciphertext. It is never
+          written to the budget document, a backup or sync. The free default model <code>{AI_DEFAULT_MODEL}</code> lets
           OpenRouter pick a free model; free models are rate limited, and a specific model ID can be entered instead.
         </div>
 
@@ -73,8 +88,10 @@ export function AiSettings({ userId, vaultSession, notify }: Pick<ViewProps, 'us
         </div>
 
         <div className="toolbar" style={{ borderBottom: 0, padding: '12px 0 0' }}>
-          <button className="btn primary" onClick={save}>Save AI settings</button>
-          {saved && <button className="btn ghost" onClick={remove}>Remove key</button>}
+          <button className="btn primary" onClick={() => void saveKey()} disabled={busy || loading}>
+            {busy ? 'Saving…' : 'Save AI settings'}
+          </button>
+          {saved && <button className="btn ghost" onClick={() => void remove()} disabled={busy || loading}>Remove key</button>}
         </div>
 
         <p className="muted small" style={{ marginTop: 10 }}>

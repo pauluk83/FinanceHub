@@ -5,6 +5,7 @@ import { buildEngine, type Dataset } from '../core/engine.ts';
 import {
   AI_DEFAULT_MODEL,
   parseAiSettings,
+  parseAiSettingsRecord,
   applyAiAction,
   budgetSnapshot,
   parseAssistantReply,
@@ -17,6 +18,22 @@ test('a missing or damaged key record means the free default model and no key', 
   assert.deepEqual(parseAiSettings(null), { apiKey: '', model: AI_DEFAULT_MODEL });
   assert.deepEqual(parseAiSettings('not json'), { apiKey: '', model: AI_DEFAULT_MODEL });
   assert.deepEqual(parseAiSettings('[]'), { apiKey: '', model: AI_DEFAULT_MODEL });
+});
+
+test('a saved record is read as plaintext, sealed, or empty', () => {
+  assert.deepEqual(parseAiSettingsRecord(null), { kind: 'empty' });
+  assert.deepEqual(parseAiSettingsRecord('garbage'), { kind: 'empty' });
+  assert.deepEqual(parseAiSettingsRecord('{"apiKey":""}'), { kind: 'empty' });
+
+  assert.deepEqual(parseAiSettingsRecord(JSON.stringify({ apiKey: 'sk-or-plain' })), {
+    kind: 'plain',
+    settings: { apiKey: 'sk-or-plain', model: AI_DEFAULT_MODEL },
+  });
+  assert.deepEqual(parseAiSettingsRecord(JSON.stringify({ iv: 'abc', ciphertext: 'def' })), {
+    kind: 'sealed',
+    iv: 'abc',
+    ciphertext: 'def',
+  });
 });
 
 test('a saved key is read back with the default model unless one is set', () => {

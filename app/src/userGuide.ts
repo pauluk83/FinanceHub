@@ -590,7 +590,7 @@ export const USER_GUIDE: GuideEntry[] = [
     title: 'AI assistant',
     summary: 'Ask about this budget, or ask for a bill or transaction change, using your own OpenRouter key.',
     steps: [
-      'Open Settings → AI and save an OpenRouter API key. It is kept in this device\'s settings, not in the budget document, a backup or sync, so the assistant opens without the credential vault.',
+      'Open Settings → AI and save an OpenRouter API key. It is kept in this device\'s settings, not in the budget document, a backup or sync, so the assistant opens without the credential vault. On Windows the OS encrypts it (DPAPI); in the hosted web build it is sealed with a device key the browser holds, so a copied browser profile yields only ciphertext.',
       'Leave the model as openrouter/free for a free model, or enter another OpenRouter model ID.',
       'Open AI assistant in Tools and ask about a balance, a bill, spending or a person.',
       'A requested change appears as a card with Apply; nothing is saved until you press it.',

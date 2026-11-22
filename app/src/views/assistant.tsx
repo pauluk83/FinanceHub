@@ -9,7 +9,7 @@ import {
   describeAiAction,
   type AiAction,
 } from '../ai';
-import { readAiSettings } from '../aiKeyStore';
+import { useAiSettings } from '../aiKeyStore';
 
 type ChatEntry = {
   role: 'user' | 'assistant';
@@ -35,7 +35,7 @@ function actionSummary(action: AiAction): string {
 }
 
 export function AssistantView({ ds, engine, year, month, update, notify, userId, go }: ViewProps) {
-  const [settings] = useState(() => readAiSettings(userId));
+  const { settings, loading } = useAiSettings(userId);
   const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
@@ -103,7 +103,9 @@ export function AssistantView({ ds, engine, year, month, update, notify, userId,
     return (
       <Section title="AI assistant" sub="Ask about this budget or ask for a change, using your own OpenRouter key." actions={actions}>
         <Empty>
-          Save your OpenRouter key in Settings → AI and the chat opens here — no vault passphrase needed.
+          {loading
+            ? 'Opening the saved key…'
+            : 'Save your OpenRouter key in Settings → AI and the chat opens here — no vault passphrase needed.'}
         </Empty>
       </Section>
     );

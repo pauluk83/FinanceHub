@@ -29,6 +29,33 @@ export function parseAiSettings(raw: string | null): AiSettings {
   };
 }
 
+export type AiSettingsRecord =
+  | { kind: 'empty' }
+  | { kind: 'plain'; settings: AiSettings }
+  | { kind: 'sealed'; iv: string; ciphertext: string };
+
+/**
+ * A saved record is either the plaintext shape written before the hosted build
+ * wrapped keys, or `{ iv, ciphertext }` sealed with the browser's device key.
+ * Anything unreadable behaves like no key, so saving can replace it.
+ */
+export function parseAiSettingsRecord(raw: string | null): AiSettingsRecord {
+  if (!raw) return { kind: 'empty' };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    return { kind: 'empty' };
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'empty' };
+  const record = parsed as Record<string, unknown>;
+  if (typeof record.iv === 'string' && record.iv && typeof record.ciphertext === 'string' && record.ciphertext) {
+    return { kind: 'sealed', iv: record.iv, ciphertext: record.ciphertext };
+  }
+  const settings = parseAiSettings(raw);
+  return settings.apiKey ? { kind: 'plain', settings } : { kind: 'empty' };
+}
+
 /** A compact, read-only view of the budget for the model. Money stays in pence. */
 export function budgetSnapshot(ds: Dataset, engine: Engine, year: number, month: number) {
   return {
