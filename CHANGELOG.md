@@ -22,6 +22,7 @@ and the build time.
 - Add Settings AI with an OpenRouter key kept in the encrypted vault, plus an AI assistant that proposes bill and transaction changes for approval
 - Show the AI key state honestly in Settings
 - Explain when the assistant cannot reach OpenRouter
+- Allow the assistant to reach OpenRouter through the production CSP
 
 ## [2026.11.21] — 21 November 2026
 

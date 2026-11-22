@@ -62,12 +62,12 @@ test('built bundles carry no legacy credential values', (t) => {
 });
 
 test('the CSP connect sources fail closed without a valid Supabase URL', () => {
-  assert.equal(connectSources({}), "'self'");
-  assert.equal(connectSources({ VITE_SUPABASE_URL: 'not a url' }), "'self'");
-  assert.equal(connectSources({ VITE_SUPABASE_URL: 'http://example.supabase.co' }), "'self'");
+  assert.equal(connectSources({}), "'self' https://openrouter.ai");
+  assert.equal(connectSources({ VITE_SUPABASE_URL: 'not a url' }), "'self' https://openrouter.ai");
+  assert.equal(connectSources({ VITE_SUPABASE_URL: 'http://example.supabase.co' }), "'self' https://openrouter.ai");
   assert.equal(
     connectSources({ VITE_SUPABASE_URL: 'https://abc.supabase.co' }),
-    "'self' https://abc.supabase.co wss://abc.supabase.co",
+    "'self' https://openrouter.ai https://abc.supabase.co wss://abc.supabase.co",
   );
   assert.doesNotMatch(connectSources({ VITE_SUPABASE_URL: '' }), /\*/);
 });
