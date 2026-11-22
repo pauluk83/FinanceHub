@@ -97,7 +97,7 @@ function nightsLabel(holiday: Holiday): string {
   return holiday.nights && holiday.nights !== '-' ? String(holiday.nights) : '—';
 }
 
-export function Holidays({ ds, update, notify }: ViewProps) {
+export function Holidays({ ds, year, update, notify }: ViewProps) {
   const [editing, setEditing] = useState<HolidayRow | null>(null);
   const [adding, setAdding] = useState(false);
   const [costFor, setCostFor] = useState<CostTarget | null>(null);
@@ -105,7 +105,10 @@ export function Holidays({ ds, update, notify }: ViewProps) {
   const [openTrips, setOpenTrips] = useState<Set<string>>(() => new Set());
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<HolidayDraft>(emptyDraft);
-  const rows = collectRows(ds);
+  const allRows = collectRows(ds);
+  // The tracker follows the year in the top bar, like every other ledger page.
+  const rows = allRows.filter((row) => row.year === year);
+  const otherYears = [...new Set(allRows.filter((row) => row.year !== year).map((row) => row.year))].sort();
   const asOf = ds.settings.asOfDate;
   const trips = groupHolidayTrips(rows, (row) => row.holiday);
   const formOpen = adding || Boolean(editing);
@@ -326,7 +329,10 @@ export function Holidays({ ds, update, notify }: ViewProps) {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <span className="muted small">{visibleTrips.length} of {trips.length} trip{trips.length === 1 ? '' : 's'}</span>
+        <span className="muted small">
+          {visibleTrips.length} of {trips.length} trip{trips.length === 1 ? '' : 's'} in {year}
+          {otherYears.length > 0 && ` · ${otherYears.join(', ')} available from the year bar`}
+        </span>
       </div>
       <Table head={['Holiday', 'Dates', 'Nights', 'Payment', 'Total', 'Reference', '']} numHead={[2, 4]}>
         {visibleTrips.length === 0 && (
@@ -390,7 +396,13 @@ export function Holidays({ ds, update, notify }: ViewProps) {
           });
         })}
       </Table>
-      {rows.length === 0 && <Empty>No holidays recorded. Add a trip to populate the Dashboard tracker.</Empty>}
+      {rows.length === 0 && (
+        <Empty>
+          {allRows.length === 0
+            ? 'No holidays recorded. Add a trip to populate the Dashboard tracker.'
+            : `No holidays in ${year}. ${allRows.length} trip${allRows.length === 1 ? ' is' : 's are'} in ${otherYears.join(', ')} — choose that year in the top bar.`}
+        </Empty>
+      )}
     </Section>
   );
 }

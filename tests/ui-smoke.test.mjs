@@ -487,6 +487,9 @@ test('a holiday trip can take extra cost lines', async () => {
         2026: [
           { event: 'Unity - Mum', start: '2026-08-01', end: '2026-08-05', nights: 4, totalPence: 40000, paid: '✓ Paid' },
         ],
+        2027: [
+          { event: 'Mum 2027', start: '2027-04-17', end: '2027-04-24', nights: 7, totalPence: 30000, paid: '✓ Paid' },
+        ],
       },
     },
   });
@@ -494,7 +497,12 @@ test('a holiday trip can take extra cost lines', async () => {
 
   assert.match(html, /Unity - Mum/);
   assert.match(html, /Add cost line/);
+  assert.doesNotMatch(html, /Mum 2027/, 'a later year is not listed while this year is selected');
   assert.doesNotMatch(html, /Cost lines share a trip/, 'the cost-line explainer notice is gone');
+
+  const later = render(Holidays, props(ds, { year: 2027 }));
+  assert.match(later, /Mum 2027/);
+  assert.doesNotMatch(later, /Unity - Mum/, 'the selected year is the only one listed');
 });
 
 test('the budget changelog drops the old automatic per-save rows', async () => {
