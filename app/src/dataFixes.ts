@@ -1,6 +1,6 @@
 import type { Dataset } from '../../core/engine';
 import type { AppState } from './store';
-import { withoutAppFeatureNotes, withoutLegacyAppUpdateNotes } from './budgetChangelog';
+import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { carryForwardProviderYears } from '../../core/providerCarry';
 import type { LedgerSpec } from '../../core/providerLedger';
 
@@ -392,6 +392,16 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     apply: (dataset) => {
       if (Array.isArray(dataset.changelog)) {
         dataset.changelog = withoutLegacyAppUpdateNotes(dataset.changelog as { sheetCell?: string; description?: string; details?: unknown }[]);
+      }
+    },
+  },
+  {
+    // Per-save "Budget change — ..." rows are no longer written. Remove the
+    // automatic ones earlier builds left behind; custom and month-end stay.
+    id: 'budget-changelog-auto-changes-2026-11-22',
+    apply: (dataset) => {
+      if (Array.isArray(dataset.changelog)) {
+        dataset.changelog = withoutAutomaticBudgetChanges(dataset.changelog as { sheetCell?: string; auto?: boolean }[]);
       }
     },
   },

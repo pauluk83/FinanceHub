@@ -574,12 +574,12 @@ export const USER_GUIDE: GuideEntry[] = [
     summary: 'Your budget history: bills, balances, people and month-end figures. Only budget changes are recorded, never app release notes.',
     steps: [
       'Search by month, account, bill or wording to find an earlier change.',
-      'Review the automatic entries created whenever balances change.',
+      'Review month-end entries and any custom notes kept with the budget.',
       'Add a custom change to record a decision the app cannot infer.',
     ],
     notes: [
       'The changelog is part of the budget document and is included in backups and sync.',
-      'Month-end locks and unlocks are recorded with their close summary.',
+      'Month-end locks and unlocks are recorded with their close summary. Routine edits no longer add a Budget change line; the per-record audit keeps that trail.',
       'Editing a preference such as the menu layout creates no entry. If nothing in the budget changed, nothing is logged.',
       'App release notes are not part of the budget. They live in the separate Application changelog, which keeps every release.',
     ],

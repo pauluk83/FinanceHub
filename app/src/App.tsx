@@ -187,20 +187,10 @@ function detailedMonthLockChange(before: Dataset, after: Dataset): ChangeSummary
 }
 
 function changeSummary(before: Dataset, after: Dataset): ChangeSummary | null {
-  const labels = changedBudgetSections(before, after);
-  if (labels.length === 0) return null;
-  if (labels.length === 1 && labels[0] === 'Month locks') {
-    const detailed = detailedMonthLockChange(before, after);
-    if (detailed) return detailed;
-  }
-  const affectsBalances = labels.some((label) => ['Settings', 'Accounts', 'People', 'Cards', 'Bills', 'Bill changes', 'Transactions', 'Income schedules', 'Provider ledgers'].includes(label));
-  return {
-    signature: labels.join('|'),
-    // Name the section instead of the old "App update" fallback, so the budget
-    // history never looks like an application changelog entry.
-    title: `Budget change — ${labels.join(', ')}`,
-    description: `Updated ${labels.join(', ')}${affectsBalances ? '; balances recalculated' : ''}.`,
-  };
+  // Ordinary edits no longer write a "Budget change — ..." row for every save;
+  // only a month-end close still records its own detailed history entry.
+  if (!changedBudgetSections(before, after).includes('Month locks')) return null;
+  return detailedMonthLockChange(before, after);
 }
 
 function appendChangeLog(dataset: Dataset, summary: ChangeSummary) {

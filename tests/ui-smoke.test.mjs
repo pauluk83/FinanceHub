@@ -439,6 +439,24 @@ test('data health owns the duplicate review and merge', async () => {
   assert.match(html, /Merge into row 1/);
 });
 
+test('the budget changelog drops the old automatic per-save rows', async () => {
+  const { ChangelogView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const ds = dataset({
+    dataset: {
+      changelog: [
+        { date: '2026-11-22', sheetCell: 'Budget change — Transactions', description: 'Updated Transactions; balances recalculated.', auto: true },
+        { date: '2026-11-21', sheetCell: 'Month end closed — October 2026', description: 'Balances recorded.', auto: true },
+        { date: '2026-11-20', sheetCell: 'Reconciled October', description: 'My own note', custom: true },
+      ],
+    },
+  });
+  const html = render(ChangelogView, props(ds));
+
+  assert.doesNotMatch(html, /Budget change — Transactions/);
+  assert.match(html, /Month end closed/);
+  assert.match(html, /Reconciled October/);
+});
+
 test('guides are one help page with both workflows', async () => {
   const { GuidesView } = await server.ssrLoadModule('/src/views/tools.tsx');
   const html = render(GuidesView, props(dataset()));

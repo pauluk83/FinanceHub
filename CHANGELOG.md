@@ -13,6 +13,7 @@ and the build time.
 - Combine the bill definitions and link sheets sections and move the scheduled bill run to Monthly
 - Keep the link sheets inside the bills panel
 - Trim the Accounts review panels, move People sign-ins to People, and drop revoked devices from the list
+- Stop writing a Budget change row for every save and clear the old automatic rows
 
 ## [2026.11.21] — 21 November 2026
 

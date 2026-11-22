@@ -5,6 +5,7 @@ import {
   APP_FEATURE_NOTE_SIGNATURES,
   changedBudgetSections,
   withoutAppFeatureNotes,
+  withoutAutomaticBudgetChanges,
   withoutAppUpdatePlaceholders,
   withoutLegacyAppUpdateNotes,
 } from '../app/src/budgetChangelog.ts';
@@ -56,6 +57,21 @@ test('the legacy App update / Auto updates entry is removed without touching bud
   assert.deepEqual(kept.map((entry) => `${entry.sheetCell}: ${entry.description}`), [
     'App update: Updated Bills; balances recalculated.',
     'Auto updates: Holiday paid',
+  ]);
+});
+
+test('automatic per-save Budget change rows are removed but real history stays', () => {
+  const kept = withoutAutomaticBudgetChanges([
+    { auto: true, sheetCell: 'Budget change — Transactions', description: 'Updated Transactions; balances recalculated.' },
+    { auto: true, sheetCell: 'Budget change — Settings, Transactions', description: 'Updated Settings, Transactions.' },
+    { auto: true, sheetCell: 'Month end closed — October 2026', description: 'Balances recorded.' },
+    { custom: true, sheetCell: 'Reconciled October', description: 'My own note' },
+    { sheetCell: 'Budget change — manual note', description: 'Typed by hand' },
+  ]);
+  assert.deepEqual(kept.map((entry) => entry.sheetCell), [
+    'Month end closed — October 2026',
+    'Reconciled October',
+    'Budget change — manual note',
   ]);
 });
 

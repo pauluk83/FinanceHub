@@ -5,7 +5,7 @@ import { dateTimeUk, dateUk, download, gbp, MONTH_LONG, parseMoney, todayIso, to
 import { clearState } from '../store';
 import { MenuLayoutSection } from './menuLayout';
 import { GUIDE_BASICS, USER_GUIDE, type GuideEntry } from '../userGuide';
-import { withoutAppUpdatePlaceholders } from '../budgetChangelog';
+import { withoutAppUpdatePlaceholders, withoutAutomaticBudgetChanges } from '../budgetChangelog';
 import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../legal';
 import { decodeBackupDataset } from '../backup';
 import { detectDuplicates } from '../../../core/importDedupe';
@@ -1709,7 +1709,7 @@ export function ChangelogView({ ds, update, notify }: ViewProps) {
   const [custom, setCustom] = useState({ date: todayIso(), title: '', description: '' });
   // App-generated placeholders from older builds carry no money detail; new
   // automatic entries name the section they changed, so history stays meaningful.
-  const all = withoutAppUpdatePlaceholders(ds.changelog ?? []);
+  const all = withoutAutomaticBudgetChanges(withoutAppUpdatePlaceholders(ds.changelog ?? []));
   const entries = all.filter((c: any) => {
     const details = Array.isArray(c.details) ? c.details.join(' ') : '';
     return !q || `${c.date} ${c.sheetCell} ${c.description} ${details}`.toLowerCase().includes(q.toLowerCase());
