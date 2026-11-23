@@ -22,7 +22,8 @@ compliance pack and the security hardening are all delivered and released. The p
 gate has been signed off, so what is left of the plan is narrowing the build's surface and
 closing the remaining owner gates.
 
-What remains is not feature work. It is the owner-gated work in §7 — the Store publication.
+What remains is not feature work. It is the owner-gated work in §7 — the Store publication and
+the beta-tester gate.
 
 ---
 
@@ -130,8 +131,9 @@ is deferred by dated acceptance — RA-8 in `docs/compliance/RISK_ACCEPTANCE_REG
 ## 7. The plan
 
 Points are numbered in the order they were decided, not strictly by when they can start, and
-finished points are deleted, so the numbers are not consecutive. Point 7 is built; its
-publication is owner-gated.
+finished points are deleted, so the numbers are not consecutive. Point 7 is built and waits on
+the owner's Partner Center identity; point 8 waits on a Google-only sign-in decision, a backup
+decision and the compliance conditions that name "beyond the owner".
 
 ### Point 1 — Unattended build work: **done**
 
@@ -164,6 +166,29 @@ requires the normal backup/restore flow.
 Exit: the AppX installs under the reserved identity, opens in Store mode with no GitHub
 updater, WACK reports no FAIL, and the owner submits the listing (or records a dated
 decision to defer it).
+
+### Point 8 — Beta testers: engineering ready, three owner gates open
+
+Added 2026-11-23. The build is ready for an invited beta; the blockers are operational. Run
+book and dated acceptance checklist: `docs/BETA.md`; owner steps: `docs/OWNER_ACTIONS.md` §10.
+
+1. **Sign-in without a domain.** There is no domain to verify at Resend, so the beta runs
+Google-only: publish the OAuth consent screen to production (privacy and terms URLs already
+live on `pages.dev`), keep Confirm email off, and tell testers to use Continue with Google. A
+forgotten password stays an owner task in the Supabase dashboard until a domain exists.
+2. **A server copy.** Supabase Free has no automatic backups; move to Pro or fix an export
+cadence before someone else's budget lands there.
+3. **The acceptances that name "beyond the owner".** Accept and file Cloudflare's DPA, file
+Resend's DPA and transfer basis, and register with the ICO (RA-4, RA-7, RA-9).
+
+Also open for the beta itself: a dated two-account isolation record and a throwaway-account
+deletion/export drill, a short beta brief and tester wording (unsigned installer, plaintext
+browser storage, one workspace per tester, support contact). A solicitor's review (RA-10) and
+a penetration test (RA-8) stay preconditions for public launch, not for an invited beta.
+
+Exit: a tester signs up, confirms, signs in, resets a password and deletes their account
+without the owner touching the dashboard, and a dated isolation record shows tester A cannot
+read tester B.
 
 ---
 

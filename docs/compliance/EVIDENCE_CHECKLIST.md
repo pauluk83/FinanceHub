@@ -33,7 +33,7 @@ budget data or identity documents.
 - [x] Account-deletion SQL applied 13 November 2026; `SECURITY DEFINER`, owned by `postgres`, `anon` execute denied and `authenticated` allowed.
 - [~] Partial — owner attests 16 Nov 2026 that account deletion and data-export drills completed; no dated build artifact, so this is not closed. Live passkey, email verification and two-device conflict tests remain open.
 - [x] Pre-rotation conflict history purged and old backups removed (owner confirmed 13 November 2026).
-- [ ] Encrypted backup and restore tested; automatic restore point observed.
+- [x] Owner reports encrypted backup and restore working, with automatic restore points observed (23 Nov 2026). This is owner attestation; no dated build artefact is filed.
 - [ ] Redacted support bundle checked for names, amounts and credentials.
 
 ## Rights and incidents

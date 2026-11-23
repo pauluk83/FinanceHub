@@ -209,3 +209,26 @@ been delivered to a real device, because deployment needs the CLI session.
    detail or amount.
 7. Record the subscription table and the Edge Function in the processor register (Supabase,
    P1) and the DPIA data map before relying on push beyond private use.
+
+## 10. Beta testers — three owner gates (blocks inviting anyone)
+
+Added 23 November 2026. The runbook, the verified auth configuration and the dated acceptance
+checklist are in `docs/BETA.md`. In order:
+
+1. **Google-only sign-in.** There is no domain to verify at Resend, so publish the OAuth
+   consent screen to production (Google Cloud Console → OAuth consent screen → Publish app;
+   privacy `https://financehub-uk.pages.dev/#legal/privacy`, terms
+   `https://financehub-uk.pages.dev/#legal/terms`, authorised domain `pages.dev`). That lifts
+   the 100-test-user cap without a verification review.
+2. **Confirm email stays off** and the beta brief tells testers to use Continue with Google;
+   a forgotten email/password login is reset by the owner in `Authentication → Users`. The
+   email path (Resend domain, Confirm email on, full signup/reset test) happens when a domain
+   is bought, before public launch.
+3. **Server copy.** Supabase Free has no automatic backups. Move to Pro (7-day daily backups)
+   or fix a scheduled export cadence; record the decision in `docs/BETA.md` and in
+   `PROCESSOR_REGISTER.md` (P1).
+
+Then the acceptances that name "beyond the owner": accept and file Cloudflare's DPA, file
+Resend's DPA and transfer basis, and register with the ICO (RA-4, RA-7, RA-9). A solicitor's
+review (RA-10) and a penetration test (RA-8) are preconditions for public launch, not for an
+invited beta.

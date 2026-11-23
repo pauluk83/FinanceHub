@@ -85,7 +85,8 @@ a decision.
   **Resend** (P5). **Confirm email** is off, matching the owner decision. Delivery is
   evidenced by Resend's log for a recovery email and for a reminder digest.
 - **Gap:** decide on Pro backups or a manual off-site export; file the DPA/TIA references;
-  complete the Resend entry (P5).
+  complete the Resend entry (P5). The Free plan has no automatic backups, so the decision is
+  a precondition for other people's budgets — see `docs/BETA.md`, gate 2.
 
 **P2 — Google Sign-In / OAuth**
 
@@ -257,6 +258,7 @@ the register stays **OPEN** and the privacy notice must not be published with un
 | 14 Nov 2026 | Draft prepared | Initial inventory from `DATA_MAP.md`; all provider evidence remains open | Before public production |
 | 17 Nov 2026 | Dashboard evidence pass | Supabase region/subprocessors/DPA/TIA/backups/SMTP; Google OAuth state; InfinityFree terms/no DPA; GitHub DPA; Gmail consumer terms. C1 remains partial | Before public production |
 | 17 Nov 2026 | Hosting move | InfinityFree account suspended; static site moved to Cloudflare Pages (`financehub-uk.pages.dev`). Cloudflare DPA acceptance and log retention open | Before public production |
+| 23 Nov 2026 | Auth configuration pulled | Site URL, redirect allow-list, 10-character minimum, 8-digit OTP, one-per-minute throttle and the Resend SMTP sender verified from the live project. Confirm email is off and the sender is still `onboarding@resend.dev`, so testers cannot receive verification or reset mail — `docs/BETA.md` gate 1 | Before beta |
 | 23 Nov 2026 | Email delivery configured | Supabase custom SMTP enabled through Resend, now P5; Confirm email off; a recovery email and a reminder digest were delivered and opened per Resend's log. Resend DPA/transfer terms, retention and a verified sender domain open | Before public production |
 
 ## 7. Sources checked — 17 November 2026
