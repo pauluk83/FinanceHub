@@ -7,6 +7,7 @@ import { appendRow, balanceAsOf, baselineFor, clearRowOrder, hasManualOrder, rec
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
+import { sheetNameForProviderKey } from '../billSheets';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
@@ -276,18 +277,41 @@ function UsageBalanceChart({ points, title }: { points: UsagePoint[]; title: str
  * Turns recorded usage and the current balance into a monthly payment. Read-only:
  * it explains the figure but never changes a bill, a payment or a balance.
  */
-function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabel, billedMonths }: {
+function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabel, billedMonths, settleMonths, onSettleMonthsChange, onApply }: {
   plan: PaymentPlan;
   currentPaymentPence: number;
   balancePence: number;
   latestLabel: string;
   billedMonths: number;
+  settleMonths: number;
+  onSettleMonthsChange: (months: number) => void;
+  onApply: () => void;
 }) {
   const difference = plan.recommendedPence - currentPaymentPence;
   return (
     <Section
       title="Payment plan review"
       sub={`What ${billedMonths} billed month${billedMonths === 1 ? '' : 's'} suggest you pay. The plan keeps about one month of usage in credit instead of building a balance.`}
+      actions={(
+        <div className="page-actions">
+          <label className="muted small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Return credit over
+            <select
+              className="select compact"
+              aria-label="Months to return the credit over"
+              value={settleMonths}
+              onChange={(event) => onSettleMonthsChange(Number(event.target.value))}
+            >
+              <option value={6}>6 months</option>
+              <option value={12}>12 months</option>
+              <option value={24}>24 months</option>
+            </select>
+          </label>
+          <button className="btn primary" type="button" onClick={onApply} disabled={difference === 0}>
+            {difference === 0 ? 'Payment matches plan' : `Use ${gbp(plan.recommendedPence)} monthly`}
+          </button>
+        </div>
+      )}
     >
       <div className="metric-list" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
         <div className="metric"><span>Average usage</span><strong>{gbp(plan.monthlyUsagePence)}</strong></div>
@@ -888,6 +912,7 @@ function providerAccountDetails(provider: string, p: any): [string, string | und
 }
 
 export function ProviderView({ ds, engine, year, provider, title, subtitle, go, update, notify, vaultSession }: ViewProps & { provider: string; title: string; subtitle: string }) {
+  const [settleMonths, setSettleMonths] = useState(12);
   const p = ds.providers[provider];
   const cfg = CONFIG[provider];
   if (!p || !cfg) {
@@ -1014,8 +1039,28 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       usagePence: billedRows.reduce((total, row) => total + usagePenceFor(row), 0),
       billedMonths: billedRows.length,
       balancePence: Number(latest.balancePence) || 0,
+      settleMonths,
     })
     : null;
+  const applyPlan = () => {
+    if (!plan) return;
+    const amount = plan.recommendedPence;
+    const sheetName = sheetNameForProviderKey(provider);
+    update((d) => {
+      const prov = d.providers[provider];
+      if (prov) prov.monthlyPaymentPence = amount;
+      for (const bill of d.bills) {
+        if (bill.providerKey === provider || (sheetName && bill.linkedSheet === sheetName)) {
+          bill.amountPence = amount;
+          bill.baseAmountPence = amount;
+        }
+      }
+    });
+    const linked = ds.bills.filter((bill) => bill.providerKey === provider || (sheetName && bill.linkedSheet === sheetName)).length;
+    notify(linked > 0
+      ? `Monthly payment set to ${gbp(amount)} and ${linked} linked bill${linked === 1 ? '' : 's'} updated`
+      : `Monthly payment set to ${gbp(amount)}; no linked bill was found to update`);
+  };
 
   const customLogo = providerCustomLogo(p);
 
@@ -1072,6 +1117,9 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           currentPaymentPence={monthly}
           balancePence={Number(latest.balancePence) || 0}
           latestLabel={latestLabel}
+          settleMonths={settleMonths}
+          onSettleMonthsChange={setSettleMonths}
+          onApply={applyPlan}
         />
       )}
       {editableYear ? (

@@ -11,6 +11,7 @@ and the build time.
 - Add the Microsoft Store AppX build, a high-contrast theme, bulk notification delete, and year-aware income schedules and rate changes
 - Show true Ovo usage on the statement chart
 - Add a payment-plan review to provider sheets and keep same-day releases on their date
+- Apply the payment-plan recommendation in one click and choose how many months the credit is returned over
 
 ## [2026.11.22] — 22 November 2026
 
