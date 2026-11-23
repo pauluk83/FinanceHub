@@ -146,7 +146,7 @@ guard. Plan truth is this rewrite.
 The measurement that needed a signed-in session was left to the private-use gate, and is now
 closed with it.
 
-### Point 3 — Web push: **code complete, waiting on the CLI session**
+### Point 3 — Web push: **deployed, waiting on one device subscription**
 
 Decided 2026-11-20: the sender runs as a **Supabase Edge Function**, so the VAPID private key
 becomes a Supabase secret beside auth and the backup bucket. The pair is generated at
@@ -159,11 +159,15 @@ and reproduces the RFC 8291 Appendix A message byte for byte in `tests/webpush.t
 alert), `0006_push_subscriptions.sql` adds the owner-scoped tables, and `app/src/push.ts`
 with `app/public/sw.js` do permission, subscription, display and unsubscribe.
 
-Owner work: apply 0006 in the SQL editor, run `npx supabase login`, set the three VAPID
-secrets and deploy the function — the commands are in `docs/PUSH.md`.
+Deployed 2026-11-23 on `fzkkgbatmmgasfmgvrzp`: `0006_push_subscriptions.sql` applied
+(`push_subscriptions` and `push_deliveries` now answer through PostgREST with RLS on), the
+three VAPID secrets set, and `send-push` live at version 1, ACTIVE. Verified without a
+device: `401` with no or an invalid JWT, `409` `No device is subscribed yet.` to a
+signed-in call from the live site.
 
-Then: a device receives a test push, one push per new alert, and an unsubscribed device
-receives none.
+Left: one device allows notifications for `financehub-uk.pages.dev`, turns push on and
+receives the test push, then an unsubscribed device receives none. The live app's push
+card still says delivery stays off "until the sender is deployed", which is now stale copy.
 
 Exit: a real device receives a push for a due bill, and an unsubscribed device receives none.
 

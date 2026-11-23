@@ -1,9 +1,15 @@
 # Web push — build, deploy and verify
 
 Decided 2026-11-20: the sender runs as a **Supabase Edge Function**, so the VAPID
-private key is a Supabase secret beside auth and the backup bucket. The code is
-finished and tested; **nothing has been delivered to a real device yet**, because
-deployment needs one owner step (`npx supabase login`).
+private key is a Supabase secret beside auth and the backup bucket.
+
+**Deployed 23 November 2026** on project `fzkkgbatmmgasfmgvrzp`: `0006_push_subscriptions.sql`
+applied, the three VAPID secrets set, and `send-push` live (version 1, ACTIVE).
+Proven without a device: the function answers `401` with no or an invalid JWT, `400`
+`Unknown request type` to a malformed body, and `409` `No device is subscribed yet.` to a
+signed-in call from the live site — so JWT verification, the owner-scoped table read and
+the secrets all work. Still open: one device turns push on and receives the test push, and
+an unsubscribed device receives none.
 
 ## What ships
 
@@ -22,6 +28,8 @@ sender stores the alert id and date in `push_deliveries`, so the same alert is
 never pushed twice, and it never computes a figure of its own.
 
 ## Owner steps
+
+All four ran on 23 November 2026; they stay here for a rebuild or a VAPID rotation.
 
 1. **Apply the table migration.** Supabase → SQL Editor → run all of
    `db/migrations/postgres/0006_push_subscriptions.sql`. It is written with
@@ -50,6 +58,11 @@ never pushed twice, and it never computes a figure of its own.
 to the function by Supabase; never copy them into the app, a build or this repo.
 
 ## Verify
+
+On 23 November 2026 the live site was signed in and **Notifications** reached, but this
+browser profile blocks notifications for the origin, so step 2 could not be completed there.
+Allow notifications for `financehub-uk.pages.dev` in the browser (address-bar site settings)
+and continue from step 1.
 
 1. Open <https://financehub-uk.pages.dev/>, sign in, and go to **Notifications**.
 2. **Turn on push** — allow the browser prompt. The badge reads *On for this device*.

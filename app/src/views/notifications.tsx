@@ -289,11 +289,25 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
               <strong>Hosted app only.</strong> Push needs the FinanceHub web app in a browser that allows notifications;
               the Windows app keeps its in-app bell.
             </>
+          ) : push === 'blocked' ? (
+            <>
+              <strong>Your browser is blocking notifications for this site.</strong> Allow notifications for
+              {' '}<code>financehub-uk.pages.dev</code> in the address-bar site settings, then turn push on here.
+            </>
+          ) : push === 'signed-out' ? (
+            <>
+              <strong>Sign in first.</strong> A push subscription belongs to your account, so this device needs a signed-in
+              session before push can be turned on.
+            </>
+          ) : push === 'enabled' ? (
+            <>
+              <strong>Delivery is on for this device.</strong> The browser subscription is stored against your account and the
+              FinanceHub sender encrypts each alert for that device. No budget figure leaves the device for this.
+            </>
           ) : (
             <>
-              <strong>No budget figure leaves the device for this.</strong> The browser subscription is stored against your
-              account, and the FinanceHub sender encrypts each alert for that device. Delivery stays off until the sender is
-              deployed with its VAPID secret — see <code>docs/PUSH.md</code>.
+              <strong>No budget figure leaves the device for this.</strong> The subscription is created only when you turn push
+              on, is stored against your account, and the FinanceHub sender encrypts each alert for that device.
             </>
           )}
         </div>

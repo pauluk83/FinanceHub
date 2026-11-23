@@ -27,3 +27,6 @@ FinanceHubBrowser.cmd
 .env.*
 !.env.example
 *.log
+
+# Supabase CLI link state (per machine, never committed)
+/supabase/.temp/
