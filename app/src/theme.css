@@ -995,6 +995,8 @@ tr.locked td { color: var(--muted); }
 .usage-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
 .usage-line { stroke: var(--accent-2); stroke-width: 2.5; }
 .usage-dot { fill: var(--accent-2); stroke: var(--panel); stroke-width: 2; }
+.usage-average { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 6 5; opacity: 0.9; }
+.legend-average { width: 14px; height: 1.5px; background: var(--warn); }
 .usage-labels span { flex: 1; text-align: center; }
 .chart-legend { display: flex; gap: 16px; padding: 0 4px 12px; color: var(--faint); font-size: 11px; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
