@@ -1,4 +1,11 @@
 import type { Dataset } from '../../core/engine';
+import {
+  isAppUpdatePlaceholder,
+  withoutAppUpdatePlaceholders,
+  withoutLegacyAppUpdateNotes,
+} from '../../core/changelogFilters.ts';
+
+export { isAppUpdatePlaceholder, withoutAppUpdatePlaceholders, withoutLegacyAppUpdateNotes };
 
 /**
  * The budget changelog is user data. It records changes to the budget itself,
@@ -58,24 +65,6 @@ export function withoutAppFeatureNotes<T extends { signature?: string }>(entries
   return entries.filter((entry) => !entry.signature || !APP_FEATURE_SIGNATURES.has(entry.signature));
 }
 
-const APP_UPDATE_TITLE = /^app update$/i;
-const AUTO_UPDATES = /auto[\s-]?updates?/i;
-
-/**
- * Automatic entries written before automatic changes carried a title all used the
- * bare fallback "App update", so they say nothing about the money that moved.
- * They stay in the saved document (and in backups) but are hidden from the Budget
- * changelog; every new automatic entry names the section it changed.
- */
-export function isAppUpdatePlaceholder(entry: { sheetCell?: string; auto?: boolean }): boolean {
-  return entry.auto === true && APP_UPDATE_TITLE.test(String(entry.sheetCell ?? '').trim());
-}
-
-/** Hide app-generated placeholder entries while keeping every named budget entry. */
-export function withoutAppUpdatePlaceholders<T extends { sheetCell?: string; auto?: boolean }>(entries: T[]): T[] {
-  return entries.filter((entry) => !isAppUpdatePlaceholder(entry));
-}
-
 const AUTO_BUDGET_CHANGE_TITLE = /^budget change\b/i;
 
 /**
@@ -88,24 +77,3 @@ export function withoutAutomaticBudgetChanges<T extends { sheetCell?: string; au
   return entries.filter((entry) => !(entry.auto === true && AUTO_BUDGET_CHANGE_TITLE.test(String(entry.sheetCell ?? '').trim())));
 }
 
-/**
- * One legacy entry used the title "App update" and the text "Auto updates".
- * Remove only that pair (in either order), not every automatic budget entry
- * whose title once fell back to "App update".
- */
-export function withoutLegacyAppUpdateNotes<T extends {
-  sheetCell?: string;
-  description?: string;
-  details?: unknown;
-}>(entries: T[]): T[] {
-  return entries.filter((entry) => {
-    const title = String(entry.sheetCell ?? '').trim();
-    const details = Array.isArray(entry.details) ? entry.details.join(' ') : '';
-    const body = `${entry.description ?? ''} ${details}`.trim();
-    const titleIsAppUpdate = APP_UPDATE_TITLE.test(title);
-    const bodyIsAutoUpdates = AUTO_UPDATES.test(body);
-    const titleIsAutoUpdates = AUTO_UPDATES.test(title);
-    const bodyIsAppUpdate = APP_UPDATE_TITLE.test(body);
-    return !((titleIsAppUpdate && bodyIsAutoUpdates) || (titleIsAutoUpdates && bodyIsAppUpdate));
-  });
-}

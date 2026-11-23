@@ -250,11 +250,6 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
             <button className="btn primary" onClick={savePrefs}>Save preferences</button>
           </div>
         </div>
-        <div className="notice" style={{ margin: 16 }}>
-          <strong>Sent by the reminder job.</strong> <code>scripts/send-reminders.mjs</code> builds this digest and posts it to Resend with
-          <code>RESEND_API_KEY</code> and <code>RESEND_FROM</code> in its own environment. Until that daily task runs, nothing is emailed;
-          the alerts above work now, and an address on the suppression list is skipped.
-        </div>
       </Section>
 
       <Section
@@ -285,34 +280,26 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
             Turn off on this device
           </button>
         </div>
-        <div className="notice" style={{ margin: 16 }}>
-          {push === 'unsupported' ? (
-            <>
-              <strong>Hosted app only.</strong> Push needs the FinanceHub web app in a browser that allows notifications;
-              the Windows app keeps its in-app bell.
-            </>
-          ) : push === 'blocked' ? (
-            <>
-              <strong>Your browser is blocking notifications for this site.</strong> Allow notifications for
-              {' '}{siteHost ? <code>{siteHost}</code> : 'FinanceHub'} in the address-bar site settings, then turn push on here.
-            </>
-          ) : push === 'signed-out' ? (
-            <>
-              <strong>Sign in first.</strong> A push subscription belongs to your account, so this device needs a signed-in
-              session before push can be turned on.
-            </>
-          ) : push === 'enabled' ? (
-            <>
-              <strong>Delivery is on for this device.</strong> The browser subscription is stored against your account and the
-              FinanceHub sender encrypts each alert for that device. No budget figure leaves the device for this.
-            </>
-          ) : (
-            <>
-              <strong>No budget figure leaves the device for this.</strong> The subscription is created only when you turn push
-              on, is stored against your account, and the FinanceHub sender encrypts each alert for that device.
-            </>
-          )}
-        </div>
+        {(push === 'unsupported' || push === 'blocked' || push === 'signed-out') && (
+          <div className="notice" style={{ margin: 16 }}>
+            {push === 'unsupported' ? (
+              <>
+                <strong>Hosted app only.</strong> Push needs the FinanceHub web app in a browser that allows notifications;
+                the Windows app keeps its in-app bell.
+              </>
+            ) : push === 'blocked' ? (
+              <>
+                <strong>Your browser is blocking notifications for this site.</strong> Allow notifications for
+                {' '}{siteHost ? <code>{siteHost}</code> : 'FinanceHub'} in the address-bar site settings, then turn push on here.
+              </>
+            ) : (
+              <>
+                <strong>Sign in first.</strong> A push subscription belongs to your account, so this device needs a signed-in
+                session before push can be turned on.
+              </>
+            )}
+          </div>
+        )}
       </Section>
     </>
   );

@@ -8,6 +8,7 @@
  */
 import type { Dataset, Engine } from './engine.ts';
 import { monthEnd } from './engine.ts';
+import { withoutAppUpdatePlaceholders } from './changelogFilters.ts';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -110,7 +111,7 @@ export function buildMonthDigest(ds: Dataset, engine: Engine, year: number, mont
 
   const key = `${safeYear}-${pad(safeMonth)}`;
   const locked = Boolean(ds.monthLocks?.[key]);
-  const events: DigestEvent[] = (ds.changelog ?? [])
+  const events: DigestEvent[] = withoutAppUpdatePlaceholders(ds.changelog ?? [])
     .filter((entry: any) => typeof entry?.date === 'string' && entry.date.slice(0, 7) === key)
     .map((entry: any) => ({
       date: String(entry.date),

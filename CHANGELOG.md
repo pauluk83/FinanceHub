@@ -19,6 +19,7 @@ and the build time.
 - Email reminders send through Resend, and the Notifications screen names the reminder job instead of saying delivery is off
 - Split the tools views into views/tools and type the provider payment-day shapes
 - Say what push delivery is doing and name the page's own origin when the browser blocks it
+- Hide App update rows from what changed, and drop the reminder-job and push privacy notices
 
 ## [2026.11.22] — 22 November 2026
 

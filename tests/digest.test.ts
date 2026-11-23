@@ -204,3 +204,16 @@ test('the loaded workbook digest matches its engine figures', { skip: !fs.exists
     assert.match(change.before, /^-?£[\d,]+\.\d{2}$/, `${change.label} has a formatted previous figure`);
   }
 });
+
+test('app-update placeholder rows stay out of the what-changed list', () => {
+  const ds = base();
+  ds.changelog = [
+    ...(ds.changelog ?? []),
+    { date: '2026-11-19', sheetCell: 'App update', description: 'Updated Bills; balances recalculated.', auto: true },
+    { date: '2026-11-19', sheetCell: 'App update', description: 'Updated Transactions; balances recalculated.', auto: true },
+    { date: '2026-11-02', sheetCell: 'App update', description: 'A note written by hand' },
+  ];
+  const digest = digestOf(ds, 2026, 11);
+  assert.deepEqual(digest.events.map((entry) => entry.title), ['Accounts', 'Bills', 'App update']);
+  assert.equal(digest.counts.events, 3, 'only the automatic placeholders are hidden');
+});
