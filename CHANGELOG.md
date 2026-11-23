@@ -21,6 +21,7 @@ and the build time.
 - Say what push delivery is doing and name the page's own origin when the browser blocks it
 - Hide App update rows from what changed, and drop the reminder-job and push privacy notices
 - Hide per-save rows from what changed and name the security contact in the legal pages
+- Render the security contact as plain text in the legal pages
 
 ## [2026.11.22] — 22 November 2026
 

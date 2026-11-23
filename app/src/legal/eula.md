@@ -56,4 +56,4 @@ This EULA is governed by the laws of England and Wales.
 
 ## 12. Contact
 
-Zane Stanton, owner. Email `pauluk83+financehub@gmail.com`.
+Zane Stanton, owner. Email pauluk83+financehub@gmail.com.

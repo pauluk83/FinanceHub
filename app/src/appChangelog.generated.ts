@@ -27,7 +27,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Split the tools views into views/tools and type the provider payment-day shapes",
             "Say what push delivery is doing and name the page's own origin when the browser blocks it",
             "Hide App update rows from what changed, and drop the reminder-job and push privacy notices",
-            "Hide per-save rows from what changed and name the security contact in the legal pages"
+            "Hide per-save rows from what changed and name the security contact in the legal pages",
+            "Render the security contact as plain text in the legal pages"
           ]
         }
       ]

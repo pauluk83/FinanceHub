@@ -69,7 +69,7 @@ You may stop using the app at any time and erase your data as described in the P
 
 FinanceHub is currently free. No payment details are collected, no charges are made and no invoices are issued, so no refund, chargeback or cancellation route applies. If charging is introduced, the price and any refund or cancellation terms will be published before anything is charged.
 
-Complaints: email `pauluk83+financehub@gmail.com` with the subject "Complaint" and the owner will try to resolve it within 30 days. Data-protection complaints may also go to the UK Information Commissioner's Office (ico.org.uk), and consumers keep any statutory complaint route.
+Complaints: email pauluk83+financehub@gmail.com with the subject "Complaint" and the owner will try to resolve it within 30 days. Data-protection complaints may also go to the UK Information Commissioner's Office (ico.org.uk), and consumers keep any statutory complaint route.
 
 ## 13. Governing law
 
@@ -77,4 +77,4 @@ These terms are governed by the laws of England and Wales, and the courts of Eng
 
 ## 14. Contact
 
-Questions about these terms: email `pauluk83+financehub@gmail.com` with the subject "Terms".
+Questions about these terms: email pauluk83+financehub@gmail.com with the subject "Terms".
