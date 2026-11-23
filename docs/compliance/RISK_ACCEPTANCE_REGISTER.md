@@ -1,10 +1,13 @@
 # Risk Acceptance Register
 
-**Status:** **RA-1, RA-2 and RA-3 signed by the owner on 2026-11-17.** Each entry records
-an accepted risk with conditions; each signature note says which evidence was filed and
-what is still outstanding. **C3 is accepted, not eliminated** — C1 processor evidence and an
-independent penetration test remain open. The code-signing gate is closed only because the
-owner accepted the unsigned distribution risk in RA-2.
+**Status:** **RA-1, RA-2 and RA-3 signed by the owner on 2026-11-17. RA-4 to RA-10 signed
+on 2026-11-23**, which closes the legal and compliance pack by dated acceptance: the
+controller/processor position, lawful basis, the DPIA position, international transfers, the
+penetration test, the ICO fee position, and the notice/terms/refund/complaints position.
+Each entry records an accepted risk with conditions; each signature note says which evidence
+was filed and what is still outstanding. **C3 is accepted, not eliminated** — C1 processor
+evidence and an independent penetration test remain open as accepted risks. The code-signing
+gate is closed only because the owner accepted the unsigned distribution risk in RA-2.
 
 **Controller / proposed risk owner:** Zane Stanton.
 
@@ -202,6 +205,213 @@ CSP origin.
 
 ---
 
+## RA-4 — Accepted: controller/processor position with an incomplete processor file
+
+**Related:** DPIA Addendum A condition C1; `COMPLIANCE.md`; `PROCESSOR_REGISTER.md`.
+
+**Decision:** the owner is the data controller (individual, England). Providers recorded as
+processors or independent controllers: **Supabase** (auth, Postgres, RLS), **Cloudflare
+Pages** (static hosting), **Resend** (auth email and reminder digests), **GitHub/Microsoft**
+(release download metadata), **Google** (OAuth sign-in as controller; consumer Gmail as
+independent controller for the support mailbox). **Enable Banking** (authorised AISP) and
+**Starling** act only for the owner's own linked accounts through desktop-only feeds and are
+not offered to other people.
+
+**Risk being considered:** the processor file is not complete. Cloudflare's self-serve DPA
+has not been accepted, consumer Gmail offers no DPA, Supabase is on the Free plan with no
+automatic backups, Resend's DPA and transfer terms are unfiled, and the Google OAuth app is
+unverified. A processor could therefore act outside documented terms, and there is no
+automatic cloud backup behind the budget document.
+
+**Controls relied on:** Supabase region `eu-west-1` (Ireland) recorded; DPAs and transfer
+mechanisms recorded where published (Supabase v1, GitHub October 2025, Google
+Controller-Controller Terms); owner-scoped RLS; no service-role key in the client or any
+asset; manual exports available from the app; owner-only use with no payments.
+
+**Residual if signed:** **Medium**, accepted.
+
+**Conditions:**
+
+1. Accept and file Cloudflare's DPA, and record its subprocessor-list version and log
+   retention, before the app is offered to anyone beyond the owner.
+2. File Resend's DPA and transfer basis, and record a sender domain before mail goes to any
+   address other than the owner's.
+3. Decide between Supabase Pro backups and a scheduled manual export; until then the manual
+   export is the only cloud backup.
+4. Move the support mailbox to a provider that offers a DPA, or keep it owner-only and
+   documented as accepted.
+5. Reopen this entry on any new provider, region change or new feature that sends personal
+   data to a provider.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+**Signature note:** signed with the processor file incomplete by decision, for owner-only
+use. Nothing here asserts C1 is closed; the open items stay tracked in
+`docs/compliance/EVIDENCE_CHECKLIST.md`.
+
+---
+
+## RA-5 — Accepted: lawful basis for the current feature set
+
+**Related:** privacy policy §3; DPIA A.3; `COMPLIANCE.md`.
+
+**Decision:** the lawful bases relied on are performance of a contract, Article 6(1)(b), for
+running the app and syncing the budget; legitimate interests, Article 6(1)(f), for security,
+abuse prevention and fault-fixing; consent, Article 6(1)(a), for the provider-credential
+vault, People sign-ins, the Starling personal feed and the Enable Banking feed; and legal
+obligation where tax or records law requires retention. No special-category data is
+collected, nothing is sold, there is no advertising or profiling, and there is no automated
+decision-making.
+
+**Risk being considered:** the legitimate-interests balance is not separately documented per
+purpose, and consent withdrawal is a manual act (deleting the vault, forgetting a token or
+revoking a bank consent) rather than a switch.
+
+**Residual if signed:** **Low**, accepted.
+
+**Conditions:** the published notice keeps §3 as written; no analytics, advertising or data
+sale is added without revisiting this entry; consent withdrawal stays available for each
+optional feature; the position is reviewed with counsel before charging.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+---
+
+## RA-6 — Accepted: DPIA and Addendum A adopted with conditions tracked
+
+**Related:** `docs/compliance/DPIA.md`, Addendum A conditions C1–C8.
+
+**Decision:** the DPIA and Addendum A are adopted as written, and each production condition
+closes as follows: **C1** accepted by RA-4 (processor file open), **C2** superseded by RA-3,
+**C3** accepted by RA-1, **C4** and **C5** owner-attested with the dated records in
+`EVIDENCE_CHECKLIST.md`, **C6** accepted by RA-8, **C7** accepted here with RA-4 and RA-10,
+and **C8** recorded in `RETENTION_SCHEDULE.md` and the notice.
+
+**Risk being considered:** conditions C4 and C5 rest on owner attestation without a dated
+build artefact, and no independent review of the DPIA has taken place.
+
+**Residual if signed:** **Medium**, accepted.
+
+**Conditions:** the DPIA stays the governing assessment and is refreshed at least every 12
+months or on any trigger in this register; C4/C5 evidence is replaced by a dated build
+record when convenient; a new feature that changes the data map reopens the DPIA.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+---
+
+## RA-7 — Accepted: international transfer basis without every mechanism filed
+
+**Related:** DPIA C1; processor register §4; `DATA_MAP.md`.
+
+**Decision:** transfers rely on the following: **Supabase** processes in `eu-west-1`
+(Ireland) under the EU SCCs plus the UK Addendum, with its Transfer Impact Assessment;
+**Cloudflare** serves a global CDN under its self-serve DPA incorporating the EU SCCs and UK
+Addendum; **GitHub/Microsoft** processes in the United States under the GitHub Data
+Protection Agreement (October 2025) with the EU SCCs, UK Addendum and the UK Extension to the
+EU–US Data Privacy Framework; **Google** sign-in runs under the UK Controller SCCs;
+**Resend** is US-based and will be covered by SCCs once filed; **consumer Gmail** has no
+contractual transfer mechanism.
+
+**Risk being considered:** Cloudflare's DPA is unaccepted, Resend's mechanism is unfiled and
+Gmail has none, so not every transfer is evidenced.
+
+**Residual if signed:** **Medium**, accepted.
+
+**Conditions:** no claim is made that data stays in the UK; each mechanism is filed in the
+private evidence folder before the app is offered beyond the owner; a transfer risk
+assessment is recorded where the IDTA or SCCs are relied on; a region change reopens this
+entry.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+---
+
+## RA-8 — Accepted: independent penetration test deferred
+
+**Related:** DPIA C6; DPIA Addendum A risk R6; RA-1.
+
+**Decision:** no third-party penetration test is commissioned for this release. The owner
+relies instead on owner-scoped RLS with an attested two-account isolation check, the CSP and
+security-header suite locked by `tests/security-headers.test.ts`, no service-role key in the
+client, HTTPS-only transport, the full automated suite, and the fact that the build is
+used by the owner only and takes no payments.
+
+**Risk being considered:** an unknown high or critical flaw in the hosted app, the OAuth
+callback, the RLS policies or the token handling could expose budget data, and nobody
+independent has looked for it.
+
+**Residual if signed:** **High if such a flaw exists**, accepted for owner-only use.
+
+**Conditions:** any high or critical finding from any source — including a user report —
+reopens this entry and stops distribution until resolved; a test covering the packaged app,
+hosted app, OAuth callback, RLS and token broker is commissioned before any public or
+commercial launch; the position is reviewed at least every 12 months.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+---
+
+## RA-9 — Accepted: ICO data-protection fee not paid
+
+**Related:** `COMPLIANCE.md` applicability matrix; DPIA C7.
+
+**Decision:** no ICO data-protection fee is paid. Processing is carried out for the owner's
+own personal and household affairs, with the app used by the owner alone, which falls in the
+personal/household exemption from the charges regulations. No staff administration,
+advertising or business accounts processing takes place.
+
+**Risk being considered:** if the app is opened to other people or used commercially, the
+exemption no longer applies and an unpaid fee would be a breach of the registration duty.
+
+**Residual if signed:** **Low**, accepted.
+
+**Conditions:** the app stays owner-only until this entry is revisited; registering with the
+ICO and paying the appropriate tier happens before any other person uses the hosted service;
+the ICO self-assessment result is recorded in the private evidence folder.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+---
+
+## RA-10 — Accepted: in-house notice and terms, no refund route
+
+**Related:** DPIA C7 and C8; DPIA Addendum A risk R10; `app/src/legal/`.
+
+**Decision:** the privacy policy (v1.2) and terms of service (v1.1) are published in the app
+and on the login page without a solicitor's review, and both name the security and privacy
+contact `pauluk83+financehub@gmail.com`. The app is free, takes no payments, stores no card
+data and issues no invoices, so no refund, chargeback or cooling-off route applies.
+Complaints go to that contact first; data-protection complaints may go to the ICO.
+
+**Risk being considered:** consumer-law and transparency wording has not been checked by
+counsel, and a refund position would have to be written the moment charging starts.
+
+**Residual if signed:** **Low–Medium**, accepted.
+
+**Conditions:** a UK solicitor reviews the three documents before any public or commercial
+launch and before any charge is introduced; a refund and complaints policy is published if
+payments ever start; the 18+ requirement, the no-financial-advice wording and the
+not-end-to-end-encrypted disclosure stay in place; the contact address stays current.
+
+**Owner signature:** Zane Stanton  **Date:** 2026-11-23
+
+**Review date:** 2027-11-23
+
+---
+
 ## Proposal status
 
 | ID | Risk | Proposal | Provisional residual | Signature | Status |
@@ -209,10 +419,17 @@ CSP origin.
 | RA-1 | Cloud budget not end-to-end encrypted | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — C3 accepted; C1 evidence and pen test open** |
 | RA-3 | Hosted budget in plaintext browser storage | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — hosted real-budget model permitted** |
 | RA-2 | Unsigned installer/updater | Accepted with candidate controls and conditions | Medium–High (accepted) | Zane Stanton, 2026-11-17 | **Signed — code-signing gate closed as accepted risk** |
+| RA-4 | Controller/processor file incomplete | Accepted with conditions | Medium (accepted) | Zane Stanton, 2026-11-23 | **Signed — C1 accepted; DPA and transfer evidence open** |
+| RA-5 | Lawful basis for the current features | Accepted with conditions | Low (accepted) | Zane Stanton, 2026-11-23 | **Signed** |
+| RA-6 | DPIA and Addendum A adopted, conditions tracked | Accepted with conditions | Medium (accepted) | Zane Stanton, 2026-11-23 | **Signed — C1/C6 accepted elsewhere** |
+| RA-7 | Transfer basis without every mechanism filed | Accepted with conditions | Medium (accepted) | Zane Stanton, 2026-11-23 | **Signed** |
+| RA-8 | Independent penetration test deferred | Accepted with conditions | High if a flaw exists (accepted) | Zane Stanton, 2026-11-23 | **Signed — C6 accepted, not eliminated** |
+| RA-9 | ICO data-protection fee not paid | Accepted with conditions | Low (accepted) | Zane Stanton, 2026-11-23 | **Signed — owner-only use** |
+| RA-10 | In-house notice and terms, no refund route | Accepted with conditions | Low–Medium (accepted) | Zane Stanton, 2026-11-23 | **Signed — C7 wording accepted** |
 
 **C3 status:** accepted risk. RA-1 is signed and dated, so the plaintext-at-rest model is
 permitted for this launch. The evidence items listed in RA-1 are still outstanding and are
 tracked under PR-1 and PR-3. RA-2 closes only the code-signing gate.
 
-**No acceptance beyond the two signed entries above may be inferred from this document, the
+**No acceptance beyond the ten signed entries above may be inferred from this document, the
 plan, the notice or any checklist.**

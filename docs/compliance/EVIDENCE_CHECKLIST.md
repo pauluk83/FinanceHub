@@ -5,13 +5,13 @@ budget data or identity documents.
 
 ## Governance
 
-- [~] Privacy/support contact recorded as `financehub+pauluk83@gmail.com` (Gmail); controller service address and ICO position still open.
-- [ ] ICO registration / data-protection fee position recorded.
-- [ ] Privacy Policy, Terms and EULA reviewed by a UK solicitor.
-- [ ] DPIA and Addendum A reviewed and signed with a review date.
-- [ ] Data map (`DATA_MAP.md`) validated; processors, region, sub-processors and retention recorded.
+- [~] Privacy/support contact recorded as `pauluk83+financehub@gmail.com` (Gmail) and published in the notice, terms and EULA on 23 Nov 2026; consumer Gmail has no DPA (accepted in RA-4).
+- [x] ICO position recorded 23 Nov 2026: no data-protection fee while processing is the owner's personal/household affairs (RA-9); register and pay the tier fee before any other user.
+- [~] Not reviewed by a UK solicitor; deferred by dated acceptance RA-10 (23 Nov 2026) for owner-only use, with review required before public or commercial launch.
+- [x] DPIA and Addendum A adopted with conditions tracked, signed 23 Nov 2026, review 2027-11-23 (RA-6).
+- [~] Partial — data map and processor register recorded 17 Nov 2026; C1 accepted with the file still incomplete (RA-4, 23 Nov 2026).
 - [ ] Retention schedule approved and reviewed annually.
-- [x] Risk acceptance register (`RISK_ACCEPTANCE_REGISTER.md`) signed 17 Nov 2026: RA-1 (cloud plaintext), RA-2 (unsigned installer/updater) and RA-3 (hosted browser storage).
+- [x] Risk acceptance register (`RISK_ACCEPTANCE_REGISTER.md`) signed 17 Nov 2026: RA-1 (cloud plaintext), RA-2 (unsigned installer/updater) and RA-3 (hosted browser storage); extended 23 Nov 2026 with RA-4 to RA-10 (processors, lawful basis, DPIA, transfers, pen test, ICO fee, notice/terms/refunds).
 
 ## Processors and transfers
 

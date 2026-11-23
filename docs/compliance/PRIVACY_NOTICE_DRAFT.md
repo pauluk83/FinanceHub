@@ -6,7 +6,7 @@
 
 **Controller:** Zane Stanton, an individual based in England.
 
-**Contact:** `financehub+pauluk83@gmail.com`
+**Contact:** `pauluk83+financehub@gmail.com`
 
 **Last updated:** 16 November 2026 (draft).
 
@@ -210,7 +210,7 @@ we specify, under their terms and any data-processing agreement.
 | **Starling Bank** | Your Starling personal access token and the account/transaction request; Starling returns your account and transaction data | Only if you enable the desktop Starling personal feed |
 | **Enable Banking** (FIN-FSA-authorised AISP) | Your application ID, signed requests, the accounts you link and the transaction requests; it returns your account and transaction data | Only if you enable the desktop Open Banking feed |
 | **Email delivery provider used by Supabase** | Email address and verification/reset message metadata | Account verification and password-reset email; provider to be confirmed |
-| **Privacy/support mailbox provider** | Whatever you send to the published contact address | Responding to support and rights requests; existing Gmail mailbox `financehub+pauluk83@gmail.com` |
+| **Privacy/support mailbox provider** | Whatever you send to the published contact address | Responding to support and rights requests; existing Gmail mailbox `pauluk83+financehub@gmail.com` |
 | **Professional advisers, security reviewers and penetration testers** | Documents and evidence needed for their engagement, under confidentiality | Legal, privacy and security assurance |
 | **Regulators, courts and law enforcement** | Only what is required or permitted by law | Legal obligations and legal claims |
 
@@ -341,7 +341,7 @@ the cloud account.
 
 We will date material changes and, where appropriate, ask you to review them before they
 take effect. If you have a question, a rights request or a security concern, contact
-`financehub+pauluk83@gmail.com`.
+`pauluk83+financehub@gmail.com`.
 
 The controller is Zane Stanton, an individual based in England. `[Service address to be
 confirmed before publication.]`
@@ -354,7 +354,7 @@ confirmed before publication.]`
 - [ ] Confirm whether provider-vault processing is consent or contract.
 - [ ] Confirm the lawful basis for named-person and portal data.
 - [ ] Confirm the email-delivery provider and add it to the processor register.
-- [~] Privacy/support mailbox recorded as `financehub+pauluk83@gmail.com`; controller service address still open.
+- [~] Privacy/support mailbox recorded as `pauluk83+financehub@gmail.com`; controller service address still open.
 - [~] The demo-only hosted restriction was withdrawn by the owner on 2026-11-17; the hosted site now loads a real budget with the confirmed-email rule enforced, and plaintext browser storage is accepted as RA-3. This notice text must be reviewed against that model.
 - [ ] Reconcile this notice with `DATA_MAP.md`, `DPIA.md` Addendum A and `RETENTION_SCHEDULE.md`.
 - [ ] Obtain UK legal and privacy review before publication.

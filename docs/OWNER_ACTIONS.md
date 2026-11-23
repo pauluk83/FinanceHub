@@ -85,7 +85,7 @@ actual authenticator.
 
 ## 4. Privacy and processor actions
 
-1. Adopt the existing privacy/support mailbox `financehub+pauluk83@gmail.com` (Gmail). Restrict access, confirm retention, and replace it with dedicated addresses if it becomes a shared support route. **Consumer Gmail has no DPA**; either move the mailbox to a provider that offers one or record a signed risk acceptance. Do not publish it as a formal security route until this is resolved.
+1. Adopt the existing privacy/support mailbox `pauluk83+financehub@gmail.com` (Gmail). Restrict access, confirm retention, and replace it with dedicated addresses if it becomes a shared support route. **Consumer Gmail has no DPA**; either move the mailbox to a provider that offers one or record a signed risk acceptance. Do not publish it as a formal security route until this is resolved.
 2. Put the real contact address into the published Privacy Policy and Terms after legal
    review; the draft in `docs/compliance/` contains a placeholder.
 3. Confirm the ICO registration and data-protection fee position for the controller.

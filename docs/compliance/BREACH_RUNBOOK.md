@@ -51,6 +51,6 @@ the delay.
 ## Contact route
 
 - Security/privacy lead: **Zane Stanton**.
-- Privacy mailbox: **`financehub+pauluk83@gmail.com`** (Gmail; terms/retention to confirm).
+- Privacy mailbox: **`pauluk83+financehub@gmail.com`** (Gmail; terms/retention to confirm).
 - Supabase support/security: through the project dashboard.
 - ICO: https://ico.org.uk/ for reporting guidance.

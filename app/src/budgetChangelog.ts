@@ -2,10 +2,16 @@ import type { Dataset } from '../../core/engine';
 import {
   isAppUpdatePlaceholder,
   withoutAppUpdatePlaceholders,
+  withoutAutomaticBudgetChanges,
   withoutLegacyAppUpdateNotes,
 } from '../../core/changelogFilters.ts';
 
-export { isAppUpdatePlaceholder, withoutAppUpdatePlaceholders, withoutLegacyAppUpdateNotes };
+export {
+  isAppUpdatePlaceholder,
+  withoutAppUpdatePlaceholders,
+  withoutAutomaticBudgetChanges,
+  withoutLegacyAppUpdateNotes,
+};
 
 /**
  * The budget changelog is user data. It records changes to the budget itself,
@@ -63,17 +69,5 @@ const APP_FEATURE_SIGNATURES = new Set<string>(APP_FEATURE_NOTE_SIGNATURES);
 /** Drop app-feature notes while keeping every budget entry, including custom ones. */
 export function withoutAppFeatureNotes<T extends { signature?: string }>(entries: T[]): T[] {
   return entries.filter((entry) => !entry.signature || !APP_FEATURE_SIGNATURES.has(entry.signature));
-}
-
-const AUTO_BUDGET_CHANGE_TITLE = /^budget change\b/i;
-
-/**
- * Automatic per-save rows ("Budget change — Transactions") repeated the same
- * line for every edit and buried the real history. The app no longer writes
- * them; this removes the ones earlier builds saved. Custom notes and month-end
- * close entries are kept.
- */
-export function withoutAutomaticBudgetChanges<T extends { sheetCell?: string; auto?: boolean }>(entries: T[]): T[] {
-  return entries.filter((entry) => !(entry.auto === true && AUTO_BUDGET_CHANGE_TITLE.test(String(entry.sheetCell ?? '').trim())));
 }
 

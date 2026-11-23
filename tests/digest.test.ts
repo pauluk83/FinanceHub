@@ -205,15 +205,20 @@ test('the loaded workbook digest matches its engine figures', { skip: !fs.exists
   }
 });
 
-test('app-update placeholder rows stay out of the what-changed list', () => {
+test('app-update and per-save rows stay out of the what-changed list', () => {
   const ds = base();
   ds.changelog = [
     ...(ds.changelog ?? []),
     { date: '2026-11-19', sheetCell: 'App update', description: 'Updated Bills; balances recalculated.', auto: true },
     { date: '2026-11-19', sheetCell: 'App update', description: 'Updated Transactions; balances recalculated.', auto: true },
-    { date: '2026-11-02', sheetCell: 'App update', description: 'A note written by hand' },
+    { date: '2026-11-18', sheetCell: 'Budget change — Bills', description: 'Rent 1250.00 → 1300.00', auto: true },
+    { date: '2026-11-17', sheetCell: 'Budget change — note', description: 'Written by hand' },
+    { date: '2026-11-02', sheetCell: 'App update', description: 'Written by hand' },
   ];
   const digest = digestOf(ds, 2026, 11);
-  assert.deepEqual(digest.events.map((entry) => entry.title), ['Accounts', 'Bills', 'App update']);
-  assert.equal(digest.counts.events, 3, 'only the automatic placeholders are hidden');
+  assert.deepEqual(
+    digest.events.map((entry) => entry.title),
+    ['Accounts', 'Budget change — note', 'Bills', 'App update'],
+  );
+  assert.equal(digest.counts.events, 4, 'only the automatic rows are hidden');
 });

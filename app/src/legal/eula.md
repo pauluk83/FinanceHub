@@ -2,7 +2,7 @@
 
 This EULA is a legal agreement between you and Zane Stanton for the FinanceHub application, including the web, desktop and mobile builds, documentation and updates.
 
-Last updated: 7 November 2026 · Version 1.0
+Last updated: 23 November 2026 · Version 1.1
 
 ## 1. Licence grant
 
@@ -56,4 +56,4 @@ This EULA is governed by the laws of England and Wales.
 
 ## 12. Contact
 
-Zane Stanton, owner. Email the address registered to your FinanceHub account.
+Zane Stanton, owner. Email `pauluk83+financehub@gmail.com`.

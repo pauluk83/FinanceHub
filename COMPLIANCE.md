@@ -76,7 +76,7 @@ registration; a checkbox or a screen in the app would not satisfy those duties.
 
 ## Before public or commercial launch
 
-1. Publish the adopted privacy/support mailbox (`financehub+pauluk83@gmail.com`) in the Privacy Policy and Terms; confirm Gmail terms/retention.
+1. Publish the adopted privacy/support mailbox (`pauluk83+financehub@gmail.com`) in the Privacy Policy and Terms; confirm Gmail terms/retention.
 2. Confirm the controller identity and address, and the ICO data-protection fee position.
 3. Sign DPAs with Supabase and the hosting provider; record the international transfer mechanism.
 4. Have a solicitor review the three documents for England and Wales.

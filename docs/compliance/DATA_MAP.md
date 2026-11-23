@@ -54,7 +54,7 @@ to other people or adding payments requires a new data map, DPIA and provider co
 | Cloudflare (Pages) | Processor / hosting provider | Serves static assets and may keep access logs; self-serve DPA to accept and record. |
 | GitHub / Microsoft | Infrastructure recipient | Serves release assets and update manifests; receives network metadata, not budget data. |
 | Email delivery provider used by Supabase | Processor | Provider and terms to confirm for verification and password-reset email. |
-| Privacy/support mailbox provider | Processor (Gmail/Google) | Mailbox `financehub+pauluk83@gmail.com` adopted; terms/retention to confirm. |
+| Privacy/support mailbox provider | Processor (Gmail/Google) | Mailbox `pauluk83+financehub@gmail.com` adopted; terms/retention to confirm. |
 | Starling Bank | Account provider / independent controller for the bank account | Receives the personal access token and returns account and transaction data only when the owner enables the desktop feed. FinanceHub does not store the bank password, PIN or one-time code. |
 | Enable Banking (FIN-FSA-authorised AISP) | Independent controller/processor for Open Banking consent; account-information provider | Runs the consent and SCA flow with the bank, links the owner's chosen accounts and returns their data. Receives the application ID, signed JWT and linked-account requests; never receives the budget. Restricted production mode limits results to accounts the owner linked. |
 | Legal advisers, privacy adviser and penetration tester | Professional recipients | Only under confidentiality; evidence to be retained. |
@@ -216,7 +216,7 @@ closure record.
 | Cloudflare Pages | Static hosting and access logs | Self-serve DPA to accept; terms published | Record DPA acceptance, log retention and security contact |
 | GitHub / Microsoft | Release downloads, IP/user-agent | Terms to confirm | Record as infrastructure recipient; no budget data sent |
 | Supabase email provider | Verification/reset email address and content | Provider and terms to confirm | Identify provider; add to register or replace with owner-controlled SMTP |
-| Privacy/support mailbox | User correspondence and support bundles | Provider: Gmail/Google (`financehub+pauluk83@gmail.com`); DPA/terms/retention to confirm | Record Gmail terms/transfer/retention; restrict access |
+| Privacy/support mailbox | User correspondence and support bundles | Provider: Gmail/Google (`pauluk83+financehub@gmail.com`); DPA/terms/retention to confirm | Record Gmail terms/transfer/retention; restrict access |
 | Advisers/pen tester | Documents and test evidence | Confidentiality/engagement terms | Keep evidence outside the public repository |
 
 **International transfers:** the Supabase project region and each processor's sub-processor

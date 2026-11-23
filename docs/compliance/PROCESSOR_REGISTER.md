@@ -54,7 +54,7 @@ C1 closure.
 | P3 | **Cloudflare Pages** — static web hosting | Processor / hosting provider | Static asset requests, IP address, access logs; no budget data should be deployed (`D14`) | Global CDN; account jurisdiction TBC | TBC — Cloudflare subprocessor list version | TBC — DPA SCCs/UK Addendum (self-serve, to accept) | TBC — DPA acceptance date and reference | TBC — access-log retention and backup window | TBC | TBC | Partial — provider moved 17 Nov 2026; DPA and retention open |
 | P4 | **GitHub / Microsoft** — Releases and update assets | Infrastructure recipient; confirm whether request logs make it a processor | IP address, user agent, request metadata for update manifest/archive; no budget, account or credential data (`D14`) | TBC — global/US processing | TBC — GitHub sub-processors | TBC — GitHub terms/transfer basis | TBC — GitHub terms; DPA if applicable | TBC — request-log retention | TBC | TBC | Open |
 | P5 | **Supabase email delivery provider** — verification and password-reset email | Processor | Email address, message metadata and delivery events (`D1`, `D14`) | TBC — provider and region | TBC | TBC | TBC — provider terms/DPA | TBC — delivery-log retention | TBC | TBC | Open |
-| P6 | **Privacy/support mailbox provider** — Gmail/Google (`financehub+pauluk83@gmail.com`) | Independent controller (consumer Gmail) | Correspondence, support bundles and any attachments the user sends (`D13`, `D14`) | TBC — Gmail region | TBC — Google sub-processors | TBC — Google terms and transfer basis | TBC — mailbox terms/DPA | TBC — mailbox retention and backup window | `financehub+pauluk83@gmail.com` | Owner-provided mailbox 16 Nov 2026; terms/retention pending | Partial — address recorded; terms/retention open |
+| P6 | **Privacy/support mailbox provider** — Gmail/Google (`pauluk83+financehub@gmail.com`) | Independent controller (consumer Gmail) | Correspondence, support bundles and any attachments the user sends (`D13`, `D14`) | TBC — Gmail region | TBC — Google sub-processors | TBC — Google terms and transfer basis | TBC — mailbox terms/DPA | TBC — mailbox retention and backup window | `pauluk83+financehub@gmail.com` | Owner-provided mailbox 16 Nov 2026; terms/retention pending | Partial — address recorded; terms/retention open |
 | P7 | **Legal, privacy and security advisers / penetration tester** | Independent professional recipients; not routine processors | Documents, evidence and test data needed for the engagement, under confidentiality | UK / TBC | N/A — individuals or firms | N/A unless data leaves the UK | Engagement letter and confidentiality terms | Per engagement; evidence retained only as needed | TBC | TBC | Open |
 
 The table above is the original 14 November inventory. The verified findings below supersede
@@ -160,7 +160,7 @@ a decision.
 
 **P6 — Gmail support mailbox**
 
-- The mailbox `financehub+pauluk83@gmail.com` is consumer Gmail under the Google Terms of
+- The mailbox `pauluk83+financehub@gmail.com` is consumer Gmail under the Google Terms of
   Service (effective 30 July 2026) and Google Privacy Policy. Google LLC acts as controller
   for the consumer service; no DPA is offered for consumer Gmail.
 - Processing is global and may include the United States. Retention is controlled by the
@@ -196,7 +196,7 @@ enough; record the list version/date relied on.
 | Cloudflare | TBC | Pages hosting/CDN/logs | Global CDN | IP/request logs | TBC | TBC | TBC |
 | GitHub / Microsoft | TBC | Release delivery and logs | TBC | IP/user-agent/request metadata | TBC | TBC | TBC |
 | Email provider | TBC | Verification/reset delivery | TBC | Email/message metadata | TBC | TBC | TBC |
-| Gmail/Google (`financehub+pauluk83@gmail.com`) | TBC | Support correspondence | TBC | Correspondence | TBC | TBC | TBC |
+| Gmail/Google (`pauluk83+financehub@gmail.com`) | TBC | Support correspondence | TBC | Correspondence | TBC | TBC | TBC |
 
 ---
 
@@ -239,7 +239,7 @@ C1 from `DPIA.md` Addendum A is **OPEN** until every line is checked and evidenc
 - [~] Cloudflare Pages replaced InfinityFree on 17 November 2026. Entity, published DPA and subprocessor list identified; DPA acceptance, subprocessor version, processing jurisdiction and log retention still to record.
 - [x] GitHub/Microsoft recorded: DPA October 2025, UK Addendum/DPF, US/global processing, published subprocessor list; free-account coverage still to confirm.
 - [~] Email delivery: Supabase custom SMTP through **Resend** since 23 Nov 2026 (P5), Confirm email off, recovery and digest mail delivered per Resend's log. Resend's DPA/transfer evidence, retention and a verified sender domain remain open.
-- [~] Privacy/support contact recorded as `financehub+pauluk83@gmail.com`; consumer Gmail has no DPA and retention/role remain open.
+- [~] Privacy/support contact recorded as `pauluk83+financehub@gmail.com`; consumer Gmail has no DPA and retention/role remain open.
 - [ ] Every provider entry is `Complete`, with evidence references.
 - [ ] Owner has signed and dated the register.
 

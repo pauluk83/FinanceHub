@@ -2,11 +2,11 @@
 
 FinanceHub is a personal budgeting application. This policy explains what personal data it handles, why, where it is stored and how you can access or erase it.
 
-Last updated: 17 November 2026 · Version 1.1
+Last updated: 23 November 2026 · Version 1.2
 
 ## 1. Who is responsible
 
-FinanceHub is designed, built and operated by Zane Stanton, an individual based in England, United Kingdom, who is the data controller for the app. Contact for privacy requests: email the address registered to your FinanceHub account with the subject "Privacy request". This policy covers the hosted web app, the Windows desktop app and any iOS build distributed by the owner.
+FinanceHub is designed, built and operated by Zane Stanton, an individual based in England, United Kingdom, who is the data controller for the app. Contact for privacy and security matters: `pauluk83+financehub@gmail.com`, with the subject "Privacy request" for rights requests and "Security" for a suspected compromise. This policy covers the hosted web app, the Windows desktop app and any iOS build distributed by the owner.
 
 ## 2. What data is processed
 
@@ -69,7 +69,7 @@ You have the right to access, correct, erase, restrict or object to processing, 
 - Correction: edit any record in the app; the changelog records the change.
 - Erasure: Settings → Data & backups → Reset to imported workbook removes the current budget; use "Delete vault" to remove stored provider logins; clear this site's data in your browser to remove local-only data. For account data and cloud backups, send an erasure request from the account email and the owner will delete the cloud document and auth record within 30 days, except records required by law.
 - Consent withdrawal: delete the vault or People sign-ins, forget the Starling token, or stop using the optional feature.
-- Complaints: you may complain to the UK Information Commissioner's Office (ico.org.uk). Please contact the owner first so the issue can be fixed.
+- Complaints: email `pauluk83+financehub@gmail.com` first so the issue can be fixed, and you may also complain to the UK Information Commissioner's Office (ico.org.uk).
 
 Requests are answered within one month. Identity may need to be verified from the account email.
 
@@ -87,4 +87,4 @@ This policy may be updated when the app changes. The version and date at the top
 
 ## 12. Contact
 
-Zane Stanton, owner and data controller. Email the address registered to your FinanceHub account with the subject "Privacy request".
+Zane Stanton, owner and data controller. Email `pauluk83+financehub@gmail.com` with the subject "Privacy request"; security reports go to the same address.

@@ -17,6 +17,18 @@ export function isAppUpdatePlaceholder(entry: { sheetCell?: string; auto?: boole
   return entry.auto === true && APP_UPDATE_TITLE.test(String(entry.sheetCell ?? '').trim());
 }
 
+const AUTO_BUDGET_CHANGE_TITLE = /^budget change\b/i;
+
+/**
+ * Automatic per-save rows ("Budget change — Transactions") repeated the same
+ * line for every edit and buried the real history. The app no longer writes
+ * them; this removes the ones earlier builds saved. Custom notes and month-end
+ * close entries are kept.
+ */
+export function withoutAutomaticBudgetChanges<T extends { sheetCell?: string; auto?: boolean }>(entries: T[]): T[] {
+  return entries.filter((entry) => !(entry.auto === true && AUTO_BUDGET_CHANGE_TITLE.test(String(entry.sheetCell ?? '').trim())));
+}
+
 /** Hide app-generated placeholder entries while keeping every named budget entry. */
 export function withoutAppUpdatePlaceholders<T extends { sheetCell?: string; auto?: boolean }>(entries: T[]): T[] {
   return entries.filter((entry) => !isAppUpdatePlaceholder(entry));

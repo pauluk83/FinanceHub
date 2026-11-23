@@ -2,7 +2,7 @@
 
 These terms govern your use of FinanceHub. By using the app you agree to them. If you do not agree, do not use the app.
 
-Last updated: 7 November 2026 · Version 1.0
+Last updated: 23 November 2026 · Version 1.1
 
 ## 1. The service
 
@@ -65,10 +65,16 @@ FinanceHub, its name, logo, design and source code are owned by Zane Stanton and
 
 You may stop using the app at any time and erase your data as described in the Privacy Policy. The owner may end access for a material breach. Sections on intellectual property, disclaimers and liability survive termination.
 
-## 12. Governing law
+## 12. Price, refunds and complaints
+
+FinanceHub is currently free. No payment details are collected, no charges are made and no invoices are issued, so no refund, chargeback or cancellation route applies. If charging is introduced, the price and any refund or cancellation terms will be published before anything is charged.
+
+Complaints: email `pauluk83+financehub@gmail.com` with the subject "Complaint" and the owner will try to resolve it within 30 days. Data-protection complaints may also go to the UK Information Commissioner's Office (ico.org.uk), and consumers keep any statutory complaint route.
+
+## 13. Governing law
 
 These terms are governed by the laws of England and Wales, and the courts of England and Wales have exclusive jurisdiction, except that consumers keep the protection of mandatory law in their country of residence.
 
-## 13. Contact
+## 14. Contact
 
-Questions about these terms: email the address registered to your FinanceHub account with the subject "Terms".
+Questions about these terms: email `pauluk83+financehub@gmail.com` with the subject "Terms".

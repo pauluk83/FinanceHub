@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.23**, suite **584/584**, `tsc` clean,
+Current release **2026.11.23**, suite **587/587**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -22,8 +22,7 @@ compliance pack and the security hardening are all delivered and released. The p
 gate has been signed off, so what is left of the plan is narrowing the build's surface and
 closing the remaining owner gates.
 
-What remains is not feature work. It is the owner-gated work in §7 — web push's deployment,
-the compliance acceptances and the Store publication.
+What remains is not feature work. It is the owner-gated work in §7 — the Store publication.
 
 ---
 
@@ -55,7 +54,7 @@ test proving the previous figures are unchanged, in the same release.
 | Desktop shell | `electron/main.cjs`, `preload.cjs` | Secure storage (DPAPI/Keychain), OAuth callback, bank-feeds IPC, updater |
 | Web app | `app/src/**` | React 19, lazy views, one `App.tsx` shell |
 | Storage adapters | `app/src/store.ts` | Electron secure store, hosted IndexedDB (localStorage fallback), demo in memory |
-| Cloud | Supabase (`db/migrations/postgres/0001–0005`) | `settings` document per user, backup bucket, `user_devices`, RLS per owner |
+| Cloud | Supabase (`db/migrations/postgres/0001–0006`) | `settings` document per user, backup bucket, `user_devices`, push subscriptions, RLS per owner |
 | Hosting | Cloudflare Pages `financehub-uk` | Static `dist-web/`, `_headers`, installer published as a GitHub Release asset |
 
 Rules: the document is the single source of truth; every mutation goes through the update
@@ -85,7 +84,8 @@ What holds today, and what a change must not weaken:
 - **Cloud:** every table and bucket is owner-scoped by RLS; ids never come from the client.
 - **Accepted risks:** the hosted build keeps the budget in plaintext browser storage (cleared
   on sign-out while the outbox is empty); `xlsx` stays a devDependency for `import/extract.mjs`
-  and never reaches the bundle; no third-party penetration test has been run yet (§7 point 4).
+  and never reaches the bundle; no third-party penetration test has been run yet (RA-8 in
+  `docs/compliance/RISK_ACCEPTANCE_REGISTER.md`).
 
 ---
 
@@ -108,7 +108,7 @@ and the hosted bundle, deploys to Pages and verifies the live bundle matches.
 ## 6. Verification
 
 ```
-npm test                                  # full suite (584)
+npm test                                  # full suite (587)
 npx tsc -p app/tsconfig.json --noEmit     # typecheck
 npm run release:check                     # release + live parity
 npm run test:e2e                          # Playwright: demo flows + responsive guard
@@ -122,16 +122,16 @@ digest, RLS/Postgres policy checks, security headers, CSP and the responsive e2e
 click-through, cloud backup restore from the UI, a second real account, the packaged-installer
 checks and the accessibility pass, all against the published installer.
 
-**Still honestly open:** a physical iOS/Android device pass, and a real third-party
-penetration test, which point 4 carries as a dated acceptance.
+**Still honestly open:** a physical iOS/Android device pass. The third-party penetration test
+is deferred by dated acceptance — RA-8 in `docs/compliance/RISK_ACCEPTANCE_REGISTER.md`.
 
 ---
 
 ## 7. The plan
 
 Points are numbered in the order they were decided, not strictly by when they can start, and
-finished points are deleted, so the numbers are not consecutive. Points 3 and 4 each wait on
-one owner action or signature, and point 7 is built but its publication is owner-gated.
+finished points are deleted, so the numbers are not consecutive. Point 7 is built; its
+publication is owner-gated.
 
 ### Point 1 — Unattended build work: **done**
 
@@ -145,46 +145,6 @@ guard. Plan truth is this rewrite.
 
 The measurement that needed a signed-in session was left to the private-use gate, and is now
 closed with it.
-
-### Point 3 — Web push: **deployed, waiting on one device subscription**
-
-Decided 2026-11-20: the sender runs as a **Supabase Edge Function**, so the VAPID private key
-becomes a Supabase secret beside auth and the backup bucket. The pair is generated at
-`tmp/vapid-keys.json` and is never pasted into chat or the repository.
-
-Built: `core/push.ts` chooses the alert (bills, balances, cards and targets at warning or
-critical, three at most), `_shared/webpush.ts` does RFC 8291 encryption and RFC 8292 VAPID
-and reproduces the RFC 8291 Appendix A message byte for byte in `tests/webpush.test.ts`,
-`supabase/functions/send-push/` is the sender (verified JWT, user-scoped rows, one push per
-alert), `0006_push_subscriptions.sql` adds the owner-scoped tables, and `app/src/push.ts`
-with `app/public/sw.js` do permission, subscription, display and unsubscribe.
-
-Deployed 2026-11-23 on `fzkkgbatmmgasfmgvrzp`: `0006_push_subscriptions.sql` applied
-(`push_subscriptions` and `push_deliveries` now answer through PostgREST with RLS on), the
-three VAPID secrets set, and `send-push` live at version 1, ACTIVE. Verified without a
-device: `401` with no or an invalid JWT, `409` `No device is subscribed yet.` to a
-signed-in call from the live site.
-
-Left: one device allows notifications for `financehub-uk.pages.dev`, turns push on and
-receives the test push, then an unsubscribed device receives none. The live app's push
-card still says delivery stays off "until the sender is deployed", which is now stale copy.
-
-Exit: a real device receives a push for a due bill, and an unsubscribed device receives none.
-
-### Point 4 — Legal and compliance pack (in-house, dated risk acceptances)
-
-Decided 2026-11-20: no external legal review and no penetration test for now; every open gate
-closes by a **dated written risk acceptance**. Support stays on the in-app Feedback route and
-the security contact is `pauluk83+financehub@gmail.com`.
-
-Remaining work, each recorded in `docs/compliance/RISK_ACCEPTANCE_REGISTER.md` with a date and
-the risk carried: processor list and controller/processor position, lawful basis, DPIA
-addendum position, international-transfer basis for the Supabase region, the ICO exemption and
-its reason, the penetration-test acceptance, and the privacy-notice, terms and
-refund/complaints position. The privacy notice, terms and in-app legal pages name the security
-contact.
-
-Exit: every compliance gate is a dated acceptance or passing evidence, signed by the owner.
 
 ### Point 7 — Microsoft Store packaging: prepared, publication owner-gated
 
@@ -233,4 +193,5 @@ decision to defer it).
 - Transactions use one category plus up to eight free-form tags; alerts are in-app first.
 - Backups are encrypted and versioned with seven restore points; audit is per-record history
   plus trash/undo.
-- Engineering completion is not compliance: the gates in point 4 still apply.
+- Engineering completion is not compliance: the dated acceptances in
+  `docs/compliance/RISK_ACCEPTANCE_REGISTER.md` still apply.

@@ -90,5 +90,5 @@ address until all of these are true:
 - The owner has accepted that the budget file leaves the device to produce the
   digest; the app itself never uploads it for this feature.
 
-This feature is not a compliance claim, and point 4 of `PLAN.md` records that
-decision.
+This feature is not a compliance claim; the decision is recorded in
+`docs/compliance/RISK_ACCEPTANCE_REGISTER.md` (RA-4, processor file and transfer basis).
