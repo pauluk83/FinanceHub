@@ -27,6 +27,7 @@ import {
   writeProviderField,
   type ProviderBilling,
   type ProviderFieldConfig,
+  type ProviderRecord,
   type ProviderSetupMeta,
 } from '../providerSetup';
 
@@ -206,7 +207,7 @@ function ProviderCard({
    * months as setup: contract payment and bill figures for every month left in
    * the year. Only rows the plan created are updated or removed.
    */
-  const syncPlan = (dataset: Dataset, target: any, next: ProviderBilling) => {
+  const syncPlan = (dataset: Dataset, target: ProviderRecord, next: ProviderBilling) => {
     const cfg = CONFIG[meta.key];
     if (!cfg) return;
     if (next.recurring) {

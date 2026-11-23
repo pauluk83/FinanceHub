@@ -17,6 +17,7 @@ and the build time.
 - Send bill reminders through Resend and add opt-in web push alerts
 - Record Ovo's new bill with its Warm Home Discount credit
 - Email reminders send through Resend, and the Notifications screen names the reminder job instead of saying delivery is off
+- Split the tools views into views/tools and type the provider payment-day shapes
 
 ## [2026.11.22] — 22 November 2026
 

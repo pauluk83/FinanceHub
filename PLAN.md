@@ -18,11 +18,12 @@ deleted rather than ticked, so the plan stays readable.
 The product is built and in owner-only private use: workbook parity and the calculation
 engine, the Windows app with every view, the hosted web build with accounts and cloud sync,
 encrypted backups (local and cloud), device and session management, import/export, the
-compliance pack and the security hardening are all delivered and released.
+compliance pack and the security hardening are all delivered and released. The private-use
+gate has been signed off, so what is left of the plan is narrowing the build's surface and
+closing the remaining owner gates.
 
-What remains is not feature work. It is the owner-gated work in §7 plus the decisions and
-acceptances that let the build leave private use. Point 6 is the exception: simplifying what
-is already built needs no owner input, so it can run while points 2–5 wait.
+What remains is not feature work. It is the owner-gated work in §7 — web push's deployment,
+the compliance acceptances and the Store publication.
 
 ---
 
@@ -117,17 +118,20 @@ The suite includes parity, ledger invariants, import fuzz, provider rules, backu
 digest, RLS/Postgres policy checks, security headers, CSP and the responsive e2e guard
 (no main view scrolls sideways at 320, 430 and 768 px).
 
-**Not measured, and honestly open:** a signed-in edit-latency budget, a 420 px hosted
-click-through, a physical iOS/Android device pass, a real penetration test, and the packaged
-installer exercised by hand. These move to point 5 (§7).
+**Closed with the private-use gate:** the signed-in edit-latency budget, the 420 px hosted
+click-through, cloud backup restore from the UI, a second real account, the packaged-installer
+checks and the accessibility pass, all against the published installer.
+
+**Still honestly open:** a physical iOS/Android device pass, and a real third-party
+penetration test, which point 4 carries as a dated acceptance.
 
 ---
 
 ## 7. The plan
 
-Points are numbered in the order they were decided, not strictly by when they can start:
-point 1 is closed, point 6 is ready to start now, and points 2–5 each wait on one owner
-action or signature.
+Points are numbered in the order they were decided, not strictly by when they can start, and
+finished points are deleted, so the numbers are not consecutive. Points 3 and 4 each wait on
+one owner action or signature, and point 7 is built but its publication is owner-gated.
 
 ### Point 1 — Unattended build work: **done**
 
@@ -139,34 +143,8 @@ property-based ledger invariants, import fuzz, the monthly "what changed" digest
 security headers and audit cleanup, and the fluid phone/tablet layout with its Playwright
 guard. Plan truth is this rewrite.
 
-The only work left from this point is measurement that needs a signed-in session, which is
-now part of point 5.
-
-### Point 2 — Email delivery: **done 23 November 2026**
-
-Decided 2026-11-20: **Resend** is the provider and **Confirm email stays off**. The owner
-account signs in with **Google**, so signup, confirmation and resend mail are not on the
-login path at all; only a recovery link (if an email/password is ever added) and the
-reminder digest use email.
-
-Done: the Resend account exists and a sending-only API key is set as the Supabase custom
-SMTP password (sender `onboarding@resend.dev`, `smtp.resend.com`, port 465, username
-`resend`); **Confirm email is off** in Authentication → Sign In / Providers; a real digest
-was delivered and opened (Resend id `01a2093e-e46c-7985-b8a8-63b5d9685416`, 23 Nov 2026),
-and a real Supabase recovery email was delivered through that SMTP (Resend log, 23 Nov 2026).
-
-`scripts/send-reminders.mjs` posts the digest to `POST https://api.resend.com/emails` with a
-`List-Unsubscribe` header, checks the suppression list first, and stays a dry run without
-`RESEND_API_KEY`/`RESEND_FROM`; `reminderEmail()` in `core/reminders.ts` builds the exact
-message and is covered by `tests/reminders.test.ts`.
-
-Still owner-side, not code: schedule the daily task on the PC (the runbook is
-`docs/EMAIL_REMINDERS.md`), and verify a domain in Resend if mail ever needs to reach an
-address other than the account's own — `onboarding@resend.dev` only delivers to
-pauluk83@gmail.com.
-
-Exit: the four auth emails arrive, the confirmation setting is recorded with a date, and one
-reminder digest is delivered and logged.
+The measurement that needed a signed-in session was left to the private-use gate, and is now
+closed with it.
 
 ### Point 3 — Web push: **code complete, waiting on the CLI session**
 
@@ -203,53 +181,6 @@ refund/complaints position. The privacy notice, terms and in-app legal pages nam
 contact.
 
 Exit: every compliance gate is a dated acceptance or passing evidence, signed by the owner.
-
-### Point 5 — Private-use gate (needs the owner's signature)
-
-Decided 2026-11-20: **owner-only private use for now** — no pilot, no public launch and no
-public claims until the owner revisits the decision.
-
-Work: run the packaged-app checks and the accessibility pass against the published installer,
-do a signed-in pass covering the edit-latency budget, a 420 px hosted click-through, cloud
-backup restore from the UI and a second real account, assemble the release evidence (SBOM,
-hashes, claims list), and take a dated owner sign-off that the build is for private use only,
-naming what is still unproven.
-
-Exit: every gate is passing evidence or a signed acceptance, the private-use statement is
-recorded, and the final release is tagged and verified live.
-
-### Point 6 — Simplification (unattended; can run now)
-
-Decided 2026-11-21: the build has accumulated second editors for the same records and figures
-repeated across screens. This point is presentation and structure only, so it is unblocked
-while points 2–5 wait on the owner; it ships ahead of them in the order below.
-
-Rules for every item here: no money rule in §2 changes; a change that touches a figure needs
-a test proving the figure unchanged in the same release; one release per item, so any item can
-be dropped without unpicking the others. Nothing here adds a feature or restyles a screen.
-
-**6.2 — Merge four pairs of pages (Tier 2).** Accounts + Cards become "Accounts & cards";
-Calendar absorbs Notifications; Progress + Reports become "Insights"; Statements + Evidence
-packs become one print/export page. The sidebar drops from 36 destinations to about 28 with no
-capability removed.
-
-Exit: the merged pages pass the responsive guard at 320, 430 and 768 px, and every existing way
-in (help, command palette, dashboard links) reaches the merged page.
-
-**6.3 — Split Dashboard and Monthly by period (Tier 3).** Dashboard owns the year (YTD totals,
-balances, what needs attention); Monthly owns the month, where the income, bill and breakdown
-detail already lives. The two donuts move to Monthly, and the Dashboard's reconciliation, card,
-people and bills tables reduce to one "Needs attention" list linking to the owning page.
-Already done in this direction: the repeated hero figure and donut badges are gone, and the
-Savings and Debts tiles link to their pages.
-
-Exit: no figure or table appears on both screens, and each KPI row stays one height.
-
-**6.4 — Internal structure (Tier 4).** Split `views/tools.tsx` (about 1,980 lines, around twenty
-unrelated tools) into `views/tools/*`; type the provider shapes that are `any` today, starting
-with the payment-day/due-day pair, so one fact stops having two interpretations.
-
-Exit: no behaviour change, suite and typecheck green, and no view file over 800 lines.
 
 ### Point 7 — Microsoft Store packaging: prepared, publication owner-gated
 
@@ -298,4 +229,4 @@ decision to defer it).
 - Transactions use one category plus up to eight free-form tags; alerts are in-app first.
 - Backups are encrypted and versioned with seven restore points; audit is per-record history
   plus trash/undo.
-- Engineering completion is not compliance: the gates in point 4 and point 5 still apply.
+- Engineering completion is not compliance: the gates in point 4 still apply.

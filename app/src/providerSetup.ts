@@ -23,6 +23,31 @@ export interface ProviderBilling {
   recurring: boolean;
 }
 
+/**
+ * A provider's billing block as it is stored. Ledgers created before the block
+ * existed keep the payment day on the provider itself, so both live here and
+ * `providerBilling` reads either while `applyBillDueDay` writes both.
+ */
+export interface ProviderBillingRecord extends Partial<ProviderBilling> {
+  paymentDay?: number;
+}
+
+/**
+ * The provider record the ledger screens read and write. The payment-day pair
+ * is declared once so a provider's payment date has a single meaning; the rest
+ * of a provider's ledger shape stays as loose as the workbook data it mirrors.
+ */
+export interface ProviderRecord {
+  enabled?: boolean;
+  displayName?: string;
+  logoData?: string;
+  /** Day of the month the provider is paid, 1–28 — the same fact as `billing.paymentDay`. */
+  paymentDay?: number;
+  billing?: ProviderBillingRecord;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [field: string]: any;
+}
+
 export interface ProviderPlanRow {
   month: number;
   monthLabel: string;
@@ -195,14 +220,15 @@ export function providerAsset(file: string): string {
 }
 
 export function providerDisplayName(ds: Dataset, key: string): string {
-  const custom = ds.providers?.[key]?.displayName;
+  const provider = ds.providers?.[key] as ProviderRecord | undefined;
+  const custom = provider?.displayName;
   if (typeof custom === 'string' && custom.trim()) return custom.trim();
   return providerMeta(key)?.name ?? key;
 }
 
 /** A provider appears in the app only when its ledger exists and is not hidden. */
 export function isProviderEnabled(ds: Dataset, key: string): boolean {
-  const provider = ds.providers?.[key];
+  const provider = ds.providers?.[key] as ProviderRecord | undefined;
   return Boolean(provider) && provider.enabled !== false;
 }
 
@@ -212,22 +238,25 @@ export function newProviderData(key: string, year: number): Record<string, any> 
 }
 
 export function providerLogo(ds: Dataset, key: string): string | undefined {
-  const logo = ds.providers?.[key]?.logoData;
+  const provider = ds.providers?.[key] as ProviderRecord | undefined;
+  const logo = provider?.logoData;
   return typeof logo === 'string' && LOGO_DATA.test(logo) ? logo : undefined;
 }
 
-export function readProviderField(provider: any, key: string): string {
-  const value = key.split('.').reduce<any>((current, part) => (current == null ? undefined : current[part]), provider);
+export function readProviderField(provider: ProviderRecord, key: string): string {
+  const value = key.split('.').reduce<unknown>((current, part) => (
+    current == null ? undefined : (current as Record<string, unknown>)[part]
+  ), provider);
   if (value === undefined || value === null) return '';
   return String(value);
 }
 
-export function writeProviderField(provider: any, key: string, value: string, type: ProviderFieldType = 'text'): void {
+export function writeProviderField(provider: ProviderRecord, key: string, value: string, type: ProviderFieldType = 'text'): void {
   const parts = key.split('.');
-  let target = provider;
+  let target: Record<string, unknown> = provider;
   for (const part of parts.slice(0, -1)) {
     if (!target[part] || typeof target[part] !== 'object') target[part] = {};
-    target = target[part];
+    target = target[part] as Record<string, unknown>;
   }
   const leaf = parts[parts.length - 1];
   if (type === 'number') {
@@ -240,7 +269,7 @@ export function writeProviderField(provider: any, key: string, value: string, ty
 }
 
 /** Billing details for a provider, with safe defaults for ledgers created before they existed. */
-export function providerBilling(provider: any): ProviderBilling {
+export function providerBilling(provider: ProviderRecord | null | undefined): ProviderBilling {
   const billing = provider?.billing ?? {};
   return {
     billPence: wholePence(billing.billPence),
@@ -260,7 +289,7 @@ export function providerBilling(provider: any): ProviderBilling {
  */
 export function applyBillDueDay(dataset: Dataset, providerKey: string | undefined, day: number): void {
   if (!providerKey) return;
-  const provider: any = dataset.providers?.[providerKey];
+  const provider = dataset.providers?.[providerKey] as ProviderRecord | undefined;
   if (!provider) return;
   const safe = paymentDay(day);
   provider.paymentDay = safe;

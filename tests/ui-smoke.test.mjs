@@ -441,7 +441,7 @@ test('accounts, cards, people and bills edit their own records on their own page
 });
 
 test('settings keeps only its own controls, not record or sign-in editors', async () => {
-  const { SettingsView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const { SettingsView } = await server.ssrLoadModule('/src/views/tools/index.ts');
   const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
   const html = render(SettingsView, props(dataset(), { engine: buildEngine(dataset()) }));
 
@@ -548,7 +548,7 @@ test('a holiday trip can take extra cost lines', async () => {
 });
 
 test('the budget changelog drops the old automatic per-save rows', async () => {
-  const { ChangelogView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const { ChangelogView } = await server.ssrLoadModule('/src/views/tools/index.ts');
   const ds = dataset({
     dataset: {
       changelog: [
@@ -566,7 +566,7 @@ test('the budget changelog drops the old automatic per-save rows', async () => {
 });
 
 test('guides are one help page with both workflows', async () => {
-  const { GuidesView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const { GuidesView } = await server.ssrLoadModule('/src/views/tools/index.ts');
   const html = render(GuidesView, props(dataset()));
 
   assert.equal((html.match(/class="tab/g) ?? []).length, 0, 'no workflow tabs');
@@ -611,7 +611,7 @@ test('the hosted build opens the real budget for a signed-in user', async () => 
 });
 
 test('the hosted import screen offers CSV only, with no bank linking', async () => {
-  const { ImportView } = await server.ssrLoadModule('/src/views/tools.tsx');
+  const { ImportView } = await server.ssrLoadModule('/src/views/tools/index.ts');
   const ds = dataset();
   const html = render(ImportView, props(ds));
 
