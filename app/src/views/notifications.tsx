@@ -81,6 +81,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
             <div className="hero-figure"><span>Bills</span><strong>{notices.filter((notice) => notice.kind === 'bill').length}</strong></div>
             <div className="hero-figure"><span>Expiries</span><strong>{notices.filter((notice) => notice.kind === 'expiry').length}</strong></div>
             <div className="hero-figure"><span>Balances</span><strong>{notices.filter((notice) => notice.kind === 'account' || notice.kind === 'card').length}</strong></div>
+            <div className="hero-figure"><span>Targets</span><strong>{notices.filter((notice) => notice.kind === 'target').length}</strong></div>
           </div>
         </div>
         <div className="hero-side">
@@ -92,7 +93,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
 
       <Section
         title="Current alerts"
-        sub="Bills and expiries due in the next seven days, accounts below zero or close to their target floor, and cards over 80% used."
+        sub="Bills and expiries due in the next seven days, accounts below zero or close to their target floor, cards over 80% used, and category targets at 80%, over target, or on pace to overspend."
         actions={
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn ghost sm" onClick={() => markRead(unread.map((notice) => notice.id))} disabled={unread.length === 0}>Mark all read</button>
@@ -103,7 +104,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
         }
       >
         {notices.length === 0 ? (
-          <Empty>No bill or balance alerts right now.</Empty>
+          <Empty>No bill, balance or target alerts right now.</Empty>
         ) : (
           <Table head={[
             <input

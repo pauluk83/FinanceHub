@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.23",
-  "buildId": "f8229e4d1e0f",
+  "buildId": "5191868d4175",
   "builtAt": "2026-11-23",
   "releases": [
     {
@@ -18,7 +18,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Add the Microsoft Store AppX build, a high-contrast theme, bulk notification delete, and year-aware income schedules and rate changes",
             "Show true Ovo usage on the statement chart",
             "Add a payment-plan review to provider sheets and keep same-day releases on their date",
-            "Apply the payment-plan recommendation in one click and choose how many months the credit is returned over"
+            "Apply the payment-plan recommendation in one click and choose how many months the credit is returned over",
+            "Warn on category targets at 80%, over target and on pace to overspend, and keep the payment plan above a £0 payment"
           ]
         }
       ]

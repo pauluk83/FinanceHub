@@ -12,6 +12,7 @@ and the build time.
 - Show true Ovo usage on the statement chart
 - Add a payment-plan review to provider sheets and keep same-day releases on their date
 - Apply the payment-plan recommendation in one click and choose how many months the credit is returned over
+- Warn on category targets at 80%, over target and on pace to overspend, and keep the payment plan above a £0 payment
 
 ## [2026.11.22] — 22 November 2026
 

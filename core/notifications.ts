@@ -8,8 +8,9 @@
  */
 import type { Dataset, Engine } from './engine.ts';
 import { expiryReminders } from './billTimeline.ts';
+import { targetProgress } from './reports.ts';
 
-export type NotificationKind = 'bill' | 'expiry' | 'account' | 'card';
+export type NotificationKind = 'bill' | 'expiry' | 'account' | 'card' | 'target';
 export type NotificationSeverity = 'info' | 'warning' | 'critical';
 
 export interface BudgetNotification {
@@ -123,6 +124,58 @@ function balanceNotifications(ds: Dataset, engine: Engine, today: string): Budge
   return notices;
 }
 
+/**
+ * Category targets are a report-only figure, but they are the earliest warning
+ * that a month is drifting. Spend is read through the same report the Reports
+ * view shows, so the alert and the target bar can never disagree.
+ */
+function targetNotifications(ds: Dataset, today: string): BudgetNotification[] {
+  const targets = targetProgress(ds, Number(today.slice(0, 4)), Number(today.slice(5, 7)));
+  if (targets.length === 0) return [];
+  const daysInMonth = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0)).getUTCDate();
+  const day = Math.min(daysInMonth, Math.max(1, Number(today.slice(8, 10)) || daysInMonth));
+  const month = today.slice(0, 7);
+  const notices: BudgetNotification[] = [];
+  for (const entry of targets) {
+    if (entry.spentPence <= 0) continue;
+    const base = `target:${entry.category}:${month}`;
+    if (entry.ratio >= 1) {
+      notices.push({
+        id: `${base}:over`,
+        kind: 'target',
+        severity: 'critical',
+        title: `${entry.category} is over its monthly target`,
+        detail: `Spent ${money(entry.spentPence)} of ${money(entry.targetPence)}; ${money(entry.spentPence - entry.targetPence)} over with ${daysInMonth - day} day${daysInMonth - day === 1 ? '' : 's'} left.`,
+        date: today,
+        view: 'reports',
+      });
+    } else if (entry.ratio >= 0.8) {
+      notices.push({
+        id: `${base}:near`,
+        kind: 'target',
+        severity: 'warning',
+        title: `${entry.category} is at ${Math.round(entry.ratio * 100)}% of its monthly target`,
+        detail: `Spent ${money(entry.spentPence)} of ${money(entry.targetPence)}; ${money(entry.remainingPence)} left with ${daysInMonth - day} day${daysInMonth - day === 1 ? '' : 's'} to go.`,
+        date: today,
+        view: 'reports',
+      });
+    } else if (day >= 3) {
+      const projected = Math.round(entry.spentPence / (day / daysInMonth));
+      if (projected <= entry.targetPence) continue;
+      notices.push({
+        id: `${base}:pace`,
+        kind: 'target',
+        severity: 'warning',
+        title: `${entry.category} is heading for an overspend`,
+        detail: `Spent ${money(entry.spentPence)} by day ${day} of ${daysInMonth}; at this pace the month ends near ${money(projected)} against a ${money(entry.targetPence)} target.`,
+        date: today,
+        view: 'reports',
+      });
+    }
+  }
+  return notices;
+}
+
 function expiryNotifications(ds: Dataset, today: string, horizonDays: number): BudgetNotification[] {
   return expiryReminders(ds, today, horizonDays).map((item) => ({
     id: `expiry:${item.id}:${item.date}`,
@@ -140,7 +193,7 @@ export function buildBudgetNotifications(ds: Dataset, engine: Engine, options: N
   const horizonDays = Math.max(0, Math.min(60, options.horizonDays ?? 7));
   const horizon = addDays(today, horizonDays);
   const dismissed = ds.settings.notificationDismissed ?? {};
-  return [...billNotifications(ds, engine, today, horizon), ...expiryNotifications(ds, today, horizonDays), ...balanceNotifications(ds, engine, today)]
+  return [...billNotifications(ds, engine, today, horizon), ...expiryNotifications(ds, today, horizonDays), ...balanceNotifications(ds, engine, today), ...targetNotifications(ds, today)]
     .filter((notification) => !dismissed[notification.id])
     .sort((a, b) => {
       const rank: Record<NotificationSeverity, number> = { critical: 0, warning: 1, info: 2 };

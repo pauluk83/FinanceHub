@@ -39,6 +39,27 @@ test('upcoming unpaid bills and low balances produce alerts', () => {
   assert.ok(notices.some((notice) => notice.kind === 'card'));
 });
 
+test('category targets warn at 80%, when over, and when the pace overshoots', () => {
+  const ds = dataset();
+  ds.categoryTargets = { Food: 10_000, Travel: 10_000, Shopping: 10_000, Empty: 10_000 };
+  ds.transactions = [
+    { id: 'food', date: '2026-11-05', type: 'Expense', amountPence: 9_000, category: 'Food', account: 'Current', budgetTreatment: 'Spending' },
+    { id: 'travel', date: '2026-11-06', type: 'Expense', amountPence: 12_000, category: 'Travel', account: 'Current', budgetTreatment: 'Spending' },
+    { id: 'shopping', date: '2026-11-07', type: 'Expense', amountPence: 4_000, category: 'Shopping', account: 'Current', budgetTreatment: 'Spending' },
+  ] as any;
+  const engine = buildEngine(ds);
+  const notices = buildBudgetNotifications(ds, engine, { today: '2026-11-09', horizonDays: 7 });
+  const target = (category: string) => notices.find((notice) => notice.kind === 'target' && notice.title.startsWith(category));
+
+  assert.equal(target('Food')?.severity, 'warning');
+  assert.match(target('Food')?.title ?? '', /90% of its monthly target/);
+  assert.equal(target('Travel')?.severity, 'critical');
+  assert.match(target('Travel')?.title ?? '', /over its monthly target/);
+  assert.match(target('Shopping')?.title ?? '', /heading for an overspend/);
+  assert.equal(target('Empty'), undefined, 'a target with no spend is not an alert');
+  assert.ok(target('Shopping')?.detail.includes('day 9 of 30'));
+});
+
 test('a bill outside the horizon and paid bills are not announced', () => {
   const engine = buildEngine(dataset());
   const notices = buildBudgetNotifications(dataset(), engine, { today: '2026-11-01', horizonDays: 3 });

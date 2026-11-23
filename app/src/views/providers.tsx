@@ -285,9 +285,13 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
   billedMonths: number;
   settleMonths: number;
   onSettleMonthsChange: (months: number) => void;
-  onApply: () => void;
+  onApply: (amountPence: number) => void;
 }) {
+  const [amount, setAmount] = useState(() => (plan.recommendedPence / 100).toFixed(2));
+  useEffect(() => setAmount((plan.recommendedPence / 100).toFixed(2)), [plan.recommendedPence]);
+  const typedPence = Math.max(0, parseMoney(amount));
   const difference = plan.recommendedPence - currentPaymentPence;
+  const matches = typedPence > 0 && typedPence === currentPaymentPence;
   return (
     <Section
       title="Payment plan review"
@@ -307,8 +311,19 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
               <option value={24}>24 months</option>
             </select>
           </label>
-          <button className="btn primary" type="button" onClick={onApply} disabled={difference === 0}>
-            {difference === 0 ? 'Payment matches plan' : `Use ${gbp(plan.recommendedPence)} monthly`}
+          <label className="muted small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Monthly payment
+            <input
+              className="input compact"
+              style={{ width: 92 }}
+              inputMode="decimal"
+              aria-label="Monthly payment to apply"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+          </label>
+          <button className="btn primary" type="button" onClick={() => onApply(typedPence)} disabled={typedPence <= 0 || matches}>
+            {matches ? 'Payment matches plan' : `Apply ${gbp(typedPence)} monthly`}
           </button>
         </div>
       )}
@@ -327,6 +342,7 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
           {difference === 0
             ? ' That is what you pay now.'
             : ` That is ${gbp(Math.abs(difference))} ${difference < 0 ? 'less' : 'more'} than the current ${gbp(currentPaymentPence)}.`}
+          {plan.floored && ` The recommendation is held at ${gbp(plan.floorPence)}, a quarter of usage, so accepting the plan can never set a £0 payment.`}
         </div>
       </div>
     </Section>
@@ -1042,9 +1058,15 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       settleMonths,
     })
     : null;
-  const applyPlan = () => {
-    if (!plan) return;
-    const amount = plan.recommendedPence;
+  const applyPlan = (amount: number) => {
+    if (!plan || amount <= 0) {
+      notify('Choose a monthly payment above £0.00');
+      return;
+    }
+    const underUsage = amount < plan.monthlyUsagePence;
+    if (underUsage && !window.confirm(
+      `Set the ${title} monthly payment to ${gbp(amount)}? That is below the ${gbp(plan.monthlyUsagePence)} average bill, so the account will draw on its balance every month.`,
+    )) return;
     const sheetName = sheetNameForProviderKey(provider);
     update((d) => {
       const prov = d.providers[provider];

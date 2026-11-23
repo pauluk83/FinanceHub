@@ -15,6 +15,10 @@ export type PaymentPlan = {
   bufferPence: number;
   /** Payment that lands the balance on the buffer after `settleMonths`. */
   recommendedPence: number;
+  /** Lowest recommendation: a quarter of usage, so a plan never stops paying. */
+  floorPence: number;
+  /** True when the floor raised the raw figure, as a large credit would. */
+  floored: boolean;
   settleMonths: number;
   /** Balance after the settlement period at the recommended payment. */
   projectedPence: number;
@@ -40,16 +44,22 @@ export function paymentPlan(input: {
   const bufferMonths = Math.max(0, input.bufferMonths ?? 1);
   const monthlyUsagePence = Math.round(usagePence / billedMonths);
   const bufferPence = Math.round(monthlyUsagePence * bufferMonths);
+  // A pure credit-return calculation can reach zero when the credit already
+  // covers the window. A zero direct debit silently stops paying, so the
+  // recommendation is held at a quarter of usage instead; the owner can still
+  // type a different figure, but never by accepting the plan by accident.
+  const floorPence = Math.max(1, Math.round(monthlyUsagePence * 0.25));
   // Credit above the buffer is handed back over the settlement window; a debt is
   // cleared over it and the buffer rebuilt. A balance between the two pays usage
   // only, so the plan never invents credit the account does not already hold.
-  const recommendedPence = Math.max(0, Math.round(
+  const rawPence = Math.max(0, Math.round(
     balancePence > bufferPence
       ? monthlyUsagePence - (balancePence - bufferPence) / settleMonths
       : balancePence < 0
         ? monthlyUsagePence + (bufferPence - balancePence) / settleMonths
         : monthlyUsagePence,
   ));
+  const recommendedPence = Math.max(floorPence, rawPence);
   const projectedPence = balancePence + (recommendedPence - monthlyUsagePence) * settleMonths;
-  return { monthlyUsagePence, bufferPence, recommendedPence, settleMonths, projectedPence };
+  return { monthlyUsagePence, bufferPence, recommendedPence, floorPence, floored: recommendedPence > rawPence, settleMonths, projectedPence };
 }
