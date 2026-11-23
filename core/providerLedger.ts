@@ -144,6 +144,17 @@ export function recalculate(spec: LedgerSpec, rows: any[], baseline: number) {
 }
 
 /**
+ * Energy used in a statement period. A bill can include money that left the
+ * account without being used — a refund, for example — so usage is the bill
+ * less any refund recorded on the row. Balances keep using the full bill.
+ */
+export function usagePenceFor(row: any): number {
+  const bill = Number(row?.billAmountPence) || 0;
+  const refund = Math.max(0, Number(row?.refundPence) || 0);
+  return bill - refund;
+}
+
+/**
  * The date a statement row represents, so balances can stop at the as-of date.
  * Monthly rows are dated the 1st of their month (a known workbook behaviour),
  * and an Opening Balance row belongs to the start of the sheet's year.

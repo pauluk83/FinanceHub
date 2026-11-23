@@ -5,6 +5,12 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.24] — 23 November 2026
+
+### Changed
+
+- Show true Ovo usage on the statement chart
+
 ## [2026.11.23] — 23 November 2026
 
 ### Changed

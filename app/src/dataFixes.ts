@@ -7,6 +7,17 @@ import type { LedgerSpec } from '../../core/providerLedger';
 
 const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
   {
+    // September's Ovo line is £19.23 + £33.69 of bills plus the £629 refund
+    // paid to Starling on 14/10/2026. The bill stays whole for the balance;
+    // the refund is recorded so usage can exclude it.
+    id: 'ovo-refund-sep-2026',
+    apply: (dataset) => {
+      const rows = (dataset.providers.ovo as { statement?: any[] } | undefined)?.statement;
+      const september = rows?.find((row) => row.month === 'Sep' && Number(row.billAmountPence) === 68192);
+      if (september) september.refundPence = 62900;
+    },
+  },
+  {
     id: 'starling-dan-2026-11-06',
     apply: (dataset) => {
       const exists = dataset.transactions.some((t) =>

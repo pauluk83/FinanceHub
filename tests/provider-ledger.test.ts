@@ -8,6 +8,7 @@ import {
   recalculate,
   reorderRows,
   sortRows,
+  usagePenceFor,
   type LedgerConfig,
 } from '../app/src/providerLedger.ts';
 import { recalculateTelco } from '../core/telco.ts';
@@ -120,6 +121,13 @@ test('a stored opening baseline survives a manual balance override', () => {
   delete rows[0].balanceOverridePence;
   recalculate(cashflow, rows, baselineFor(cashflow, rows, stored));
   assert.deepEqual(rows.map((row) => row.balancePence), [11_000, 16_000]);
+});
+
+test('usage excludes a refund recorded on the bill but keeps the balance whole', () => {
+  const row = { month: 'Sep', billAmountPence: 68_192, refundPence: 62_900, paymentPence: 10_900, balancePence: 30_956 };
+  assert.equal(usagePenceFor(row), 5_292);
+  assert.equal(row.balancePence, 30_956, 'usage is a view of the bill, not a balance change');
+  assert.equal(usagePenceFor({ month: 'Aug', billAmountPence: 4_237 }), 4_237);
 });
 
 test('telco recalculation respects a manually entered balance', () => {

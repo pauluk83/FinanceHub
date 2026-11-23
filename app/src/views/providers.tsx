@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
-import { Empty, Field, Section, Table } from '../components';
+import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { providerBilling } from '../providerSetup';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
@@ -199,6 +199,62 @@ function effectiveRowsFor(cfg: LedgerConfig, rows: any[], autoPayments?: Record<
   if (!changed && !hasOpening) return rows;
   recalculate(cfg, display, baselineFor(cfg, rows, openingPence));
   return display;
+}
+
+type UsagePoint = { label: string; billPence: number; usagePence: number; balancePence: number };
+
+/**
+ * Bars are the energy used in each period, the line is the running balance.
+ * One pence scale spans both, with a zero line, so credit reads as easily as debt.
+ */
+function UsageBalanceChart({ points, title }: { points: UsagePoint[]; title: string }) {
+  const width = 720;
+  const height = 220;
+  const padX = 20;
+  const padTop = 18;
+  const padBottom = 34;
+  const plotHeight = height - padTop - padBottom;
+  const max = Math.max(0, ...points.map((point) => Math.max(point.usagePence, point.balancePence)));
+  const min = Math.min(0, ...points.map((point) => point.balancePence));
+  const span = max - min || 1;
+  const slot = (width - padX * 2) / points.length;
+  const barWidth = Math.max(6, Math.min(26, slot * 0.5));
+  const x = (index: number) => padX + slot * (index + 0.5);
+  const y = (value: number) => padTop + ((max - value) / span) * plotHeight;
+  const zero = y(0);
+  const line = points.map((point, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(point.balancePence).toFixed(1)}`).join(' ');
+  return (
+    <div className="usage-chart">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title}: monthly usage against running balance`}>
+        <line className="chart-zero" x1={padX} x2={width - padX} y1={zero} y2={zero} />
+        <path className="usage-line" d={line} fill="none" />
+        {points.map((point, index) => {
+          const top = y(Math.max(point.usagePence, 0));
+          const refund = point.billPence - point.usagePence;
+          const tooltip = refund > 0
+            ? `${point.label} usage: ${gbp(point.usagePence)} (bill ${gbp(point.billPence)} less ${gbp(refund)} refund)`
+            : `${point.label} usage: ${gbp(point.usagePence)}`;
+          return (
+            <g key={point.label}>
+              <rect className="usage-bar" x={x(index) - barWidth / 2} y={top} width={barWidth} height={Math.max(1, zero - top)} rx={2}>
+                <title>{tooltip}</title>
+              </rect>
+              <circle className="usage-dot" cx={x(index)} cy={y(point.balancePence)} r={3.5}>
+                <title>{`${point.label} balance: ${gbp(point.balancePence)}`}</title>
+              </circle>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="chart-labels usage-labels">
+        {points.map((point) => <span key={point.label}>{point.label}</span>)}
+      </div>
+      <div className="chart-legend">
+        <span><i className="legend-bar" /> Usage</span>
+        <span><i className="legend-line" /> Balance</span>
+      </div>
+    </div>
+  );
 }
 
 function CellInput({ value, onCommit, kind, label }: { value: string; onCommit: (value: string) => void; kind: 'text' | 'date' | 'money' | 'month'; label: string }) {
@@ -887,6 +943,17 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       ? { src: providerLogoSrc(p, 'virgin-media-logo.png'), href: p.portalUrl || 'https://www.virginmedia.com/', label: 'Virgin Media', className: 'virgin-link' }
       : undefined;
 
+  const usagePoints: UsagePoint[] = provider === 'ovo'
+    ? displayRows
+      .filter((row) => typeof row.month === 'string' && row.month !== '')
+      .map((row) => ({
+        label: String(row.month),
+        billPence: Number(row.billAmountPence) || 0,
+        usagePence: usagePenceFor(row),
+        balancePence: Number(row.balancePence) || 0,
+      }))
+    : [];
+
   const customLogo = providerCustomLogo(p);
 
   return (
@@ -926,6 +993,15 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
         <VaultLocked go={go} actions={accessActions} />
       ))}
       <ContractDetails title={title} contract={contractView} logo={contractLogo} monthly={monthly} latest={latest} latestLabel={latestLabel} showAccount={provider !== 'o2' && provider !== 'virgin'} />
+      {provider === 'ovo' && usagePoints.length > 0 && (
+        <Section
+          title="Usage vs balance"
+          sub={`Energy used each period against the running balance for ${year}. Refunds paid out are excluded from usage. ${latestLabel}: ${latest ? gbp(latest.balancePence) : '—'}.`}
+          actions={<Badge tone="blue">{usagePoints.length} month{usagePoints.length === 1 ? '' : 's'}</Badge>}
+        >
+          <UsageBalanceChart points={usagePoints} title={`${title} ${year}`} />
+        </Section>
+      )}
       {editableYear ? (
         <LedgerEditor ds={ds} provider={provider} title={title} cfg={cfg} year={year} update={update} notify={notify} autoPayments={autoPayments} />
       ) : resolvedRows ? (

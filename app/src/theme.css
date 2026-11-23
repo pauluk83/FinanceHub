@@ -989,6 +989,18 @@ tr.locked td { color: var(--muted); }
 .chart-dot { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
 .chart-labels { display: flex; justify-content: space-between; padding: 0 4px 8px; color: var(--faint); font-size: 11px; }
 
+/* Ovo usage vs balance: monthly bill bars over the running balance line. */
+.usage-chart { padding: 8px 16px 4px; }
+.usage-chart svg { display: block; width: 100%; height: auto; }
+.usage-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+.usage-line { stroke: var(--accent-2); stroke-width: 2.5; }
+.usage-dot { fill: var(--accent-2); stroke: var(--panel); stroke-width: 2; }
+.usage-labels span { flex: 1; text-align: center; }
+.chart-legend { display: flex; gap: 16px; padding: 0 4px 12px; color: var(--faint); font-size: 11px; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-bar { width: 10px; height: 10px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--accent); }
+.legend-line { width: 14px; height: 2.5px; border-radius: 2px; background: var(--accent-2); }
+
 .input.compact, .select.compact { min-height: 0; padding: 4px 6px; font-size: 12px; }
 .input.compact.num { text-align: right; }
 .asset-form {

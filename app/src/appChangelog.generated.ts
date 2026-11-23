@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.23",
-  "buildId": "67e72ef9c221",
+  "version": "2026.11.24",
+  "buildId": "c3534dfe44d2",
   "builtAt": "2026-11-23",
   "releases": [
+    {
+      "version": "2026.11.24",
+      "date": "23 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Show true Ovo usage on the statement chart"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.23",
       "date": "23 November 2026",
