@@ -75,18 +75,27 @@ function headCommit() {
 }
 
 /**
- * A same-day rebuild keeps the dated version, but a published tag is immutable.
- * If the tag already points at an older commit, deploying would serve new code
- * while the download link kept the previous installer. Refuse both the build and
- * the deploy, and point the owner at the explicit bump.
+ * The version is the release date, so a rebuild on the same day keeps it even
+ * though the published tag still points at the earlier commit: the owner moves
+ * the tag after committing (see sameDayTagNotice). A version from an earlier
+ * day may not reuse its published tag, because that would put new code behind an
+ * old installer link with no tag update at all.
  */
-export function versionTagProblem(version, taggedSha, headSha) {
+export function versionTagProblem(version, taggedSha, headSha, today = new Date()) {
   if (!taggedSha) return null;
   if (!headSha) return `v${version} exists but HEAD could not be read; refusing to build or deploy.`;
   if (taggedSha === headSha) return null;
+  if (version === releaseVersion(today)) return null;
   return `v${version} already tags ${taggedSha.slice(0, 7)}, but HEAD is ${headSha.slice(0, 7)}. `
-    + 'A same-day rebuild cannot reuse a published tag, so nothing was built or deployed. '
-    + `Run npm run release:bump -- patch "<note>" for a new version, then push its tag.`;
+    + `Release versions are dates, so use ${releaseVersion(today)} or run npm run release:bump for a new version.`;
+}
+
+/** Why a same-day rebuild still has to move its tag after committing, or null. */
+export function sameDayTagNotice(version, taggedSha, headSha, today = new Date()) {
+  if (!taggedSha || taggedSha === headSha) return null;
+  if (version !== releaseVersion(today)) return null;
+  return `v${version} already tags ${taggedSha.slice(0, 7)}; this same-day rebuild keeps ${version}. `
+    + `After committing, move the tag: git tag -f v${version} && git push --force origin refs/tags/v${version}`;
 }
 
 function assertVersionTagFree(version) {
@@ -225,6 +234,8 @@ async function localChecks({ requireUpdateAssets = false, allowTagMismatch = fal
   }
   const tagSha = taggedCommit(pkg.version);
   const tagIssue = versionTagProblem(pkg.version, tagSha, headCommit());
+  const sameDayNotice = sameDayTagNotice(pkg.version, tagSha, headCommit());
+  if (sameDayNotice) console.log(`WARN  ${sameDayNotice}`);
   if (tagIssue && allowTagMismatch) {
     console.log(`WARN  ${tagIssue}`);
     console.log(`WARN  continuing because --allow-tag-move was requested; move and push v${pkg.version} after committing`);
@@ -428,6 +439,8 @@ function release(note, deploy, options = {}) {
   } else {
     assertVersionTagFree(version);
   }
+  const tagNotice = sameDayTagNotice(version, taggedCommit(version), headCommit());
+  if (tagNotice) console.log(`NOTE  ${tagNotice}`);
   const previous = pkg.version;
   writeFileSync(CHANGELOG, addNote(prepareRelease(read('CHANGELOG.md'), version), version, text));
   if (pkg.version !== version) {

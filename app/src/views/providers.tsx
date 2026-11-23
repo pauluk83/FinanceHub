@@ -5,6 +5,7 @@ import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTH_LONG, parseMoney, toCsv } from '../format';
 import { appendRow, balanceAsOf, baselineFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
+import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
@@ -223,10 +224,21 @@ function UsageBalanceChart({ points, title }: { points: UsagePoint[]; title: str
   const y = (value: number) => padTop + ((max - value) / span) * plotHeight;
   const zero = y(0);
   const line = points.map((point, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(point.balancePence).toFixed(1)}`).join(' ');
+  // Only months with a bill have a usage figure; unbilled months would drag the
+  // average down and make the line look lower than real use.
+  const billed = points.filter((point) => point.billPence > 0);
+  const averagePence = billed.length
+    ? Math.round(billed.reduce((total, point) => total + point.usagePence, 0) / billed.length)
+    : 0;
   return (
     <div className="usage-chart">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title}: monthly usage against running balance`}>
         <line className="chart-zero" x1={padX} x2={width - padX} y1={zero} y2={zero} />
+        {averagePence > 0 && (
+          <line className="usage-average" x1={padX} x2={width - padX} y1={y(averagePence)} y2={y(averagePence)}>
+            <title>{`Average usage: ${gbp(averagePence)} over ${billed.length} billed month${billed.length === 1 ? '' : 's'}`}</title>
+          </line>
+        )}
         <path className="usage-line" d={line} fill="none" />
         {points.map((point, index) => {
           const top = y(Math.max(point.usagePence, 0));
@@ -252,8 +264,48 @@ function UsageBalanceChart({ points, title }: { points: UsagePoint[]; title: str
       <div className="chart-legend">
         <span><i className="legend-bar" /> Usage</span>
         <span><i className="legend-line" /> Balance</span>
+        {averagePence > 0 && (
+          <span><i className="legend-average" /> Average {gbp(averagePence)} · {billed.length} month{billed.length === 1 ? '' : 's'}</span>
+        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Turns recorded usage and the current balance into a monthly payment. Read-only:
+ * it explains the figure but never changes a bill, a payment or a balance.
+ */
+function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabel, billedMonths }: {
+  plan: PaymentPlan;
+  currentPaymentPence: number;
+  balancePence: number;
+  latestLabel: string;
+  billedMonths: number;
+}) {
+  const difference = plan.recommendedPence - currentPaymentPence;
+  return (
+    <Section
+      title="Payment plan review"
+      sub={`What ${billedMonths} billed month${billedMonths === 1 ? '' : 's'} suggest you pay. The plan keeps about one month of usage in credit instead of building a balance.`}
+    >
+      <div className="metric-list" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+        <div className="metric"><span>Average usage</span><strong>{gbp(plan.monthlyUsagePence)}</strong></div>
+        <div className="metric"><span>{latestLabel}</span><strong>{gbp(balancePence)}</strong></div>
+        <div className="metric"><span>Usage-only payment</span><strong>{gbp(plan.monthlyUsagePence)}</strong></div>
+        <div className="metric"><span>Recommended payment</span><strong className="pos">{gbp(plan.recommendedPence)}</strong></div>
+        <div className="metric"><span>Current payment</span><strong>{gbp(currentPaymentPence)}</strong></div>
+      </div>
+      <div style={{ padding: '0 16px 16px' }}>
+        <div className="notice info">
+          Paying {gbp(plan.recommendedPence)} a month would move the balance from {gbp(balancePence)} to about {gbp(plan.projectedPence)} in {plan.settleMonths} months,
+          against an average bill of {gbp(plan.monthlyUsagePence)} and a buffer of {gbp(plan.bufferPence)}.
+          {difference === 0
+            ? ' That is what you pay now.'
+            : ` That is ${gbp(Math.abs(difference))} ${difference < 0 ? 'less' : 'more'} than the current ${gbp(currentPaymentPence)}.`}
+        </div>
+      </div>
+    </Section>
   );
 }
 
@@ -954,6 +1006,17 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       }))
     : [];
 
+  // Usage-billed providers get a payment review from the months that actually
+  // have a bill; unbilled months would make the average look too low.
+  const billedRows = displayRows.filter((row) => (Number(row.billAmountPence) || 0) > 0);
+  const plan = (provider === 'ovo' || provider === 'water') && latest && billedRows.length > 0
+    ? paymentPlan({
+      usagePence: billedRows.reduce((total, row) => total + usagePenceFor(row), 0),
+      billedMonths: billedRows.length,
+      balancePence: Number(latest.balancePence) || 0,
+    })
+    : null;
+
   const customLogo = providerCustomLogo(p);
 
   return (
@@ -1001,6 +1064,15 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
         >
           <UsageBalanceChart points={usagePoints} title={`${title} ${year}`} />
         </Section>
+      )}
+      {plan && latest && (
+        <PaymentPlanReview
+          plan={plan}
+          billedMonths={billedRows.length}
+          currentPaymentPence={monthly}
+          balancePence={Number(latest.balancePence) || 0}
+          latestLabel={latestLabel}
+        />
       )}
       {editableYear ? (
         <LedgerEditor ds={ds} provider={provider} title={title} cfg={cfg} year={year} update={update} notify={notify} autoPayments={autoPayments} />

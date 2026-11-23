@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { APP_CHANGELOG } from '../app/src/appChangelog.generated.ts';
 import { buildId, parseChangelog } from '../scripts/app-changelog.mjs';
-import { addNote, prepareRelease, releaseVersion, versionTagProblem } from '../scripts/release.mjs';
+import { addNote, prepareRelease, releaseVersion, sameDayTagNotice, versionTagProblem } from '../scripts/release.mjs';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
 
@@ -39,13 +39,23 @@ test('a release note appends to the current version without bumping it', () => {
   assert.match(updated, /## \[0\.1\.0\]/);
 });
 
-test('a published tag on an older commit blocks a same-day rebuild', () => {
-  assert.equal(versionTagProblem('2026.11.18', null, 'b'.repeat(40)), null, 'an untagged version is normal');
-  assert.equal(versionTagProblem('2026.11.18', 'a'.repeat(40), 'a'.repeat(40)), null, 'the same commit is fine');
-  const problem = versionTagProblem('2026.11.18', 'c'.repeat(40), 'd'.repeat(40));
+test('a published tag on an older commit blocks reusing that day', () => {
+  const today = new Date(2026, 10, 23);
+  assert.equal(versionTagProblem('2026.11.18', null, 'b'.repeat(40), today), null, 'an untagged version is normal');
+  assert.equal(versionTagProblem('2026.11.18', 'a'.repeat(40), 'a'.repeat(40), today), null, 'the same commit is fine');
+  const problem = versionTagProblem('2026.11.18', 'c'.repeat(40), 'd'.repeat(40), today);
   assert.match(problem ?? '', /v2026\.11\.18 already tags ccccccc/);
-  assert.match(problem ?? '', /nothing was built or deployed/);
-  assert.match(problem ?? '', /release:bump/);
+  assert.match(problem ?? '', /Release versions are dates/);
+});
+
+test('a same-day rebuild keeps the date and asks for the tag to move', () => {
+  const day = new Date(2026, 10, 23);
+  const version = releaseVersion(day);
+  assert.equal(versionTagProblem(version, 'c'.repeat(40), 'd'.repeat(40), day), null, 'same-day rebuilds are allowed');
+  const notice = sameDayTagNotice(version, 'c'.repeat(40), 'd'.repeat(40), day);
+  assert.match(notice ?? '', /same-day rebuild keeps 2026\.11\.23/);
+  assert.match(notice ?? '', /git tag -f v2026\.11\.23/);
+  assert.equal(sameDayTagNotice(version, 'd'.repeat(40), 'd'.repeat(40), day), null, 'a tag on HEAD needs no notice');
 });
 
 test('the version is the release date, without padding', () => {
