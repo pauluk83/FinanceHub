@@ -1,8 +1,8 @@
 # Email bill reminders — Resend delivery
 
 Decided 2026-11-20: **Resend** is the provider for both auth mail and reminder
-digests, and **Confirm email stays off**. The code is finished; delivery stays off
-until the owner's Resend account and sender are in place.
+digests, and **Confirm email stays off**. **Configured and live for the owner on 23
+November 2026** — see *What is live* below.
 
 ## What is in place
 
@@ -22,20 +22,32 @@ until the owner's Resend account and sender are in place.
 - **Dry run** is the default: without `RESEND_API_KEY` or `RESEND_FROM` the
   script prints the exact message and sends nothing.
 
-## Owner steps (Resend + Supabase Auth)
+## What is live (23 November 2026)
 
-1. Create the Resend account and add the sender domain or address.
-2. Verify the sender: publish the SPF and DKIM records Resend shows and wait for
-   the domain to read **Verified**. Deliverability is not real until both pass.
-3. Supabase → **Authentication → Emails → SMTP settings**: enable custom SMTP
-   with Resend's values (host `smtp.resend.com`, port `465`, username `resend`,
-   password = the Resend API key, sender = the verified address).
-4. Switch **Confirm email off** in the same page. It was left on by an earlier
-   dashboard change; the decision is that it stays off.
-5. Run the four auth mails once — signup, confirmation (with confirm email
-   temporarily on), resend, password reset — and record the result in
-   `docs/compliance/EVIDENCE_CHECKLIST.md`.
-6. Run one real digest (below) and keep the Resend delivery id with the date.
+- **Resend account:** pauluk83@gmail.com, no domain verified. The sender is
+  therefore Resend's shared test address `onboarding@resend.dev`, which Resend
+  only delivers to the account's own address; owner-only mail works, any other
+  recipient needs a verified domain first.
+- **Supabase custom SMTP:** enabled with sender `onboarding@resend.dev`, sender
+  name `FinanceHub`, host `smtp.resend.com`, port `465`, username `resend` and a
+  sending-only Resend API key as the password. Supabase stores that key
+  encrypted; it is not in this repository, the app or any build.
+- **Confirm email:** off (Authentication → Sign In / Providers), as decided.
+- **Sign-in method:** the owner account uses **Google**, so signup, confirmation
+  and resend mail are not on the login path. The auth path is proven instead by a
+  real recovery email sent on 23 November 2026 that Resend's log shows as
+  delivered and opened.
+- **Digest:** a real send was delivered and opened on 23 November 2026 — subject
+  “FinanceHub reminders — 10 items for 23 November 2026”, Resend id
+  `01a2093e-e46c-7985-b8a8-63b5d9685416`.
+
+## Remaining owner steps
+
+1. Schedule the daily task below; nothing is emailed until it runs.
+2. Put `RESEND_API_KEY` and `RESEND_FROM=FinanceHub <onboarding@resend.dev>` in
+   the scheduler's protected environment, never in the repository.
+3. Verify a domain in Resend before mailing any address other than
+   pauluk83@gmail.com, then change the sender in both places.
 
 ## Daily run
 
@@ -44,7 +56,7 @@ On Windows, create a Task Scheduler task that runs daily at the chosen time:
 ```bat
 set FINANCEHUB_BUDGET=D:\private\financehub-export.json
 set RESEND_API_KEY=... (from the scheduler's protected environment)
-set RESEND_FROM=FinanceHub <reminders@yourdomain>
+set RESEND_FROM=FinanceHub <onboarding@resend.dev>
 node D:\finance\scripts\send-reminders.mjs
 ```
 
@@ -65,19 +77,18 @@ node scripts/send-reminders.mjs --unsubscribe owner@example.com
 An address on the suppression list is checked before anything is sent, so a
 muted address stays muted even if the preference is still on.
 
-## Gate before enabling
+## Gate before widening delivery
 
-Do not turn delivery on until all of these are true:
+Owner-only delivery is live. Do not add another recipient or a public support
+address until all of these are true:
 
-- Resend is added to `docs/compliance/PROCESSOR_REGISTER.md` as **P5** (role,
-  region, sub-processors, DPA, transfer basis, retention) and named in the
-  privacy notice.
-- The sender domain is verified and SPF/DKIM are passing.
+- Resend's entry in `docs/compliance/PROCESSOR_REGISTER.md` as **P5** is
+  completed (region, sub-processors, DPA, transfer basis, retention) and Resend
+  is named in the privacy notice.
+- A sender domain is verified with SPF/DKIM passing.
 - The unsubscribe route is reachable and tested with a real message.
-- A test digest matches the in-app alerts, and the subject contains no amount or
-  bill name.
 - The owner has accepted that the budget file leaves the device to produce the
   digest; the app itself never uploads it for this feature.
 
-This feature is not a compliance claim. It stays off until the list above is
-signed off, and point 4 of `PLAN.md` records that decision.
+This feature is not a compliance claim, and point 4 of `PLAN.md` records that
+decision.

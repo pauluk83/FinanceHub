@@ -16,7 +16,11 @@ everything else below is already in place or is code work that needs no credenti
   public key goes into the app when push is wired; the private key becomes a server-side
   secret then. Do not commit it or paste it anywhere.
 
-## Your one remaining account step — transactional email (~10 minutes)
+## Transactional email — done 23 November 2026 (Resend)
+
+Kept for reference: the account work described below is complete. The sender is Resend's
+shared `onboarding@resend.dev` (no domain verified yet), so it delivers only to the
+account's own address. See `docs/EMAIL_REMINDERS.md` for the live state and what remains.
 
 1. Create an account with an SMTP-capable provider — **Resend** (free tier, SMTP on
    `smtp.resend.com:465`, username `resend`, password = API key) or Brevo/Postmark if you

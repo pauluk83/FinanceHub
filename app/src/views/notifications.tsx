@@ -224,7 +224,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
         </div>
       </Section>
 
-      <Section title="Email reminders" sub="A daily digest of the same bill and expiry alerts. Delivery stays off until a server-side provider key is configured; this budget never stores that key.">
+      <Section title="Email reminders" sub="A daily digest of the same bill and expiry alerts, built here and posted to Resend by the reminder job. This budget never stores the sending key.">
         <div className="form-grid" style={{ padding: 16 }}>
           <label className="field">
             <span>Email address</span>
@@ -248,8 +248,10 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
             <button className="btn primary" onClick={savePrefs}>Save preferences</button>
           </div>
         </div>
-        <div className="notice warn" style={{ margin: 16 }}>
-          <strong>Not yet delivering.</strong> The app builds and stores the preferences and the digest, but no email is sent until the owner sets the server key, verifies a sender and adds the processor to the privacy notice. In-app alerts work now.
+        <div className="notice" style={{ margin: 16 }}>
+          <strong>Sent by the reminder job.</strong> <code>scripts/send-reminders.mjs</code> builds this digest and posts it to Resend with
+          <code>RESEND_API_KEY</code> and <code>RESEND_FROM</code> in its own environment. Until that daily task runs, nothing is emailed;
+          the alerts above work now, and an address on the suppression list is skipped.
         </div>
       </Section>
 

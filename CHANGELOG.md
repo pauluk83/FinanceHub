@@ -16,6 +16,7 @@ and the build time.
 - Average a provider's bill over the months its bill period covers, keep six-monthly Water credit for the next bill, and say the bills are half-yearly
 - Send bill reminders through Resend and add opt-in web push alerts
 - Record Ovo's new bill with its Warm Home Discount credit
+- Email reminders send through Resend, and the Notifications screen names the reminder job instead of saying delivery is off
 
 ## [2026.11.22] — 22 November 2026
 

@@ -104,14 +104,13 @@ actual authenticator.
 7. Supabase backups: the Free plan has **no automatic database backups** and only 1-day
    logs. Upgrade to Pro (7-day daily backups and 7-day logs) or schedule regular manual
    exports to an off-site location, and record the decision.
-8. Supabase Auth email: custom SMTP is currently **disabled**, so delivery uses the
-   non-production default service (2 messages/hour). **Resend** is the chosen provider
-   (decided 20 November 2026) for both auth mail and reminder digests: enable custom SMTP
-   with host `smtp.resend.com`, port `465`, username `resend`, the Resend API key as the
-   password, and a verified sender. Switch **Confirm email off** in the same page — the
-   dashboard currently has it on, contrary to the recorded decision. Then run signup,
-   confirmation (with it temporarily on), resend and password reset once and record the
-   result. See `docs/EMAIL_REMINDERS.md`.
+8. Supabase Auth email: **done 23 November 2026.** Custom SMTP is enabled with Resend
+   (`smtp.resend.com`, port `465`, username `resend`, sender `onboarding@resend.dev`,
+   sender name `FinanceHub`) and **Confirm email is off**. A recovery email and a reminder
+   digest were both delivered and opened per Resend's log. The owner account signs in with
+   **Google**, so signup, confirmation and resend mail do not apply. Remaining: schedule
+   the daily digest task, and verify a domain before mailing any address other than
+   pauluk83@gmail.com. See `docs/EMAIL_REMINDERS.md`.
 9. Google OAuth: branding is populated (app name, home page, privacy policy, Terms and
    authorised domains), but the app is still unverified and shows a 1-of-100 user cap.
    Complete Google verification before relying on public Google sign-in.
@@ -174,24 +173,22 @@ settings page, the email-confirmation/resend test, the Supabase DPA/TIA referenc
 backup decision, the Google verification record, the ICO position, the retention schedule
 review and the breach-contact test. See `docs/compliance/EVIDENCE_CHECKLIST.md`.
 
-## 8. Email delivery — Resend (blocks `PLAN.md` point 2)
+## 8. Email delivery — Resend (**done 23 November 2026**)
 
-The sender and the digest are built and tested; only the account and dashboard are missing.
-
-1. Create the Resend account and add the sender domain or address.
-2. Publish the SPF and DKIM records Resend shows and wait for the domain to read
-   **Verified**. Do not enable reminder delivery before both pass.
-3. Supabase → **Authentication → Emails → SMTP settings**: enable custom SMTP with
-   `smtp.resend.com`, port `465`, username `resend`, the Resend API key as the password,
-   and the verified sender.
-4. Switch **Confirm email off**.
-5. Run the four auth mails once (signup, confirmation with it temporarily on, resend,
-   password reset) and record the result.
-6. Put `RESEND_API_KEY` and `RESEND_FROM` in the scheduler's protected environment and run
-   `node scripts/send-reminders.mjs --budget <export.json>` for one real digest. Keep the
-   Resend delivery id and the date as evidence.
-7. Add Resend as **P5** in `docs/compliance/PROCESSOR_REGISTER.md` (role, region,
-   sub-processors, DPA, transfer basis, retention) and name it in the privacy notice.
+1. ~~Create the Resend account and add the sender.~~ Done: account pauluk83@gmail.com; no
+   domain verified, so the sender is Resend's shared `onboarding@resend.dev`, which only
+   delivers to the account's own address.
+2. ~~Enable custom SMTP.~~ Done: `smtp.resend.com`, port `465`, username `resend`, a
+   sending-only API key as the password, sender name `FinanceHub`.
+3. ~~Switch Confirm email off.~~ Done in Authentication → Sign In / Providers.
+4. ~~Prove delivery.~~ Done: a recovery email and a digest were delivered and opened per
+   Resend's log; digest id `01a2093e-e46c-7985-b8a8-63b5d9685416`, 23 November 2026. The
+   four signup/confirmation/resend mails do not apply — the owner signs in with Google.
+5. **Still open:** schedule the daily digest task (below), and verify a domain before
+   mailing any address other than pauluk83@gmail.com.
+6. **Still open:** complete Resend's **P5** entry in
+   `docs/compliance/PROCESSOR_REGISTER.md` (DPA, transfer basis, subprocessors, retention)
+   and name Resend in the privacy notice.
 
 Never put the key in the app, a build, a committed `.env` or a chat message.
 

@@ -206,8 +206,9 @@ Public production is conditional on all of the following evidence:
    logs and processor backup windows are recorded in `PROCESSOR_REGISTER.md`; every “to
    confirm” item is closed and the register is signed. Evidence was gathered on 17 November
    2026, but Cloudflare's self-serve DPA has not been accepted and filed, consumer Gmail has
-   no DPA, the Supabase Free plan has no automatic backups and uses only the non-production
-   default SMTP, and the register is not signed. C1 remains open.
+   no DPA, the Supabase Free plan has no automatic backups, the new Resend SMTP entry (P5)
+   still needs its DPA and transfer terms filed, and the register is not signed. C1 remains
+   open.
 2. **C2 — Hosted-web storage (superseded 2026-11-17):** the demo-only restriction was
    withdrawn by the owner, so the hosted build now loads and syncs a real budget for a
    signed-in, confirmed account. Browser storage is plaintext, which is accepted in RA-3
@@ -221,9 +222,10 @@ Public production is conditional on all of the following evidence:
    gate before cloud sync, and live passkey/two-account RLS/two-device sync evidence. The
    owner confirmed the hosted passkey ceremony on 17 November 2026 and attests on 16
    November that two-account sync, deletion and export drills passed; no dated build
-   artifact is filed. The client verification gate is implemented and Supabase Confirm
-   email is currently enabled, but custom SMTP is disabled, so the live signup/resend test
-   remains open. Two-device conflict remains owner-attested without instrumentation.
+   artifact is filed. Confirm email is off and custom SMTP through Resend went live on 23
+   November 2026 with delivery evidence; signup/confirmation/resend mail does not apply to
+   the Google-signed-in owner. Two-device conflict remains owner-attested without
+   instrumentation.
 5. **C5 — Deletion and export:** the owner attests on 16 Nov 2026 that deletion and export
    drills passed; dated build evidence, encrypted backup/restore observation and UI/notice
    wording for local copies and exports remain open.

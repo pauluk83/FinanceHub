@@ -142,21 +142,28 @@ guard. Plan truth is this rewrite.
 The only work left from this point is measurement that needs a signed-in session, which is
 now part of point 5.
 
-### Point 2 — Email delivery: **code complete, waiting on the Resend account**
+### Point 2 — Email delivery: **done 23 November 2026**
 
-Decided 2026-11-20: **Resend** is the provider, and **Confirm email stays off**, so the
-dashboard setting is switched off when SMTP is enabled.
+Decided 2026-11-20: **Resend** is the provider and **Confirm email stays off**. The owner
+account signs in with **Google**, so signup, confirmation and resend mail are not on the
+login path at all; only a recovery link (if an email/password is ever added) and the
+reminder digest use email.
 
-Built: `scripts/send-reminders.mjs` posts the digest to `POST https://api.resend.com/emails`
-with a `List-Unsubscribe` header, checks the shipped suppression list first, and stays a dry
-run without `RESEND_API_KEY`/`RESEND_FROM`; `reminderEmail()` in `core/reminders.ts` builds
-the exact message and is covered by `tests/reminders.test.ts`; `docs/EMAIL_REMINDERS.md` is
-the runbook. Owner work: create the Resend account, verify the sender domain or address,
-paste Resend's SMTP host, username and API key into Supabase → Authentication → Emails →
-SMTP settings, and switch **Confirm email off**.
+Done: the Resend account exists and a sending-only API key is set as the Supabase custom
+SMTP password (sender `onboarding@resend.dev`, `smtp.resend.com`, port 465, username
+`resend`); **Confirm email is off** in Authentication → Sign In / Providers; a real digest
+was delivered and opened (Resend id `01a2093e-e46c-7985-b8a8-63b5d9685416`, 23 Nov 2026),
+and a real Supabase recovery email was delivered through that SMTP (Resend log, 23 Nov 2026).
 
-Then, without further input: run signup → confirmation → resend → password reset once, and
-run one real digest send with its Resend id kept as evidence.
+`scripts/send-reminders.mjs` posts the digest to `POST https://api.resend.com/emails` with a
+`List-Unsubscribe` header, checks the suppression list first, and stays a dry run without
+`RESEND_API_KEY`/`RESEND_FROM`; `reminderEmail()` in `core/reminders.ts` builds the exact
+message and is covered by `tests/reminders.test.ts`.
+
+Still owner-side, not code: schedule the daily task on the PC (the runbook is
+`docs/EMAIL_REMINDERS.md`), and verify a domain in Resend if mail ever needs to reach an
+address other than the account's own — `onboarding@resend.dev` only delivers to
+pauluk83@gmail.com.
 
 Exit: the four auth emails arrive, the confirmation setting is recorded with a date, and one
 reminder digest is delivered and logged.

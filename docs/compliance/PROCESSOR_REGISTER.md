@@ -2,8 +2,8 @@
 
 **Status:** PARTIAL — dashboard and public-policy evidence was gathered on 17 November
 2026. C1 remains open: InfinityFree and consumer Gmail provide no DPA, the Supabase Free
-plan has no automatic database backups and only the non-production default SMTP, and the
-Google OAuth app is unverified. This register is the working record for PR-1 / DPIA
+plan has no automatic database backups, the Resend SMTP entry still needs its DPA and
+transfer terms filed, and the Google OAuth app is unverified. This register is the working record for PR-1 / DPIA
 Addendum A condition **C1**. It is not evidence on its own; signed contracts, transfer
 assessments and dated exports must be stored in the private compliance evidence folder.
 
@@ -11,7 +11,7 @@ assessments and dated exports must be stored in the private compliance evidence 
 
 **Register owner:** Zane Stanton.
 
-**Last reviewed:** 17 November 2026 (dashboard evidence pass).
+**Last reviewed:** 23 November 2026 (email delivery configured).
 
 **Review triggers:** new provider, new sub-processor, region change, new feature that sends
 personal data to a provider, contract renewal, personal-data breach, or 12 months.
@@ -81,12 +81,11 @@ a decision.
   backups. Logs are retained for 1 day on Free (7 days on Pro). The DPA provides a 30-day
   post-termination return window before deletion.
 - **Contacts:** `privacy@supabase.com` and `security@supabase.com`.
-- **Auth email:** custom SMTP is **disabled**. Auth therefore uses Supabase's default SMTP,
-  documented as best-effort, limited to 2 messages per hour and not for production. The
-  **Confirm email** setting is currently enabled in the dashboard, which conflicts with the
-  recorded owner decision that it was deliberately left off; confirm which state is intended.
-- **Gap:** decide on Pro backups or a manual off-site export; configure and identify a
-  production SMTP provider; resolve the Confirm-email decision; file the DPA/TIA references.
+- **Auth email:** custom SMTP was enabled on 23 November 2026 and now sends through
+  **Resend** (P5). **Confirm email** is off, matching the owner decision. Delivery is
+  evidenced by Resend's log for a recovery email and for a reminder digest.
+- **Gap:** decide on Pro backups or a manual off-site export; file the DPA/TIA references;
+  complete the Resend entry (P5).
 
 **P2 — Google Sign-In / OAuth**
 
@@ -140,16 +139,24 @@ a decision.
 - **Gap:** confirm that the free public-repository account is covered by the Customer
   Agreement/DPA and file the DPA reference.
 
-**P5 — Supabase Auth email delivery**
+**P5 — Resend (auth email and reminder digest)**
 
-- Custom SMTP is disabled, so delivery uses Supabase's default SMTP. Supabase does not
-  identify a separate provider for that default service in the dashboard, and its docs mark
-  it best-effort/non-production (2 messages per hour).
-- The Supabase subprocessor list includes Postmark for communications, but it is not
-  confirmed as the Auth default sender.
-- **Gap:** configure a named production SMTP provider, add it to this register, and record
-  its terms, region, subprocessors and retention. With Confirm email enabled, this is a
-  live signup blocker.
+- **Role:** processor for the recipient address, message content and delivery metadata of
+  auth mail and reminder digests. Enabled 23 November 2026 as Supabase's custom SMTP
+  provider; the app itself never calls Resend, and a scheduled script on the owner's PC
+  posts the digest with the owner's key.
+- **Region and subprocessors:** Resend is US-headquartered and publishes its own
+  subprocessor list; record the list version relied on and the transfer basis (SCCs / UK
+  Addendum) before C1 can close.
+- **Credentials:** a sending-only API key is stored encrypted in Supabase's SMTP settings.
+  It is not in this repository, the app or any build.
+- **Sender limitation:** no domain is verified, so mail leaves from Resend's shared
+  `onboarding@resend.dev`, which Resend delivers only to the account's own address
+  (pauluk83@gmail.com). Owner-only today; any other recipient needs a verified domain.
+- **Retention:** not recorded yet; message bodies and logs are held by Resend under its
+  own retention settings.
+- **Gap:** file Resend's DPA/terms and transfer evidence, record the subprocessor list
+  version and retention, verify a sender domain, and name Resend in the privacy notice.
 
 **P6 — Gmail support mailbox**
 
@@ -231,7 +238,7 @@ C1 from `DPIA.md` Addendum A is **OPEN** until every line is checked and evidenc
 - [~] Google role/terms/transfer recorded: Controller-Controller Terms and UK Controller SCCs; Sign-In-specific subprocessors and region commitment remain unconfirmed. OAuth app is unverified.
 - [~] Cloudflare Pages replaced InfinityFree on 17 November 2026. Entity, published DPA and subprocessor list identified; DPA acceptance, subprocessor version, processing jurisdiction and log retention still to record.
 - [x] GitHub/Microsoft recorded: DPA October 2025, UK Addendum/DPF, US/global processing, published subprocessor list; free-account coverage still to confirm.
-- [~] Email delivery: Supabase default SMTP; custom SMTP disabled and no named provider. Production SMTP remains open.
+- [~] Email delivery: Supabase custom SMTP through **Resend** since 23 Nov 2026 (P5), Confirm email off, recovery and digest mail delivered per Resend's log. Resend's DPA/transfer evidence, retention and a verified sender domain remain open.
 - [~] Privacy/support contact recorded as `financehub+pauluk83@gmail.com`; consumer Gmail has no DPA and retention/role remain open.
 - [ ] Every provider entry is `Complete`, with evidence references.
 - [ ] Owner has signed and dated the register.
@@ -250,6 +257,7 @@ the register stays **OPEN** and the privacy notice must not be published with un
 | 14 Nov 2026 | Draft prepared | Initial inventory from `DATA_MAP.md`; all provider evidence remains open | Before public production |
 | 17 Nov 2026 | Dashboard evidence pass | Supabase region/subprocessors/DPA/TIA/backups/SMTP; Google OAuth state; InfinityFree terms/no DPA; GitHub DPA; Gmail consumer terms. C1 remains partial | Before public production |
 | 17 Nov 2026 | Hosting move | InfinityFree account suspended; static site moved to Cloudflare Pages (`financehub-uk.pages.dev`). Cloudflare DPA acceptance and log retention open | Before public production |
+| 23 Nov 2026 | Email delivery configured | Supabase custom SMTP enabled through Resend, now P5; Confirm email off; a recovery email and a reminder digest were delivered and opened per Resend's log. Resend DPA/transfer terms, retention and a verified sender domain open | Before public production |
 
 ## 7. Sources checked — 17 November 2026
 
