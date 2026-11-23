@@ -25,6 +25,38 @@
   --radius-sm: 9px;
 }
 
+/* High-contrast: a black background with white, yellow and green only. */
+:root[data-theme='contrast'] {
+  --bg: #000000;
+  --bg-2: #000000;
+  --panel: #0a0a0a;
+  --panel-2: #111111;
+  --panel-3: #171717;
+  --line: #606060;
+  --line-strong: #9a9a9a;
+  --text: #ffffff;
+  --muted: #e8e8e8;
+  --faint: #c7c7c7;
+  --accent: #00ff66;
+  --accent-soft: rgba(0, 255, 102, 0.18);
+  --accent-2: #ffe600;
+  --accent-2-soft: rgba(255, 230, 0, 0.18);
+  --danger: #ffe600;
+  --danger-soft: rgba(255, 230, 0, 0.18);
+  --warn: #ffe600;
+  --warn-soft: rgba(255, 230, 0, 0.18);
+  --violet: #ffffff;
+  --violet-soft: rgba(255, 255, 255, 0.16);
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Keep the logo readable on black instead of its dark gradient end. */
+:root[data-theme='contrast'] .brand-mark {
+  background: var(--accent);
+  color: #000000;
+  box-shadow: none;
+}
+
 :root[data-theme='light'] {
   --bg: #f2f5fa;
   --bg-2: #e9eef7;

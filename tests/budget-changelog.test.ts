@@ -18,6 +18,7 @@ test('interface-only settings changes create no budget changelog entry', () => {
   const before = clone();
   const after = structuredClone(before);
   after.settings.navLayout = { hidden: ['bills'], groups: { savings: 'Tools' } };
+  after.settings.notificationDismissed = { 'bill:Rent:2026-11-12': '2026-11-09T10:00:00Z' };
   assert.deepEqual(changedBudgetSections(before, after), []);
 });
 

@@ -50,6 +50,16 @@ const EB_REDIRECT_URL = 'https://financehub-uk.pages.dev/bank-callback.html';
 const UPDATE_MANIFEST_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/update-manifest.json';
 const UPDATE_ARCHIVE_URL = 'https://github.com/pauluk83/FinanceHub/releases/latest/download/FinanceHub-app.asar';
 const SERVE_ONLY = process.argv.includes('--serve');
+// AppX/Store packages are updated by the Microsoft Store. The host sets
+// process.windowsStore; financeHubStore also covers local package tests and WACK.
+const STORE_BUILD = (() => {
+  if (process.windowsStore === true) return true;
+  try {
+    return require('../package.json').financeHubStore === true;
+  } catch {
+    return false;
+  }
+})();
 const STORE_STARTUP_TIMEOUT = 2 * 60 * 1000;
 // OAuth redirects leave the FinanceHub page for several minutes, so the store must
 // outlive the 30-second browser heartbeat long enough for sign-in to return.
@@ -822,6 +832,7 @@ function updateAvailable(manifest, plan, requiresFullInstaller) {
 }
 
 async function checkForUpdate(current) {
+  if (STORE_BUILD) return publishUpdate({ phase: 'unsupported' });
   if (!app.isPackaged) return publishUpdate({ phase: 'unsupported' });
   if (['downloading', 'ready', 'installing'].includes(updateState.phase)) return updateState;
   if (!current || typeof current.buildId !== 'string' || current.version !== app.getVersion()) {
@@ -860,6 +871,7 @@ async function checkForUpdate(current) {
 }
 
 async function downloadUpdate() {
+  if (STORE_BUILD) throw new Error('Updates are managed by the Microsoft Store');
   if (updateState.phase !== 'available') throw new Error('No update is ready to download');
   if (updateState.requiresFullInstaller) throw new Error('This update needs the full installer');
   if (!updateManifest || !updatePlan) throw new Error('The update manifest is unavailable');
@@ -1054,6 +1066,7 @@ function performInstallAndQuit() {
 }
 
 function installUpdate() {
+  if (STORE_BUILD) throw new Error('Updates are managed by the Microsoft Store');
   if (updateState.phase !== 'ready' || !updateArchivePath) throw new Error('No downloaded update is ready');
   if (!app.isPackaged) throw new Error('Updates can only be installed from the packaged app');
   if (!mainWindow || mainWindow.isDestroyed()) throw new Error('The FinanceHub window is not available');
@@ -1077,6 +1090,15 @@ function installUpdate() {
 }
 
 function registerUpdater() {
+  if (STORE_BUILD) {
+    // The renderer does not mount the update prompt in Store mode. Keep a
+    // harmless handler so a stale page cannot reach the GitHub updater.
+    ipcMain.handle('updater:check', (event) => {
+      if (!isTrustedSender(event)) throw new Error('Untrusted renderer');
+      return { phase: 'unsupported' };
+    });
+    return;
+  }
   ipcMain.handle('updater:check', async (event, current) => {
     if (!isTrustedSender(event)) throw new Error('Untrusted renderer');
     return checkForUpdate(current);

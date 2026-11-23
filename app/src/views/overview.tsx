@@ -14,6 +14,7 @@ import { buildStatementChecks, reconciliationGate, reconciliationKey, reconcilia
 import { explainAccount, explainBill, explainCard, explainLock, explainMonth, explainPerson } from '../../../core/explain';
 import type { Explanation } from '../../../core/explain';
 import { ExplainButton, ExplainDialog } from '../explain';
+import { applyIncomeRateChange, incomeRateTargets } from '../incomeSchedule';
 
 export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, lastSavedAt, lastSyncedAt, feedbackItems, openFeedback, userEmail }: ViewProps) {
   const [explanation, setExplanation] = useState<Explanation | null>(null);
@@ -839,25 +840,30 @@ function ScheduleInput({ kind, value, onCommit, label }: { kind: 'date' | 'money
   );
 }
 
-export function Income({ ds, engine, month, update, notify }: ViewProps) {
+export function Income({ ds, engine, year: pageYear, setYear, month, update, notify }: ViewProps) {
   const targetYear = ds.settings.targetYear;
-  const [year, setYear] = useState(targetYear);
+  // The page follows the year in the app's year bar, and the tabs below set that
+  // same year so Dashboard and Monthly do not disagree with it. A schedule only
+  // exists for 2026–2028, so any other year falls back to the target year.
+  const year = (SCHEDULE_YEARS as readonly number[]).includes(pageYear) ? pageYear : targetYear;
   const [draft, setDraft] = useState<ScheduleDraft>(() => ({ scheme: 'pip', month: MONTHS[month - 1], date: '', amount: '' }));
+  const [rate, setRate] = useState<{ scheme: ScheduleScheme; month: string; amount: string }>(() => ({ scheme: 'pip', month: MONTHS[month - 1], amount: '' }));
 
-  useEffect(() => setYear(targetYear), [targetYear]);
   useEffect(() => setDraft((current) => ({ ...current, month: MONTHS[month - 1] })), [month]);
+  useEffect(() => setRate((current) => ({ ...current, month: MONTHS[month - 1] })), [month]);
 
   const yearKey = scheduleYearKey(year);
   const asOf = ds.settings.asOfDate;
-  const current = engine.monthlyIncome(targetYear, month);
+  const current = engine.monthlyIncome(year, month);
   const rowsFor = (scheme: ScheduleScheme) => ds.incomeSchedules[scheme]
-    .map((row, index) => ({ row, index, cell: row[yearKey] }))
-    .filter(({ cell }) => !!cell?.date || !!cell?.amountPence);
+    .map((row, index) => ({ row, index, cell: row[yearKey] ?? { date: '', amountPence: 0 } }));
   const pipRows = rowsFor('pip');
   const ucRows = rowsFor('uc');
   const pipTotal = pipRows.reduce((sum, entry) => sum + (entry.cell.amountPence || 0), 0);
   const ucTotal = ucRows.reduce((sum, entry) => sum + (entry.cell.amountPence || 0), 0);
   const selectedTotal = pipTotal + ucTotal;
+  const countSet = (rows: { cell: any }[]) => rows.filter(({ cell }) => !!cell?.date || !!cell?.amountPence).length;
+  const paymentsSet = countSet(pipRows) + countSet(ucRows);
 
   const validateDate = (date: string, monthLabel: string) => /^\d{4}-\d{2}-\d{2}$/.test(date) && date.startsWith(`${scheduleMonthPrefix(year, monthLabel)}-`);
 
@@ -866,7 +872,11 @@ export function Income({ ds, engine, month, update, notify }: ViewProps) {
       notify(`Choose a date in ${monthLabel} ${year}`);
       return false;
     }
-    update((dataset) => { dataset.incomeSchedules[scheme][rowIndex][yearKey].date = next; });
+    update((dataset) => {
+      const row = dataset.incomeSchedules[scheme][rowIndex];
+      if (!row[yearKey]) row[yearKey] = { date: '', amountPence: 0 };
+      row[yearKey].date = next;
+    });
     return true;
   };
 
@@ -876,8 +886,33 @@ export function Income({ ds, engine, month, update, notify }: ViewProps) {
       notify('Enter a valid amount, for example 306.80');
       return false;
     }
-    update((dataset) => { dataset.incomeSchedules[scheme][rowIndex][yearKey].amountPence = parseMoney(cleaned); });
+    update((dataset) => {
+      const row = dataset.incomeSchedules[scheme][rowIndex];
+      if (!row[yearKey]) row[yearKey] = { date: '', amountPence: 0 };
+      row[yearKey].amountPence = parseMoney(cleaned);
+    });
     return true;
+  };
+
+  /**
+   * An effective-dated rate: the chosen month and every later month with a
+   * payment in the selected year take the new amount. Earlier months keep what
+   * they were paid, so an April rate change never rewrites January to March.
+   */
+  const applyRateChange = () => {
+    const amountPence = parseMoney(rate.amount);
+    if (!Number.isInteger(amountPence) || amountPence <= 0) {
+      notify('Enter an amount above zero');
+      return;
+    }
+    const targets = incomeRateTargets(ds, rate.scheme, year, rate.month);
+    if (targets.length === 0) {
+      notify(`No ${rate.scheme === 'pip' ? 'PIP' : 'Universal Credit'} payments from ${rate.month} ${year} to change`);
+      return;
+    }
+    update((dataset) => { applyIncomeRateChange(dataset, rate.scheme, year, rate.month, amountPence); });
+    setRate((current) => ({ ...current, amount: '' }));
+    notify(`${rate.scheme === 'pip' ? 'PIP' : 'Universal Credit'} set to ${gbp(amountPence)} from ${rate.month} ${year} — ${targets.length} payment${targets.length === 1 ? '' : 's'} updated`);
   };
 
   const addPayment = () => {
@@ -922,8 +957,10 @@ export function Income({ ds, engine, month, update, notify }: ViewProps) {
     notify(`${draft.scheme === 'pip' ? 'PIP' : 'Universal Credit'} payment added for ${draft.month} ${year}`);
   };
 
-  const renderScheme = (scheme: ScheduleScheme, title: string, rows: { row: any; index: number; cell: any }[], total: number) => (
-    <Section title={title} sub={`${year} — ${rows.length} payment${rows.length === 1 ? '' : 's'}`}>
+  const renderScheme = (scheme: ScheduleScheme, title: string, rows: { row: any; index: number; cell: any }[], total: number) => {
+    const setCount = countSet(rows);
+    return (
+    <Section title={title} sub={`${year} — ${setCount} payment${setCount === 1 ? '' : 's'} set; every month's date and amount can be edited`}>
       <Table head={['Month', 'Payment date', 'Amount', 'Status']}>
         {rows.map(({ row, index, cell }) => (
           <tr key={`${scheme}-${index}`}>
@@ -944,7 +981,7 @@ export function Income({ ds, engine, month, update, notify }: ViewProps) {
                 onCommit={(next) => editAmount(scheme, index, next)}
               />
             </td>
-            <td>{cell.date && cell.date <= asOf ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}</td>
+            <td>{!cell?.date ? <Badge>Not set</Badge> : cell.date <= asOf ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}</td>
           </tr>
         ))}
         {rows.length > 0 && (
@@ -957,23 +994,24 @@ export function Income({ ds, engine, month, update, notify }: ViewProps) {
       </Table>
       {rows.length === 0 && <Empty>No {title} entries for {year}. Add one below.</Empty>}
     </Section>
-  );
+    );
+  };
 
   return (
     <>
       <Section
         title="Income schedule"
         sub="PIP and Universal Credit dates and amounts used by the monthly income engine"
-        actions={<Badge tone="blue">Target year {targetYear}</Badge>}
+        actions={<Badge tone="blue">{year} schedule</Badge>}
       >
         <div className="kpi-grid" style={{ padding: '14px 14px 0' }}>
-          <Card title={`PIP — ${MONTH_LONG[month - 1]}`} value={gbp(current.pip)} sub={`Target year ${targetYear}`} tone="pos" />
-          <Card title={`Universal Credit — ${MONTH_LONG[month - 1]}`} value={gbp(current.uc)} sub={`Target year ${targetYear}`} tone="pos" />
-          <Card title={`${year} scheduled`} value={gbp(selectedTotal)} sub={`${pipRows.length + ucRows.length} payments`} />
-          <Card title="Target year" value={String(targetYear)} sub="Used by Monthly and Dashboard" />
+          <Card title={`PIP — ${MONTH_LONG[month - 1]}`} value={gbp(current.pip)} sub={`${year} schedule`} tone="pos" />
+          <Card title={`Universal Credit — ${MONTH_LONG[month - 1]}`} value={gbp(current.uc)} sub={`${year} schedule`} tone="pos" />
+          <Card title={`${year} scheduled`} value={gbp(selectedTotal)} sub={`${paymentsSet} payment${paymentsSet === 1 ? '' : 's'} set`} />
+          <Card title="Target year" value={String(targetYear)} sub="Default year when the app opens" />
         </div>
         <div className="notice" style={{ margin: '14px' }}>
-          <strong>Where this month’s income comes from:</strong> Monthly reads these rows for target year {targetYear}. PIP rows for the selected month are added together; UC uses one row per month. Locked months keep their saved month-end totals, so editing a past locked month does not rewrite its snapshot.
+          <strong>Where this month’s income comes from:</strong> Dashboard and Monthly read these rows for the year in the app bar. PIP rows for the selected month are added together; UC uses one row per month. Locked months keep their saved month-end totals, so editing a past locked month does not rewrite its snapshot.
         </div>
         <div className="tabs">
           {SCHEDULE_YEARS.map((option) => (
@@ -986,6 +1024,29 @@ export function Income({ ds, engine, month, update, notify }: ViewProps) {
         {renderScheme('pip', 'PIP payments', pipRows, pipTotal)}
         {renderScheme('uc', 'Universal Credit payments', ucRows, ucTotal)}
       </div>
+
+      <Section title={`Change ${year} amount from a month`} sub="An effective-dated rate change: that month and every later month with a payment take the new amount; earlier months keep theirs">
+        <div className="inline-form">
+          <Field label="Type">
+            <select className="select" value={rate.scheme} onChange={(e) => setRate({ ...rate, scheme: e.target.value as ScheduleScheme })}>
+              <option value="pip">PIP</option>
+              <option value="uc">Universal Credit</option>
+            </select>
+          </Field>
+          <Field label="From month">
+            <select className="select" value={rate.month} onChange={(e) => setRate({ ...rate, month: e.target.value })}>
+              {MONTHS.map((label) => <option key={label} value={label}>{label}</option>)}
+            </select>
+          </Field>
+          <Field label="New amount £">
+            <input className="input" inputMode="decimal" placeholder="0.00" value={rate.amount} onChange={(e) => setRate({ ...rate, amount: e.target.value })} />
+          </Field>
+          <button className="btn primary" onClick={applyRateChange}>Apply from {rate.month}</button>
+        </div>
+        <div className="muted small" style={{ padding: '0 14px 14px' }}>
+          Applies to {year} only and leaves months without a payment alone. Use the year tabs for another year's rates.
+        </div>
+      </Section>
 
       <Section title={`Add ${year} payment`} sub="Adds a dated PIP or UC payment to the selected year; existing rows remain editable above">
         <div className="inline-form">

@@ -828,11 +828,6 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
     });
     notify(`${name} removed${used ? ` — ledger moved to ${destination}` : ''}`);
   };
-  const recent = ds.transactions
-    .filter((t) => t.account === selected)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.row - a.row)
-    .slice(0, 12);
-
   return (
     <>
       <Section title="Bank accounts" sub={`Balances as of ${dateUk(asOf)}. Edit a name in place (Enter saves, Esc cancels); removing an account moves its transactions to the main account.`}>
@@ -861,20 +856,6 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
         </div>
       </Section>
 
-      <Section title={`${selected} — recent activity`} sub="Ledger view; transfers remain visible here but not in budget totals">
-        <Table head={['Date', 'Type', 'Amount', 'Comments', 'Treatment']} numHead={[2]}>
-          {recent.map((t) => (
-            <tr key={t.row}>
-              <td className="muted">{dateUk(t.date)}</td>
-              <td><Badge tone={t.type === 'Income' ? 'green' : 'neutral'}>{t.type}</Badge></td>
-              <td className={`num ${t.type === 'Income' ? 'amount pos' : 'amount neg'}`}>{gbp(t.amountPence)}</td>
-              <td className="muted">{t.comments || '—'}</td>
-              <td>{t.budgetTreatment || 'Normal'}</td>
-            </tr>
-          ))}
-        </Table>
-        {recent.length === 0 && <Empty>No transactions on this account.</Empty>}
-      </Section>
     </>
   );
 }
@@ -1259,7 +1240,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
               Entries on or before As-Of {dateUk(ds.settings.asOfDate)} and zero/free-week rows are retained.
             </div>
           </div>
-          <div className="inline-form" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="inline-form" style={{ borderTop: '1px solid var(--line)' }}>
             <Field label="Monthly payment £" hint={`Current ${gbp(rentProvider.monthlyPaymentPence ?? 0)}`}>
               <input
                 className="input"

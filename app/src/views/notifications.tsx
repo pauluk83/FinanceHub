@@ -15,6 +15,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
   const read = ds.settings.notificationReads ?? {};
   const initialPrefs = reminderPreferences(ds);
   const [prefs, setPrefs] = useState(initialPrefs);
+  const [selected, setSelected] = useState<string[]>([]);
   const digestYear = ds.settings.targetYear;
   const [digestMonth, setDigestMonth] = useState(() => Number(ds.settings.asOfDate.slice(5, 7)) || 1);
   const digest = buildMonthDigest(ds, engine, digestYear, digestMonth);
@@ -34,6 +35,11 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
     notify(prefs.enabled ? 'Email reminder preferences saved — delivery starts once the server key is set' : 'Email reminders turned off');
   };
   const unread = notices.filter((notice) => !read[notice.id]);
+  const allSelected = notices.length > 0 && notices.every((notice) => selected.includes(notice.id));
+
+  const toggleSelected = (id: string) => {
+    setSelected((current) => current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]);
+  };
 
   const markRead = (ids: string[]) => {
     if (!ids.length) return;
@@ -44,6 +50,24 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
       };
     });
     notify(ids.length === 1 ? 'Notification marked read' : `${ids.length} notifications marked read`);
+  };
+
+  const deleteSelected = () => {
+    if (!selected.length) return;
+    const ids = selected;
+    update((dataset) => {
+      const dismissed = { ...(dataset.settings.notificationDismissed ?? {}) };
+      const readState = { ...(dataset.settings.notificationReads ?? {}) };
+      const deletedAt = new Date().toISOString();
+      for (const id of ids) {
+        dismissed[id] = deletedAt;
+        delete readState[id];
+      }
+      dataset.settings.notificationDismissed = dismissed;
+      dataset.settings.notificationReads = readState;
+    });
+    setSelected([]);
+    notify(ids.length === 1 ? 'Notification deleted' : `${ids.length} notifications deleted`);
   };
 
   return (
@@ -62,21 +86,46 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
         <div className="hero-side">
           <Badge tone={unread.length ? 'amber' : 'green'}>{unread.length ? 'Review needed' : 'All read'}</Badge>
           <div className="muted">Derived from the budget as of {dateUk(ds.settings.asOfDate)}.</div>
-          <div className="muted small">Alerts clear when the underlying bill is paid, the expiry passes or the balance changes.</div>
+          <div className="muted small">Alerts clear when the underlying bill is paid, the expiry passes or the balance changes. Deleting an alert hides it and drops it from the bell without changing any budget data.</div>
         </div>
       </section>
 
       <Section
         title="Current alerts"
         sub="Bills and expiries due in the next seven days, accounts below zero or close to their target floor, and cards over 80% used."
-        actions={<button className="btn ghost sm" onClick={() => markRead(unread.map((notice) => notice.id))} disabled={unread.length === 0}>Mark all read</button>}
+        actions={
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn ghost sm" onClick={() => markRead(unread.map((notice) => notice.id))} disabled={unread.length === 0}>Mark all read</button>
+            <button className="btn danger sm" onClick={deleteSelected} disabled={selected.length === 0}>
+              Delete selected{selected.length ? ` (${selected.length})` : ''}
+            </button>
+          </div>
+        }
       >
         {notices.length === 0 ? (
           <Empty>No bill or balance alerts right now.</Empty>
         ) : (
-          <Table head={['Priority', 'Alert', 'Detail', 'Date', 'State', '']}>
+          <Table head={[
+            <input
+              key="select-all"
+              type="checkbox"
+              aria-label={allSelected ? 'Clear notification selection' : 'Select all notifications'}
+              title={allSelected ? 'Clear selection' : 'Select all notifications'}
+              checked={allSelected}
+              onChange={() => setSelected(allSelected ? [] : notices.map((notice) => notice.id))}
+            />,
+            'Priority', 'Alert', 'Detail', 'Date', 'State', '',
+          ]}>
             {notices.map((notice) => (
               <tr key={notice.id}>
+                <td style={{ width: 34 }}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${notice.title}`}
+                    checked={selected.includes(notice.id)}
+                    onChange={() => toggleSelected(notice.id)}
+                  />
+                </td>
                 <td><Badge tone={tone(notice.severity)}>{notice.severity}</Badge></td>
                 <td><strong>{notice.title}</strong></td>
                 <td className="muted">{notice.detail}</td>
@@ -121,7 +170,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
               <td className="num nowrap">
                 {entry.direction === 'same'
                   ? <span className="muted">No change</span>
-                  : <span style={{ color: entry.direction === 'up' ? 'var(--good, #1b7f4b)' : 'var(--bad, #b3261e)' }}>
+                  : <span style={{ color: entry.direction === 'up' ? 'var(--accent)' : 'var(--danger)' }}>
                     {entry.direction === 'up' ? '▲' : '▼'} {moneyText(Math.abs(entry.deltaPence))}
                   </span>}
               </td>

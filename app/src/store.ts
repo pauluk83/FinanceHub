@@ -388,7 +388,8 @@ function decodeState(raw: string | null): AppState | null {
     // A-07: repair the shape instead of refusing to open a damaged document.
     const repaired = repairDataset(parsed.dataset);
     if (!repaired) return null;
-    const base: AppState = { ...parsed, dataset: repaired.dataset, theme: parsed.theme === 'light' ? 'light' : 'dark' };
+    const theme: Theme = parsed.theme === 'light' || parsed.theme === 'contrast' ? parsed.theme : 'dark';
+    const base: AppState = { ...parsed, dataset: repaired.dataset, theme };
     return normaliseHolidayYears(ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails(base)))))));
   } catch {
     return null;

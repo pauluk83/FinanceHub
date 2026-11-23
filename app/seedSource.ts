@@ -12,6 +12,14 @@ export interface SeedPaths {
   privateWorkbook: string;
 }
 
+export function usesPrivateWorkbook({ hosted, store, hasPrivateWorkbook }: {
+  hosted: boolean;
+  store: boolean;
+  hasPrivateWorkbook: boolean;
+}): boolean {
+  return hasPrivateWorkbook && !hosted && !store;
+}
+
 export function workbookAlias(hasPrivateWorkbook: boolean, paths: SeedPaths): { find: string; replacement: string } {
   return {
     find: '@workbook',

@@ -45,6 +45,18 @@ test('a bill outside the horizon and paid bills are not announced', () => {
   assert.equal(notices.some((notice) => notice.kind === 'bill'), false);
 });
 
+test('deleted notifications stay hidden while the same alert is still derived', () => {
+  const ds = dataset();
+  const engine = buildEngine(ds);
+  const notices = buildBudgetNotifications(ds, engine, { today: '2026-11-09' });
+  assert.ok(notices.length > 1);
+  ds.settings.notificationDismissed = { [notices[0].id]: '2026-11-09T10:00:00Z' };
+
+  const remaining = buildBudgetNotifications(ds, engine, { today: '2026-11-09' });
+  assert.equal(remaining.some((notice) => notice.id === notices[0].id), false, 'the deleted alert is not derived');
+  assert.equal(remaining.length, notices.length - 1, 'only the deleted alert is removed');
+});
+
 test('read timestamps suppress only the matching notification', () => {
   const ds = dataset();
   const engine = buildEngine(ds);

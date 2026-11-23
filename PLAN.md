@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.22** (bundle `index-I1flQUFz.js`), suite **546/546**, `tsc` clean,
+Current release **2026.11.22** (bundle `index-I1flQUFz.js`), suite **562/562**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -107,7 +107,7 @@ and the hosted bundle, deploys to Pages and verifies the live bundle matches.
 ## 6. Verification
 
 ```
-npm test                                  # full suite (534)
+npm test                                  # full suite (562)
 npx tsc -p app/tsconfig.json --noEmit     # typecheck
 npm run release:check                     # release + live parity
 npm run test:e2e                          # Playwright: demo flows + responsive guard
@@ -229,6 +229,25 @@ with the payment-day/due-day pair, so one fact stops having two interpretations.
 
 Exit: no behaviour change, suite and typecheck green, and no view file over 800 lines.
 
+### Point 7 — Microsoft Store packaging: prepared, publication owner-gated
+
+Added 2026-11-23. A separate AppX target builds a Store package without touching the
+GitHub NSIS release: `npm run dist:store` writes to `release-store/`, uses only the blank
+seed, hides the GitHub updater, and derives a four-part AppX version from the release date
+plus `STORE_REVISION`. The Partner Center identity comes from the gitignored
+`store/identity.json`; the build validates it before packaging. See `docs/STORE.md` for the
+build, WACK package check and submission steps.
+
+Owner work: reserve the FinanceHub name in Partner Center, copy its exact Identity Name,
+Publisher and Publisher display name into `store/identity.json`, replace the sample AppX
+tile assets, then run the WACK pre-check and submit manually. The build does not upload or
+publish. The Store package has its own app-data folder, so moving an existing NSIS budget
+requires the normal backup/restore flow.
+
+Exit: the AppX installs under the reserved identity, opens in Store mode with no GitHub
+updater, WACK reports no FAIL, and the owner submits the listing (or records a dated
+decision to defer it).
+
 ---
 
 ## 8. Outside this plan
@@ -252,7 +271,8 @@ Exit: no behaviour change, suite and typecheck green, and no view file over 800 
   acceptance; ICO exemption recorded with its reason.
 - Owner-only private use as the launch route; support through in-app Feedback, security
   contact `pauluk83+financehub@gmail.com`.
-- Distribution is a direct Windows download; no Microsoft Store, no iOS for now.
+- Distribution is a direct Windows download plus a prepared Microsoft Store AppX path;
+  Store publication is owner-gated and no listing is submitted yet. No iOS for now.
 - Transactions use one category plus up to eight free-form tags; alerts are in-app first.
 - Backups are encrypted and versioned with seven restore points; audit is per-record history
   plus trash/undo.

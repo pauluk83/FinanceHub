@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.22",
-  "buildId": "4fcfadfa68a6",
-  "builtAt": "2026-11-22",
+  "version": "2026.11.23",
+  "buildId": "67e72ef9c221",
+  "builtAt": "2026-11-23",
   "releases": [
+    {
+      "version": "2026.11.23",
+      "date": "23 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Add the Microsoft Store AppX build, a high-contrast theme, bulk notification delete, and year-aware income schedules and rate changes"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.22",
       "date": "22 November 2026",

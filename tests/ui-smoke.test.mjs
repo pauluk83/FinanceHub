@@ -144,6 +144,38 @@ test('transaction log renders category and tag labels with both filters', async 
   assert.match(html, /<th>Tags<\/th>/);
 });
 
+test('the income page follows the year chosen in the app bar', async () => {
+  const { Income } = await server.ssrLoadModule('/src/views/overview.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const row = (month, date2026, amount2026, date2027, amount2027) => ({
+    month,
+    year2026: { date: date2026, amountPence: amount2026 },
+    year2027: { date: date2027, amountPence: amount2027 },
+    year2028: { date: '', amountPence: 0 },
+  });
+  const ds = dataset({
+    dataset: {
+      incomeSchedules: {
+        pip: [row('Jan', '2026-01-27', 10_000, '2027-01-26', 20_000), row('Apr', '2026-04-21', 10_000, '2027-04-20', 20_000)],
+        uc: [row('Jan', '2026-01-27', 50_000, '2027-01-27', 60_000)],
+      },
+    },
+  });
+
+  const html2027 = render(Income, props(ds, { engine: buildEngine(ds), year: 2027 }));
+  assert.match(html2027, /Add 2027 payment/);
+  assert.match(html2027, /2027 schedule/);
+  assert.match(html2027, /Change 2027 amount from a month/);
+  assert.match(html2027, /value="2027-01-26"/, 'the 2027 payment date is shown');
+  assert.match(html2027, /value="200.00"/, 'the 2027 amount is shown');
+  assert.equal(html2027.includes('Add 2026 payment'), false, 'the add form does not stay on 2026');
+
+  const html2026 = render(Income, props(ds, { engine: buildEngine(ds), year: 2026 }));
+  assert.match(html2026, /Add 2026 payment/);
+  assert.match(html2026, /value="100.00"/);
+  assert.equal(html2026.includes('Add 2027 payment'), false);
+});
+
 test('the notification centre renders bill, balance and card alerts', async () => {
   const { NotificationsView } = await server.ssrLoadModule('/src/views/notifications.tsx');
   const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
@@ -167,6 +199,9 @@ test('the notification centre renders bill, balance and card alerts', async () =
   assert.match(html, /Rent is due in 3 days/);
   assert.match(html, /Card is over 80% used/);
   assert.match(html, /Mark all read/);
+  assert.match(html, /Delete selected/);
+  assert.match(html, /aria-label="Select all notifications"/);
+  assert.match(html, /aria-label="Select Rent is due in 3 days"/);
   assert.match(html, /<span class="badge amber">Unread<\/span>/);
 });
 
@@ -418,6 +453,9 @@ test('settings keeps only its own controls, not record or sign-in editors', asyn
   assert.doesNotMatch(html, /Add change/);
   assert.doesNotMatch(html, /Update future rent/);
   assert.doesNotMatch(html, /Duplicate check/);
+  assert.match(html, /🌙 Dark/);
+  assert.match(html, /☀ Light/);
+  assert.match(html, /◐ Contrast/);
 });
 
 test('the dashboard duplicate notice sends you to data health', async () => {

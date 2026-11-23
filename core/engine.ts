@@ -171,6 +171,8 @@ export interface Dataset {
     yearOpenings?: Record<string, YearOpeningBalances>;
     /** Notification IDs the owner has already read. */
     notificationReads?: Record<string, string>;
+    /** Notification IDs the owner has deleted; the same derived alert stays hidden. */
+    notificationDismissed?: Record<string, string>;
     /** Saved transaction filter, stored as an interface preference only. */
     savedFilters?: Record<string, SavedTransactionFilter>;
     /** Opt-in email reminder preferences; delivery stays off until a server key exists. */

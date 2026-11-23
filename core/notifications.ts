@@ -1,9 +1,10 @@
 /**
  * In-app notification derivation.
  *
- * Notifications are deliberately read-only and derived from the live budget:
- * a due date or balance change can never be hidden by stale notification data.
- * Only the read timestamps are persisted in `settings.notificationReads`.
+ * Notifications are derived from the live budget, so a due date or balance
+ * change always produces a fresh alert. The only persisted state is the read
+ * timestamps in `settings.notificationReads` and the deleted (dismissed) IDs in
+ * `settings.notificationDismissed`; neither changes any budget figure.
  */
 import type { Dataset, Engine } from './engine.ts';
 import { expiryReminders } from './billTimeline.ts';
@@ -138,7 +139,9 @@ export function buildBudgetNotifications(ds: Dataset, engine: Engine, options: N
   const today = options.today ?? ds.settings.asOfDate;
   const horizonDays = Math.max(0, Math.min(60, options.horizonDays ?? 7));
   const horizon = addDays(today, horizonDays);
+  const dismissed = ds.settings.notificationDismissed ?? {};
   return [...billNotifications(ds, engine, today, horizon), ...expiryNotifications(ds, today, horizonDays), ...balanceNotifications(ds, engine, today)]
+    .filter((notification) => !dismissed[notification.id])
     .sort((a, b) => {
       const rank: Record<NotificationSeverity, number> = { critical: 0, warning: 1, info: 2 };
       return rank[a.severity] - rank[b.severity] || a.date.localeCompare(b.date) || a.title.localeCompare(b.title);

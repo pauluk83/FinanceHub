@@ -1698,6 +1698,7 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
         <div className="tabs" style={{ borderBottom: 0 }}>
           <button className={`tab ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
           <button className={`tab ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
+          <button className={`tab ${theme === 'contrast' ? 'active' : ''}`} onClick={() => setTheme('contrast')}>◐ Contrast</button>
         </div>
       </Section>
 

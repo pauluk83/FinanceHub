@@ -64,6 +64,7 @@ npm run build:web         # production renderer -> dist/
 npm run build:web:hosted  # hosted bundle -> dist-web/
 npm run desktop           # build the renderer and open the Electron window
 npm run dist:win          # unsigned x64 NSIS installer -> release/
+npm run dist:store        # x64 AppX Store package -> release-store/ (not published)
 npm test                  # full test suite
 npx tsc -p app/tsconfig.json --noEmit
 ```
@@ -115,6 +116,11 @@ The hosted website no longer carries installer parts. `npm run release:check` ve
 version, changelog, generated changelog and hosted bundle; when a GitHub release exists it
 also compares its installer checksum with the local build.
 
+The Microsoft Store package is a separate AppX build, not part of `npm run release`. It uses
+the blank seed, disables the GitHub updater and takes a four-part package version. See
+[`docs/STORE.md`](./docs/STORE.md) for the identity setup, WACK check and submission steps;
+nothing is uploaded by the build.
+
 ## Changelog rules
 
 - [`CHANGELOG.md`](./CHANGELOG.md) is the application changelog and is **append-only**. A
@@ -131,8 +137,8 @@ the credential vault, people statements, app lock, year rollover, provider setup
 ledgers, menu layout, legal documents, the two changelogs and GitHub release publishing.
 
 Outstanding: iOS, bank linking, passkeys in the packaged desktop window, packaged-app
-checks, a live passkey ceremony test, a throwaway-account deletion test and professional
-review of the compliance drafts. The
+checks, a live passkey ceremony test, a throwaway-account deletion test, the owner-gated
+Microsoft Store submission and professional review of the compliance drafts. The
 pre-rotation conflict history and old backups were purged by the owner on 13 November
 2026; the Supabase deletion function and passkey backend were configured the same day.
 SQLCipher full-database encryption is deferred; the DPAPI-backed value store remains the

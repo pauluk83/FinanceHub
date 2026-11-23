@@ -1,0 +1,8 @@
+{
+  "identityName": "YOUR_PUBLISHER_ID.FinanceHub",
+  "publisher": "CN=YOUR_PUBLISHER_ID",
+  "publisherDisplayName": "YOUR PUBLISHER DISPLAY NAME",
+  "displayName": "FinanceHub",
+  "applicationId": "FinanceHub",
+  "revision": 0
+}

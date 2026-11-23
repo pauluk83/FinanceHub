@@ -518,12 +518,12 @@ export const USER_GUIDE: GuideEntry[] = [
       'Open the bell in the top bar or Tools → Notifications to see current alerts.',
       'Read the What changed section for the selected month: income, expenses, scheduled bills, the month-end account balance and what people owe, each against the month before, with the change shown in pounds.',
       'Below those figures are the budget changelog entries recorded in that month, so a moved number can be traced to the edit that moved it.',
-      'Mark an alert read after dealing with it; the alert remains visible until the underlying bill or balance changes.',
+      'Mark an alert read after dealing with it, or tick several alerts and choose Delete selected to remove a batch from the list and the bell.',
       'Use Open to jump to the bill, account or card that caused the alert.',
     ],
     notes: [
-      'Alerts are derived from the loaded budget. Marking one read never changes a balance, bill or locked month.',
-      'The read state travels with the budget document, but the reminder itself is in-app only — no email or push notification is sent.',
+      'Alerts are derived from the loaded budget. Reading or deleting one never changes a balance, bill or locked month; a later alert with a new date or month still appears.',
+      'The read and deleted state travels with the budget document, but the reminder itself is in-app only — no email or push notification is sent.',
     ],
   },
   {

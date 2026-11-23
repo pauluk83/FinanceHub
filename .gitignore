@@ -1,10 +1,13 @@
 node_modules/
 release/
+release-store/
 dist/
 dist-web/
 # The personal workbook seed carries real names and amounts; keep it out of history.
 data/workbook.json
 data/reminder-suppressions.json
+# Partner Center identity values are local build input, not repository source.
+store/identity.json
 data/*.db
 data/*.db-*
 # Import/audit output and personal screenshots are not source.

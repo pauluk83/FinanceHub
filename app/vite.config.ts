@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { connectSources } from './csp.ts';
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from './publicSupabase.ts';
-import { workbookAlias } from './seedSource.ts';
+import { usesPrivateWorkbook, workbookAlias } from './seedSource.ts';
 
 const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -51,9 +51,13 @@ export default defineConfig(({ command, mode }) => {
   const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY?.trim() || PUBLIC_SUPABASE_ANON_KEY;
   const buildEnv = { ...env, VITE_SUPABASE_URL: supabaseUrl, VITE_SUPABASE_ANON_KEY: supabaseAnonKey };
   const hosted = mode === 'hosted' || env.VITE_HOSTED_WEB === '1';
-  const publicSeed = hosted || !hasPrivateWorkbook;
+  // A Store package is a public build: it must never contain the owner's private
+  // workbook, and it gets its updates from the Microsoft Store instead of GitHub.
+  const store = mode === 'store' || env.VITE_STORE_BUILD === '1';
+  const privateSeed = usesPrivateWorkbook({ hosted, store, hasPrivateWorkbook });
+  const publicSeed = !privateSeed;
   const dataAliases = [
-    workbookAlias(hasPrivateWorkbook && !hosted, { webSeed, privateWorkbook }),
+    workbookAlias(privateSeed, { webSeed, privateWorkbook }),
     ...(publicSeed
       ? [{ find: './dataFixes', replacement: fileURLToPath(new URL('./src/dataFixes.web.ts', import.meta.url)) }]
       : []),
@@ -62,6 +66,9 @@ export default defineConfig(({ command, mode }) => {
   if (hosted && (!supabaseUrl || !supabaseAnonKey)) {
     console.warn('Hosted build: the public Supabase client configuration is missing; the login screen will show the setup notice.');
   }
+  if (store && hasPrivateWorkbook) {
+    console.warn('Store build: using the blank web seed and the public data fixes; the private workbook is excluded.');
+  }
 
   return {
     root: appRoot,
@@ -69,6 +76,7 @@ export default defineConfig(({ command, mode }) => {
     base: hosted ? '/' : './',
     define: {
       'import.meta.env.VITE_HOSTED_WEB': JSON.stringify(hosted ? '1' : '0'),
+      'import.meta.env.VITE_STORE_BUILD': JSON.stringify(store ? '1' : '0'),
       // One version for the web build and the Electron shell, taken from package.json.
       __APP_VERSION__: JSON.stringify(appVersion),
     },

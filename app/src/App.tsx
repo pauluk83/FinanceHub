@@ -16,7 +16,7 @@ import {
 } from './store';
 import { useCloudSync } from './useCloudSync';
 import { useAutomaticBackup } from './useAutomaticBackup';
-import type { LocalAccountControls, ViewProps } from './types';
+import type { LocalAccountControls, Theme, ViewProps } from './types';
 import { MONTHS, MONTH_LONG, gbp, todayIso } from './format';
 import { NAV_GROUP_TIPS, buildNav, defaultNavItems } from './nav';
 import { providerDisplayName } from './providerSetup';
@@ -539,7 +539,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     });
   };
 
-  const setTheme = (theme: 'dark' | 'light') => {
+  const setTheme = (theme: Theme) => {
     if (blocked) return;
     setState((prev) => ({ ...prev, theme }));
   };
@@ -828,11 +828,11 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
             </button>
             <button
               className="btn theme-toggle"
-              onClick={() => setTheme(state.theme === 'dark' ? 'light' : 'dark')}
-              aria-label={`Switch to ${state.theme === 'dark' ? 'light' : 'dark'} theme`}
-              title={`Switch to ${state.theme === 'dark' ? 'light' : 'dark'} theme`}
+              onClick={() => setTheme(nextTheme(state.theme))}
+              aria-label={`Switch to ${nextTheme(state.theme)} theme`}
+              title={`Switch to ${nextTheme(state.theme)} theme`}
             >
-              {state.theme === 'dark' ? '☀ Light' : '🌙 Dark'}
+              {THEME_LABELS[nextTheme(state.theme)]}
             </button>
             {deviceOnly && appLock && (
               <button
@@ -993,6 +993,9 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     </div>
   );
 }
+
+const nextTheme = (theme: Theme): Theme => theme === 'dark' ? 'light' : theme === 'light' ? 'contrast' : 'dark';
+const THEME_LABELS: Record<Theme, string> = { dark: '🌙 Dark', light: '☀ Light', contrast: '◐ Contrast' };
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);

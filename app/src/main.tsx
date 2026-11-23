@@ -4,7 +4,7 @@ import App from './App';
 import { AppUpdatePrompt } from './views/appUpdate';
 import { hydrateBrowserStore } from './store';
 import { hydrateIdbCache } from './idbStore';
-import { HOSTED_WEB } from './runtime';
+import { HOSTED_WEB, STORE_BUILD } from './runtime';
 import { recordCrash } from './crashJournal';
 import './theme.css';
 
@@ -76,7 +76,7 @@ async function start() {
     <React.StrictMode>
       <AppErrorBoundary>
         <App />
-        <AppUpdatePrompt />
+        {STORE_BUILD ? null : <AppUpdatePrompt />}
       </AppErrorBoundary>
     </React.StrictMode>,
   );
