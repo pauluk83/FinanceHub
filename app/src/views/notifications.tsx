@@ -19,6 +19,8 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
   const [push, setPush] = useState<PushState>('unsupported');
   const [pushBusy, setPushBusy] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  // The browser blocks push per origin, so name the origin this page is actually on.
+  const siteHost = typeof window !== 'undefined' && window.location ? window.location.host : '';
 
   const refreshPush = () => {
     if (!pushSupported()) {
@@ -292,7 +294,7 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
           ) : push === 'blocked' ? (
             <>
               <strong>Your browser is blocking notifications for this site.</strong> Allow notifications for
-              {' '}<code>financehub-uk.pages.dev</code> in the address-bar site settings, then turn push on here.
+              {' '}{siteHost ? <code>{siteHost}</code> : 'FinanceHub'} in the address-bar site settings, then turn push on here.
             </>
           ) : push === 'signed-out' ? (
             <>

@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.23",
-  "buildId": "219770a8b9de",
+  "buildId": "22b63cf1e4a7",
   "builtAt": "2026-11-23",
   "releases": [
     {
@@ -24,7 +24,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Send bill reminders through Resend and add opt-in web push alerts",
             "Record Ovo's new bill with its Warm Home Discount credit",
             "Email reminders send through Resend, and the Notifications screen names the reminder job instead of saying delivery is off",
-            "Split the tools views into views/tools and type the provider payment-day shapes"
+            "Split the tools views into views/tools and type the provider payment-day shapes",
+            "Say what push delivery is doing and name the page's own origin when the browser blocks it"
           ]
         }
       ]
