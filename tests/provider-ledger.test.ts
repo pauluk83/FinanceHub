@@ -9,6 +9,7 @@ import {
   clearRowOrder,
   hasManualOrder,
   recalculate,
+  recordBill,
   reorderRows,
   sortRows,
   usagePenceFor,
@@ -59,6 +60,47 @@ test('moving a monthly row keeps the carry-forward and recalculates every balanc
   assert.deepEqual(rows.map((row) => row.balancePence), [6_000, 16_000, 6_000]);
   assert.equal(rows.at(-1)?.balancePence, 6_000);
   assert.equal(hasManualOrder(rows), true);
+});
+
+test('recording a bill fills its period once and returns the true figures', () => {
+  const rows = [
+    { month: 'Sep', billPeriod: '17 Sep - 16 Oct', billAmountPence: 68_192, paymentPence: 10_900, balancePence: 30_956 },
+    { month: 'Oct', billPeriod: '17 Oct - 16 Nov', billAmountPence: 0, paymentPence: 10_900, balancePence: 41_856 },
+    { month: 'Nov', billPeriod: '17 Nov - 16 Dec', billAmountPence: 0, paymentPence: 10_900, balancePence: 52_756 },
+  ];
+  const baseline = baselineFor(cashflow, rows);
+  const bill = { month: 'Oct', billPeriod: '17 Oct - 16 Nov', billAmountPence: 9_886, creditPence: 15_000 };
+
+  assert.equal(recordBill(cashflow, rows, bill, baseline), true);
+  assert.equal(rows[1].billAmountPence, 9_886);
+  assert.equal(rows[1].balancePence, 46_970);
+  assert.equal(rows[2].balancePence, 57_870);
+  assert.equal(usagePenceFor(rows[1]), 9_886);
+
+  // The same statement cannot be charged twice.
+  assert.equal(recordBill(cashflow, rows, bill, baseline), false);
+  assert.equal(rows[1].balancePence, 46_970);
+});
+
+test('a bill credit lifts the balance without counting as energy use', () => {
+  // OVO's 17 Oct - 16 Nov 2026 statement: £98.86 of energy, less a £150 Warm Home Discount.
+  const rows = [
+    { month: 'Sep', paymentPence: 10_900, billAmountPence: 6_819, refundPence: 6_290, creditPence: 0, balancePence: 30_956 },
+    { month: 'Oct', paymentPence: 10_900, billAmountPence: 9_886, creditPence: 15_000, balancePence: 0 },
+  ];
+  const baseline = baselineFor(cashflow, rows);
+  recalculate(cashflow, rows, baseline);
+
+  assert.equal(baseline, 26_875);
+  assert.equal(rows[0].balancePence, 30_956);
+  assert.equal(rows[1].balancePence, 46_970);
+  assert.equal(usagePenceFor(rows[1]), 9_886);
+  assert.equal(usagePenceFor(rows[0]), 529);
+
+  // A row with no credit keeps the old arithmetic exactly.
+  const plain = [{ month: 'Nov', paymentPence: 10_900, billAmountPence: 5_000, balancePence: 0 }];
+  recalculate(cashflow, plain, 0);
+  assert.equal(plain[0].balancePence, 5_900);
 });
 
 test('manual order survives a later sort and new rows are appended', () => {

@@ -15,6 +15,7 @@ and the build time.
 - Warn on category targets at 80%, over target and on pace to overspend, and keep the payment plan above a £0 payment
 - Average a provider's bill over the months its bill period covers, keep six-monthly Water credit for the next bill, and say the bills are half-yearly
 - Send bill reminders through Resend and add opt-in web push alerts
+- Record Ovo's new bill with its Warm Home Discount credit
 
 ## [2026.11.22] — 22 November 2026
 

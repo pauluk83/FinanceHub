@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.23",
-  "buildId": "1d4153df308c",
+  "buildId": "2516905f6ae3",
   "builtAt": "2026-11-23",
   "releases": [
     {
@@ -21,7 +21,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Apply the payment-plan recommendation in one click and choose how many months the credit is returned over",
             "Warn on category targets at 80%, over target and on pace to overspend, and keep the payment plan above a £0 payment",
             "Average a provider's bill over the months its bill period covers, keep six-monthly Water credit for the next bill, and say the bills are half-yearly",
-            "Send bill reminders through Resend and add opt-in web push alerts"
+            "Send bill reminders through Resend and add opt-in web push alerts",
+            "Record Ovo's new bill with its Warm Home Discount credit"
           ]
         }
       ]

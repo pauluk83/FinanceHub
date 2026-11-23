@@ -88,8 +88,9 @@ export function baselineFor(spec: LedgerSpec, rows: any[], stored?: number): num
   const balance = Number(first.balancePence) || 0;
   const payment = Number(first.paymentPence) || 0;
   const bill = Number(first.billAmountPence) || 0;
+  const credit = Number(first.creditPence) || 0;
   const amount = Number(first.amountPence) || 0;
-  if (spec.formula === 'cashflow') return balance - payment + bill;
+  if (spec.formula === 'cashflow') return balance - payment + bill - credit;
   if (spec.formula === 'savings') return balance + payment;
   if (spec.formula === 'telco') return balance - payment + amount;
   return balance - amount;
@@ -112,9 +113,12 @@ export function recalculate(spec: LedgerSpec, rows: any[], baseline: number) {
   for (const row of rows) {
     const payment = Number(row.paymentPence) || 0;
     const bill = Number(row.billAmountPence) || 0;
+    // A credit on the bill (Warm Home Discount, a goodwill credit) raises the
+    // balance like a payment. It is not energy use, so `usagePenceFor` ignores it.
+    const credit = Number(row.creditPence) || 0;
     const amount = Number(row.amountPence) || 0;
     const stored = Number(row.balancePence);
-    if (spec.formula === 'cashflow') running += payment - bill;
+    if (spec.formula === 'cashflow') running += payment - bill + credit;
     else if (spec.formula === 'savings') {
       if (row.opening === true) {
         running = Number(row.balancePence) || 0;
@@ -193,6 +197,30 @@ export function billingCadenceMonths(rows: any[]): number {
   if (bills.length === 0) return 1;
   const average = bills.reduce((total, row) => total + billPeriodMonths(row?.billPeriod, 1), 0) / bills.length;
   return Math.max(1, Math.min(12, Math.round(average)));
+}
+
+/**
+ * Record a bill on the row whose period it covers.
+ *
+ * Idempotent: a row that already carries a bill is left alone, so a data fix or
+ * a re-import cannot charge the same statement twice. A `creditPence` (the Warm
+ * Home Discount, a goodwill credit) raises the balance but never counts as use.
+ */
+export function recordBill(
+  spec: LedgerSpec,
+  rows: any[],
+  bill: { month: string; billPeriod: string; billAmountPence: number; creditPence?: number },
+  baseline: number,
+): boolean {
+  const existing = rows.find((row) => (
+    String(row?.month ?? '') === bill.month && String(row?.billPeriod ?? '') === bill.billPeriod
+  ));
+  if (!existing) return false;
+  if ((Number(existing.billAmountPence) || 0) !== 0) return false;
+  existing.billAmountPence = Math.round(bill.billAmountPence);
+  if (bill.creditPence) existing.creditPence = Math.round(bill.creditPence);
+  recalculate(spec, rows, baseline);
+  return true;
 }
 
 /**

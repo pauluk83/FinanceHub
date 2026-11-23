@@ -3,9 +3,36 @@ import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
-import type { LedgerSpec } from '../../core/providerLedger';
+import { baselineFor, recordBill, type LedgerSpec } from '../../core/providerLedger';
+
+const OVO_SPEC: LedgerSpec = {
+  rowsKey: 'statement',
+  formula: 'cashflow',
+  monthly: true,
+};
 
 const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
+  {
+    // OVO's 23 November 2026 statement covers 17 Oct - 16 Nov: £40.62 of
+    // electricity plus £55.47 of gas and £2.77 VAT, less a £150 Warm Home
+    // Discount. The £150 lifts the balance to £469.70 but is not energy use, so
+    // it is a credit on the row and the usage chart still shows £98.86.
+    id: 'ovo-bill-2026-11-16',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[]; ledgerOpeningPence?: number } | undefined;
+      const rows = ovo?.statement;
+      if (!Array.isArray(rows)) return;
+      const baseline = baselineFor(OVO_SPEC, rows, ovo?.ledgerOpeningPence);
+      const recorded = recordBill(OVO_SPEC, rows, {
+        month: 'Oct',
+        billPeriod: '17 Oct - 16 Nov',
+        billAmountPence: 9886,
+        creditPence: 15000,
+      }, baseline);
+      if (!recorded) return;
+      carryForwardProviderYears(ovo, OVO_SPEC, Number(dataset.settings.targetYear), rows, baseline);
+    },
+  },
   {
     // September's Ovo line is £19.23 + £33.69 of bills plus the £629 refund
     // paid to Starling on 14/10/2026. The bill stays whole for the balance;
