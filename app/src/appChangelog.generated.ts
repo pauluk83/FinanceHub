@@ -4,22 +4,10 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.24",
-  "buildId": "c3534dfe44d2",
+  "version": "2026.11.23",
+  "buildId": "01e50f935acd",
   "builtAt": "2026-11-23",
   "releases": [
-    {
-      "version": "2026.11.24",
-      "date": "23 November 2026",
-      "sections": [
-        {
-          "title": "Changed",
-          "items": [
-            "Show true Ovo usage on the statement chart"
-          ]
-        }
-      ]
-    },
     {
       "version": "2026.11.23",
       "date": "23 November 2026",
@@ -27,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Add the Microsoft Store AppX build, a high-contrast theme, bulk notification delete, and year-aware income schedules and rate changes"
+            "Add the Microsoft Store AppX build, a high-contrast theme, bulk notification delete, and year-aware income schedules and rate changes",
+            "Show true Ovo usage on the statement chart"
           ]
         }
       ]
