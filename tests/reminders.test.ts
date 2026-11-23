@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildReminderDigest, reminderPreferences } from '../core/reminders.ts';
+import { buildReminderDigest, reminderEmail, reminderPreferences } from '../core/reminders.ts';
 import { buildEngine, type Dataset } from '../core/engine.ts';
 import { baseDataset } from './support/dataset.ts';
 
@@ -49,6 +49,23 @@ test('channel preferences remove a whole category', () => {
   assert.equal(digest.bills.length > 0, true);
   assert.equal(digest.expiries.length, 1);
   assert.ok(digest.items.every((item) => item.kind === 'expiry'));
+});
+
+test('the Resend message carries the digest, the sender and an unsubscribe header', () => {
+  const ds = dataset();
+  const digest = buildReminderDigest(ds, buildEngine(ds), { today: '2026-11-18', horizonDays: 14 });
+  const message = reminderEmail(digest, {
+    from: 'FinanceHub <reminders@financehub.example>',
+    unsubscribeMailto: 'reminders@financehub.example',
+  });
+  assert.equal(message.from, 'FinanceHub <reminders@financehub.example>');
+  assert.equal(message.to, 'owner@example.com');
+  assert.equal(message.subject, digest.subject);
+  assert.equal(message.headers['List-Unsubscribe'], '<mailto:reminders@financehub.example?subject=unsubscribe>');
+  assert.match(message.html, /Broadband/);
+  assert.doesNotMatch(message.subject, /£|Broadband/);
+  assert.throws(() => reminderEmail(digest, { from: '' }), /sender/);
+  assert.deepEqual(reminderEmail(digest, { from: 'x@example.com', unsubscribeMailto: 'not-an-address' }).headers, {});
 });
 
 test('an empty digest still has a clear subject and body', () => {

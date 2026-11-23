@@ -44,6 +44,9 @@ order:
    owner-scoped policies (applied 2026-11-19).
 5. `postgres/0005_user_devices.sql` — `public.user_devices`, one owner-scoped row per
    install, for the device list, per-device revoke and sign out everywhere.
+6. `postgres/0006_push_subscriptions.sql` — `public.push_subscriptions` and
+   `public.push_deliveries` for web push: one owner-scoped row per browser
+   subscription and one dedupe row per delivered alert.
 
 The runner in `db/migrations.ts` only manages SQLite; Postgres migrations are
 deliberately explicit because they also carry policies and functions that need a

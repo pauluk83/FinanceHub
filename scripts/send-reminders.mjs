@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Daily email bill reminders (R6).
+ * Daily email bill reminders (R6) — Resend delivery.
  *
  * Usage:
  *   node scripts/send-reminders.mjs --budget <dataset.json> [--dry-run]
@@ -8,16 +8,25 @@
  *
  * The budget file is a JSON dataset (the synced `state_json.dataset` or a
  * `data/workbook.json` export). No budget file is ever committed by this
- * script. Without KNOCK_API_KEY the digest is printed and nothing is sent.
+ * script, and the digest is built by `core/reminders.ts` from the same derived
+ * notifications the Notifications screen shows.
  *
- * Provider: Knock workflow `bill-reminder-digest`, which must have an email
- * step connected to your own email provider. The API key stays in the
- * environment or the scheduler, never in the app or repository.
+ * Environment:
+ *   RESEND_API_KEY          Resend key; without it (or RESEND_FROM) this is a dry run.
+ *   RESEND_FROM             verified sender, e.g. "FinanceHub <reminders@yourdomain>"
+ *   RESEND_UNSUBSCRIBE      address for the List-Unsubscribe header (defaults to RESEND_FROM)
+ *   FINANCEHUB_BUDGET       budget JSON path (or --budget)
+ *   FINANCEHUB_REMINDER_SUPPRESSIONS  suppression list (default data/reminder-suppressions.json)
+ *
+ * Provider: Resend (`POST https://api.resend.com/emails`). The same Resend
+ * account is used for Supabase Auth SMTP, so auth mail and reminders share one
+ * verified sender domain. The key stays in the scheduler's environment, never
+ * in the app, a build or the repository.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { buildEngine } from '../core/engine.ts';
-import { buildReminderDigest, reminderPreferences } from '../core/reminders.ts';
+import { buildReminderDigest, reminderEmail, reminderPreferences } from '../core/reminders.ts';
 
 const args = process.argv.slice(2);
 const option = (name, fallback = '') => {
@@ -31,9 +40,17 @@ const budgetPath = resolve(option('--budget', process.env.FINANCEHUB_BUDGET ?? '
 const suppressionPath = resolve(
   process.env.FINANCEHUB_REMINDER_SUPPRESSIONS ?? 'data/reminder-suppressions.json',
 );
-const dryRun = has('--dry-run') || !process.env.KNOCK_API_KEY;
+const apiKey = String(process.env.RESEND_API_KEY ?? '').trim();
+const from = String(process.env.RESEND_FROM ?? '').trim();
+const dryRun = has('--dry-run') || !apiKey || !from;
 const unsubscribe = option('--unsubscribe', '');
 const today = option('--today', new Date().toISOString().slice(0, 10));
+
+/** `FinanceHub <reminders@example.com>` → `reminders@example.com`. */
+function addressOf(value) {
+  const angled = /<([^>]+)>/.exec(value);
+  return (angled ? angled[1] : value).trim();
+}
 
 function readSuppressions() {
   try {
@@ -65,33 +82,20 @@ function loadDataset(path) {
   return dataset;
 }
 
-async function send(digest) {
-  const workflow = process.env.KNOCK_WORKFLOW_KEY || 'bill-reminder-digest';
-  const response = await fetch(`https://api.knock.app/v1/workflows/${encodeURIComponent(workflow)}/trigger`, {
+async function send(message) {
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      recipients: [digest.recipient],
-      data: {
-        subject: digest.subject,
-        text: digest.text,
-        html: digest.html,
-        reminders: digest.items.map((item) => ({
-          id: item.id,
-          kind: item.kind,
-          title: item.title,
-          detail: item.detail,
-          date: item.date,
-        })),
-      },
-    }),
+    body: JSON.stringify(message),
   });
   const body = await response.text();
-  if (!response.ok) throw new Error(`Knock returned ${response.status}: ${body.slice(0, 300)}`);
-  return body;
+  if (!response.ok) throw new Error(`Resend returned ${response.status}: ${body.slice(0, 300)}`);
+  let id = '';
+  try { id = JSON.parse(body)?.id ?? ''; } catch { /* a 2xx without JSON still counts as sent */ }
+  return id;
 }
 
 try {
@@ -118,19 +122,26 @@ try {
     process.exit(0);
   }
 
+  const message = reminderEmail(digest, {
+    from,
+    unsubscribeMailto: process.env.RESEND_UNSUBSCRIBE || addressOf(from),
+  });
+
   if (dryRun) {
     console.log('DRY RUN — no email sent.');
-    console.log(`To: ${digest.recipient}`);
-    console.log(`Subject: ${digest.subject}`);
+    console.log(`From: ${message.from}`);
+    console.log(`To: ${message.to}`);
+    console.log(`Subject: ${message.subject}`);
+    if (message.headers['List-Unsubscribe']) console.log(`List-Unsubscribe: ${message.headers['List-Unsubscribe']}`);
     console.log('');
-    console.log(digest.text);
+    console.log(message.text);
     console.log('');
-    console.log('Set KNOCK_API_KEY (and a configured Knock email workflow) to deliver this digest.');
+    console.log('Set RESEND_API_KEY and RESEND_FROM (a verified Resend sender) to deliver this digest.');
     process.exit(0);
   }
 
-  await send(digest);
-  console.log(`Sent ${digest.items.length} reminder${digest.items.length === 1 ? '' : 's'} to ${digest.recipient}.`);
+  const id = await send(message);
+  console.log(`Sent ${digest.items.length} reminder${digest.items.length === 1 ? '' : 's'} to ${message.to}${id ? ` (Resend id ${id})` : ''}.`);
 } catch (error) {
   console.error(`Reminder run failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);

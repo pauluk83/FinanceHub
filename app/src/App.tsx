@@ -23,6 +23,7 @@ import { providerDisplayName } from './providerSetup';
 import { Badge } from './components';
 import { APP_VERSION } from './version';
 import { GITHUB_REPO_URL } from './installer';
+import { deliverPushAlerts } from './push';
 // Screens load on demand so the first paint carries only the shell, the engine
 // and the dashboard. The import lists stay explicit so a missing view fails the
 // build rather than silently rendering an empty screen.
@@ -645,6 +646,14 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   const feedbackUnread = feedbackItems.filter((item) => !item.readAt).length;
   const budgetNotifications = buildBudgetNotifications(state.dataset, engine);
   const notificationUnread = unreadBudgetNotifications(state.dataset, budgetNotifications).length;
+  // Phone alerts ride on the same derived notifications; the sender records each
+  // alert once, so a re-render or a second tab cannot push it again.
+  const pushSignature = budgetNotifications.map((notification) => notification.id).join('|');
+  useEffect(() => {
+    void deliverPushAlerts(budgetNotifications);
+    // The ids are the identity of this alert set; the array itself is new each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushSignature]);
 
   const showNavTip = (event: { currentTarget: HTMLElement }, label: string, text: string) => {
     if (!text) return;

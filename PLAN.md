@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.22** (bundle `index-I1flQUFz.js`), suite **562/562**, `tsc` clean,
+Current release **2026.11.23**, suite **584/584**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -107,7 +107,7 @@ and the hosted bundle, deploys to Pages and verifies the live bundle matches.
 ## 6. Verification
 
 ```
-npm test                                  # full suite (562)
+npm test                                  # full suite (584)
 npx tsc -p app/tsconfig.json --noEmit     # typecheck
 npm run release:check                     # release + live parity
 npm run test:e2e                          # Playwright: demo flows + responsive guard
@@ -142,28 +142,43 @@ guard. Plan truth is this rewrite.
 The only work left from this point is measurement that needs a signed-in session, which is
 now part of point 5.
 
-### Point 2 — Email delivery (needs the owner's provider account)
+### Point 2 — Email delivery: **code complete, waiting on the Resend account**
 
 Decided 2026-11-20: **Resend** is the provider, and **Confirm email stays off**, so the
-dashboard setting is switched off when SMTP is enabled. Owner work: create the Resend
-account, verify the sender domain or address, and paste the SMTP host, username and API key
-into Supabase → Authentication → Emails → SMTP settings.
+dashboard setting is switched off when SMTP is enabled.
 
-Then, without further input: run signup → confirmation → resend → password reset once, wire
-email reminder delivery to the shipped suppression list and digest, and run one real send.
+Built: `scripts/send-reminders.mjs` posts the digest to `POST https://api.resend.com/emails`
+with a `List-Unsubscribe` header, checks the shipped suppression list first, and stays a dry
+run without `RESEND_API_KEY`/`RESEND_FROM`; `reminderEmail()` in `core/reminders.ts` builds
+the exact message and is covered by `tests/reminders.test.ts`; `docs/EMAIL_REMINDERS.md` is
+the runbook. Owner work: create the Resend account, verify the sender domain or address,
+paste Resend's SMTP host, username and API key into Supabase → Authentication → Emails →
+SMTP settings, and switch **Confirm email off**.
+
+Then, without further input: run signup → confirmation → resend → password reset once, and
+run one real digest send with its Resend id kept as evidence.
 
 Exit: the four auth emails arrive, the confirmation setting is recorded with a date, and one
 reminder digest is delivered and logged.
 
-### Point 3 — Web push (needs the Supabase CLI session and a secret)
+### Point 3 — Web push: **code complete, waiting on the CLI session**
 
 Decided 2026-11-20: the sender runs as a **Supabase Edge Function**, so the VAPID private key
 becomes a Supabase secret beside auth and the backup bucket. The pair is generated at
-`tmp/vapid-keys.json` and is never pasted into chat or the repository. Owner work: authorise
-the CLI once (`npx supabase login`) so the function can be deployed and its secret set.
+`tmp/vapid-keys.json` and is never pasted into chat or the repository.
 
-Then: service-worker subscription, permission prompt, push for the existing bill, balance and
-card alerts, and unsubscribe.
+Built: `core/push.ts` chooses the alert (bills, balances, cards and targets at warning or
+critical, three at most), `_shared/webpush.ts` does RFC 8291 encryption and RFC 8292 VAPID
+and reproduces the RFC 8291 Appendix A message byte for byte in `tests/webpush.test.ts`,
+`supabase/functions/send-push/` is the sender (verified JWT, user-scoped rows, one push per
+alert), `0006_push_subscriptions.sql` adds the owner-scoped tables, and `app/src/push.ts`
+with `app/public/sw.js` do permission, subscription, display and unsubscribe.
+
+Owner work: apply 0006 in the SQL editor, run `npx supabase login`, set the three VAPID
+secrets and deploy the function — the commands are in `docs/PUSH.md`.
+
+Then: a device receives a test push, one push per new alert, and an unsubscribed device
+receives none.
 
 Exit: a real device receives a push for a due bill, and an unsubscribed device receives none.
 

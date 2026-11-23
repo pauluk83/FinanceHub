@@ -119,3 +119,43 @@ export function buildReminderDigest(
     enabled: prefs.enabled,
   };
 }
+
+export interface ReminderEmail {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  headers: Record<string, string>;
+}
+
+/**
+ * The exact message body the sender posts to Resend.
+ *
+ * Built here rather than in the script so a test can prove the subject still
+ * carries no amount, the recipient comes from the preferences, and the
+ * unsubscribe route is a real `List-Unsubscribe` header.
+ */
+export function reminderEmail(
+  digest: ReminderDigest,
+  options: { from: string; unsubscribeMailto?: string },
+): ReminderEmail {
+  const from = String(options.from ?? '').trim();
+  if (!from) throw new Error('A sender address is required');
+  if (!digest.recipient) throw new Error('No reminder email address is set');
+
+  const headers: Record<string, string> = {};
+  const unsubscribe = String(options.unsubscribeMailto ?? '').trim();
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(unsubscribe)) {
+    headers['List-Unsubscribe'] = `<mailto:${unsubscribe}?subject=unsubscribe>`;
+  }
+
+  return {
+    from,
+    to: digest.recipient,
+    subject: digest.subject,
+    text: digest.text,
+    html: digest.html,
+    headers,
+  };
+}

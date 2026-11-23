@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Section, Table } from '../components';
 import { dateUk, dateTimeUk } from '../format';
 import { buildBudgetNotifications, type NotificationSeverity } from '../../../core/notifications';
 import { reminderPreferences } from '../../../core/reminders';
 import { buildMonthDigest, moneyText } from '../../../core/digest';
+import { disablePush, enablePush, pushState, pushSupported, sendTestPush, type PushState } from '../push';
 
 function tone(severity: NotificationSeverity): string {
   return severity === 'critical' ? 'red' : severity === 'warning' ? 'amber' : 'blue';
@@ -15,7 +16,32 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
   const read = ds.settings.notificationReads ?? {};
   const initialPrefs = reminderPreferences(ds);
   const [prefs, setPrefs] = useState(initialPrefs);
+  const [push, setPush] = useState<PushState>('unsupported');
+  const [pushBusy, setPushBusy] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+
+  const refreshPush = () => {
+    if (!pushSupported()) {
+      setPush('unsupported');
+      return;
+    }
+    void pushState().then(setPush).catch(() => setPush('unsupported'));
+  };
+
+  useEffect(() => {
+    refreshPush();
+  }, []);
+
+  const runPush = (action: () => Promise<string>) => {
+    setPushBusy(true);
+    void action()
+      .then((message) => notify(message))
+      .catch((error: unknown) => notify(error instanceof Error ? error.message : 'Push did not change'))
+      .finally(() => {
+        setPushBusy(false);
+        refreshPush();
+      });
+  };
   const digestYear = ds.settings.targetYear;
   const [digestMonth, setDigestMonth] = useState(() => Number(ds.settings.asOfDate.slice(5, 7)) || 1);
   const digest = buildMonthDigest(ds, engine, digestYear, digestMonth);
@@ -224,6 +250,50 @@ export function NotificationsView({ ds, engine, update, go, notify }: ViewProps)
         </div>
         <div className="notice warn" style={{ margin: 16 }}>
           <strong>Not yet delivering.</strong> The app builds and stores the preferences and the digest, but no email is sent until the owner sets the server key, verifies a sender and adds the processor to the privacy notice. In-app alerts work now.
+        </div>
+      </Section>
+
+      <Section
+        title="Push notifications"
+        sub="A lock-screen alert on this phone or browser for a bill due, an account below zero, a card over 80% used, or a category target warning. It is the same alert the list above shows, pushed once."
+        actions={
+          <Badge tone={push === 'enabled' ? 'green' : push === 'blocked' ? 'red' : 'amber'}>
+            {push === 'enabled' ? 'On for this device'
+              : push === 'blocked' ? 'Blocked by the browser'
+                : push === 'signed-out' ? 'Sign in first'
+                  : push === 'unsupported' ? 'Not available here'
+                    : 'Off on this device'}
+          </Badge>
+        }
+      >
+        <div style={{ padding: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            className="btn primary"
+            disabled={pushBusy || push === 'unsupported' || push === 'signed-out' || push === 'enabled'}
+            onClick={() => runPush(enablePush)}
+          >
+            Turn on push
+          </button>
+          <button className="btn ghost" disabled={pushBusy || push !== 'enabled'} onClick={() => runPush(sendTestPush)}>
+            Send a test push
+          </button>
+          <button className="btn ghost" disabled={pushBusy || push !== 'enabled'} onClick={() => runPush(disablePush)}>
+            Turn off on this device
+          </button>
+        </div>
+        <div className="notice" style={{ margin: 16 }}>
+          {push === 'unsupported' ? (
+            <>
+              <strong>Hosted app only.</strong> Push needs the FinanceHub web app in a browser that allows notifications;
+              the Windows app keeps its in-app bell.
+            </>
+          ) : (
+            <>
+              <strong>No budget figure leaves the device for this.</strong> The browser subscription is stored against your
+              account, and the FinanceHub sender encrypts each alert for that device. Delivery stays off until the sender is
+              deployed with its VAPID secret — see <code>docs/PUSH.md</code>.
+            </>
+          )}
         </div>
       </Section>
     </>

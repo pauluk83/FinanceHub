@@ -105,10 +105,13 @@ actual authenticator.
    logs. Upgrade to Pro (7-day daily backups and 7-day logs) or schedule regular manual
    exports to an off-site location, and record the decision.
 8. Supabase Auth email: custom SMTP is currently **disabled**, so delivery uses the
-   non-production default service (2 messages/hour). Configure a named production SMTP
-   provider, then test signup, confirmation, resend and sign-in and record the result.
-   **Confirm email is currently enabled** in the dashboard, despite the earlier recorded
-   decision that it was deliberately off; confirm which state is intended.
+   non-production default service (2 messages/hour). **Resend** is the chosen provider
+   (decided 20 November 2026) for both auth mail and reminder digests: enable custom SMTP
+   with host `smtp.resend.com`, port `465`, username `resend`, the Resend API key as the
+   password, and a verified sender. Switch **Confirm email off** in the same page — the
+   dashboard currently has it on, contrary to the recorded decision. Then run signup,
+   confirmation (with it temporarily on), resend and password reset once and record the
+   result. See `docs/EMAIL_REMINDERS.md`.
 9. Google OAuth: branding is populated (app name, home page, privacy policy, Terms and
    authorised domains), but the app is still unverified and shows a 1-of-100 user cap.
    Complete Google verification before relying on public Google sign-in.
@@ -170,3 +173,42 @@ Keep dated screenshots or exports for: the purge result, any dated repeat of the
 settings page, the email-confirmation/resend test, the Supabase DPA/TIA references, the
 backup decision, the Google verification record, the ICO position, the retention schedule
 review and the breach-contact test. See `docs/compliance/EVIDENCE_CHECKLIST.md`.
+
+## 8. Email delivery — Resend (blocks `PLAN.md` point 2)
+
+The sender and the digest are built and tested; only the account and dashboard are missing.
+
+1. Create the Resend account and add the sender domain or address.
+2. Publish the SPF and DKIM records Resend shows and wait for the domain to read
+   **Verified**. Do not enable reminder delivery before both pass.
+3. Supabase → **Authentication → Emails → SMTP settings**: enable custom SMTP with
+   `smtp.resend.com`, port `465`, username `resend`, the Resend API key as the password,
+   and the verified sender.
+4. Switch **Confirm email off**.
+5. Run the four auth mails once (signup, confirmation with it temporarily on, resend,
+   password reset) and record the result.
+6. Put `RESEND_API_KEY` and `RESEND_FROM` in the scheduler's protected environment and run
+   `node scripts/send-reminders.mjs --budget <export.json>` for one real digest. Keep the
+   Resend delivery id and the date as evidence.
+7. Add Resend as **P5** in `docs/compliance/PROCESSOR_REGISTER.md` (role, region,
+   sub-processors, DPA, transfer basis, retention) and name it in the privacy notice.
+
+Never put the key in the app, a build, a committed `.env` or a chat message.
+
+## 9. Web push — Edge Function (blocks `PLAN.md` point 3)
+
+The subscription UI, service worker, sender and tables are built and tested. Nothing has
+been delivered to a real device, because deployment needs the CLI session.
+
+1. Supabase → SQL Editor → run all of
+   `db/migrations/postgres/0006_push_subscriptions.sql` (safe to re-run).
+2. `npx supabase login` (browser OAuth; the session is stored outside the repository).
+3. Set the three secrets from `tmp/vapid-keys.json` without printing the private key — the
+   exact command is in `docs/PUSH.md`.
+4. `npx supabase functions deploy send-push --project-ref fzkkgbatmmgasfmgvrzp`.
+5. On <https://financehub-uk.pages.dev/> → **Notifications**, turn on push, send a test,
+   confirm one push per alert, then turn it off and confirm nothing arrives.
+6. Check `push_deliveries` holds only `user_id`, `alert_id` and `sent_on` — no title,
+   detail or amount.
+7. Record the subscription table and the Edge Function in the processor register (Supabase,
+   P1) and the DPIA data map before relying on push beyond private use.
