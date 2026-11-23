@@ -52,6 +52,17 @@ test('without billed usage there is nothing to recommend', () => {
   assert.equal(paymentPlan({ usagePence: 10_000, billedMonths: 3, balancePence: Number.NaN }), null);
 });
 
+test('a six-monthly bill keeps its credit for the next bill', () => {
+  // Water: £311.64 across two bills covering twelve months, £240.30 in credit.
+  const plan = paymentPlan({ usagePence: 31_164, billedMonths: 12, balancePence: 24_030, cadenceMonths: 6 });
+  assert.ok(plan);
+  assert.equal(plan.monthlyUsagePence, 2_597);
+  assert.equal(plan.bufferPence, 15_582, 'one six-month bill is the buffer');
+  assert.equal(plan.recommendedPence, 2_597, 'the monthly payment is the average use, not six times it');
+  assert.equal(plan.carryCredit, true);
+  assert.equal(plan.projectedPence, 24_030, 'the credit is carried, not paid back');
+});
+
 test('the settlement window and buffer are adjustable', () => {
   const twoYears = paymentPlan({ usagePence: 60_000, billedMonths: 12, balancePence: 40_000, settleMonths: 24, bufferMonths: 2 });
   assert.equal(twoYears?.bufferPence, 10_000);

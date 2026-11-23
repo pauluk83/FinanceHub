@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {
   appendRow,
   baselineFor,
+  billPeriodMonths,
+  billingCadenceMonths,
+  billingMonthsFor,
   clearRowOrder,
   hasManualOrder,
   recalculate,
@@ -170,6 +173,30 @@ test('a new savings plan starts its own total', () => {
   recalculate(savings, rows, baselineFor(savings, rows));
   assert.deepEqual(rows.map((row) => row.balancePence), [5_000, 0, 10_000, 5_000]);
   assert.deepEqual(rows.map((row) => row.totalPaidPence), [5_000, 10_000, 7_500, 12_500], 'the paid-off cycle resets before the new plan');
+});
+
+test('a bill period says how many months its bill covers', () => {
+  // Water bills twice a year, and both workbook forms are in use.
+  assert.equal(billPeriodMonths('15/09/25-11/03/26'), 6);
+  assert.equal(billPeriodMonths('12/03/26-09/09/26'), 6);
+  assert.equal(billPeriodMonths('17 Jan - 16 Feb'), 1);
+  assert.equal(billPeriodMonths('17 Dec - 16 Jan'), 1);
+  assert.equal(billPeriodMonths('', 1), 1, 'a missing period falls back to one month');
+  assert.equal(billPeriodMonths('not a period', 1), 1);
+
+  const water = [
+    { month: 'Mar', billPeriod: '15/09/25-11/03/26', billAmountPence: 13_491 },
+    { month: 'Sep', billPeriod: '12/03/26-09/09/26', billAmountPence: 17_673 },
+  ];
+  assert.equal(billingMonthsFor(water), 12, 'two six-month bills are twelve months of service');
+  assert.equal(billingCadenceMonths(water), 6);
+
+  const ovo = [
+    { month: 'Jan', billPeriod: '17 Jan - 16 Feb', billAmountPence: 11_256 },
+    { month: 'Feb', billPeriod: '17 Feb - 16 Mar', billAmountPence: 8_486 },
+  ];
+  assert.equal(billingMonthsFor(ovo), 2);
+  assert.equal(billingCadenceMonths(ovo), 1);
 });
 
 test('reordering cannot escape the ledger', () => {

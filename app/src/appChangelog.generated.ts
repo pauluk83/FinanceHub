@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.23",
-  "buildId": "5191868d4175",
+  "buildId": "52ddfccc641b",
   "builtAt": "2026-11-23",
   "releases": [
     {
@@ -19,7 +19,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Show true Ovo usage on the statement chart",
             "Add a payment-plan review to provider sheets and keep same-day releases on their date",
             "Apply the payment-plan recommendation in one click and choose how many months the credit is returned over",
-            "Warn on category targets at 80%, over target and on pace to overspend, and keep the payment plan above a £0 payment"
+            "Warn on category targets at 80%, over target and on pace to overspend, and keep the payment plan above a £0 payment",
+            "Average a provider's bill over the months its bill period covers, keep six-monthly Water credit for the next bill, and say the bills are half-yearly"
           ]
         }
       ]

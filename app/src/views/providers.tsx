@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billingCadenceMonths, billingMonthsFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -63,7 +63,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
     rowsKey: 'statement',
     formula: 'cashflow',
     monthly: true,
-    note: 'Monthly plan; bill periods arrive quarterly. Balance = previous + payment − bill.',
+    note: 'Monthly plan; bill periods arrive half-yearly. Balance = previous + payment − bill.',
     defaults: { month: 'Jan', billPeriod: '', billAmountPence: '0.00', paymentPence: '44.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
@@ -295,22 +295,28 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
   return (
     <Section
       title="Payment plan review"
-      sub={`What ${billedMonths} billed month${billedMonths === 1 ? '' : 's'} suggest you pay. The plan keeps about one month of usage in credit instead of building a balance.`}
+      sub={plan.carryCredit
+        ? `Billed every ${plan.cadenceMonths} months, so the monthly figure is average use across ${billedMonths} months of bills. The credit already held is kept for the next bill.`
+        : `What ${billedMonths} billed month${billedMonths === 1 ? '' : 's'} suggest you pay. The plan keeps about one month of usage in credit instead of building a balance.`}
       actions={(
         <div className="page-actions">
-          <label className="muted small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Return credit over
-            <select
-              className="select compact"
-              aria-label="Months to return the credit over"
-              value={settleMonths}
-              onChange={(event) => onSettleMonthsChange(Number(event.target.value))}
-            >
-              <option value={6}>6 months</option>
-              <option value={12}>12 months</option>
-              <option value={24}>24 months</option>
-            </select>
-          </label>
+          {plan.carryCredit ? (
+            <span className="muted small">Billed every {plan.cadenceMonths} months · credit kept for the next bill</span>
+          ) : (
+            <label className="muted small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Return credit over
+              <select
+                className="select compact"
+                aria-label="Months to return the credit over"
+                value={settleMonths}
+                onChange={(event) => onSettleMonthsChange(Number(event.target.value))}
+              >
+                <option value={6}>6 months</option>
+                <option value={12}>12 months</option>
+                <option value={24}>24 months</option>
+              </select>
+            </label>
+          )}
           <label className="muted small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             Monthly payment
             <input
@@ -337,8 +343,17 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
       </div>
       <div style={{ padding: '0 16px 16px' }}>
         <div className="notice info">
-          Paying {gbp(plan.recommendedPence)} a month would move the balance from {gbp(balancePence)} to about {gbp(plan.projectedPence)} in {plan.settleMonths} months,
-          against an average bill of {gbp(plan.monthlyUsagePence)} and a buffer of {gbp(plan.bufferPence)}.
+          {plan.carryCredit && balancePence >= 0 ? (
+            <>
+              Paying {gbp(plan.recommendedPence)} a month covers the average bill. The {gbp(balancePence)} credit stays on the account for the next bill;
+              about {gbp(plan.bufferPence)} is one {plan.cadenceMonths}-month bill at this use.
+            </>
+          ) : (
+            <>
+              Paying {gbp(plan.recommendedPence)} a month would move the balance from {gbp(balancePence)} to about {gbp(plan.projectedPence)} in {plan.settleMonths} months,
+              against an average bill of {gbp(plan.monthlyUsagePence)} and a buffer of {gbp(plan.bufferPence)}.
+            </>
+          )}
           {difference === 0
             ? ' That is what you pay now.'
             : ` That is ${gbp(Math.abs(difference))} ${difference < 0 ? 'less' : 'more'} than the current ${gbp(currentPaymentPence)}.`}
@@ -1048,14 +1063,20 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
     : [];
 
   // Usage-billed providers get a payment review from the months that actually
-  // have a bill; unbilled months would make the average look too low.
+  // have a bill; unbilled months would make the average look too low. A bill
+  // period can cover several months: Water's covers six, so its average is per
+  // month of service rather than per bill, and its credit is kept for the
+  // next bill instead of being paid back.
   const billedRows = displayRows.filter((row) => (Number(row.billAmountPence) || 0) > 0);
+  const usageMonths = billingMonthsFor(billedRows) || billedRows.length;
+  const cadenceMonths = billingCadenceMonths(billedRows);
   const plan = (provider === 'ovo' || provider === 'water') && latest && billedRows.length > 0
     ? paymentPlan({
       usagePence: billedRows.reduce((total, row) => total + usagePenceFor(row), 0),
-      billedMonths: billedRows.length,
+      billedMonths: usageMonths,
       balancePence: Number(latest.balancePence) || 0,
       settleMonths,
+      cadenceMonths,
     })
     : null;
   const applyPlan = (amount: number) => {
@@ -1135,7 +1156,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       {plan && latest && (
         <PaymentPlanReview
           plan={plan}
-          billedMonths={billedRows.length}
+          billedMonths={usageMonths}
           currentPaymentPence={monthly}
           balancePence={Number(latest.balancePence) || 0}
           latestLabel={latestLabel}

@@ -143,6 +143,58 @@ export function recalculate(spec: LedgerSpec, rows: any[], baseline: number) {
   }
 }
 
+const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+const utcDay = (year: number, month: number, day: number) => Date.UTC(year, month, day);
+
+/**
+ * Months of service a bill period covers. Water bills every six months, so one
+ * row can stand for half a year of use; averaging by row count would multiply
+ * its usage by six. Accepts the workbook's two forms ("12/03/26-09/09/26" and
+ * "17 Jan - 16 Feb") and falls back to one month when the text is unusable.
+ */
+export function billPeriodMonths(period: unknown, fallback = 1): number {
+  const text = String(period ?? '').trim();
+  const numeric = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*[-–]\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  const named = text.match(/^(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{2,4}))?\s*[-–]\s*(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{2,4}))?$/);
+  let start: number | null = null;
+  let end: number | null = null;
+  if (numeric) {
+    const year = (raw: string) => (raw.length === 2 ? 2000 + Number(raw) : Number(raw));
+    start = utcDay(year(numeric[3]), Number(numeric[2]) - 1, Number(numeric[1]));
+    end = utcDay(year(numeric[6]), Number(numeric[5]) - 1, Number(numeric[4]));
+  } else if (named) {
+    const startMonth = MONTH_NAMES.indexOf(named[2].slice(0, 3).toLowerCase());
+    const endMonth = MONTH_NAMES.indexOf(named[5].slice(0, 3).toLowerCase());
+    if (startMonth >= 0 && endMonth >= 0) {
+      const startYear = named[3] ? (named[3].length === 2 ? 2000 + Number(named[3]) : Number(named[3])) : 2000;
+      let endYear = named[6] ? (named[6].length === 2 ? 2000 + Number(named[6]) : Number(named[6])) : startYear;
+      // "17 Dec - 16 Jan" without years crosses into the next year.
+      if (!named[6] && endMonth < startMonth) endYear += 1;
+      start = utcDay(startYear, startMonth, Number(named[1]));
+      end = utcDay(endYear, endMonth, Number(named[4]));
+    }
+  }
+  if (start === null || end === null || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return fallback;
+  const months = Math.round((end - start) / (30.44 * 86_400_000));
+  return Math.max(1, Math.min(24, months));
+}
+
+/** Total months of service covered by the billed rows, one row's period each. */
+export function billingMonthsFor(rows: any[]): number {
+  return rows.reduce((total, row) => (
+    (Number(row?.billAmountPence) || 0) > 0 ? total + billPeriodMonths(row?.billPeriod, 1) : total
+  ), 0);
+}
+
+/** The usual gap between bills, so a plan can size the next bill's buffer. */
+export function billingCadenceMonths(rows: any[]): number {
+  const bills = rows.filter((row) => (Number(row?.billAmountPence) || 0) > 0);
+  if (bills.length === 0) return 1;
+  const average = bills.reduce((total, row) => total + billPeriodMonths(row?.billPeriod, 1), 0) / bills.length;
+  return Math.max(1, Math.min(12, Math.round(average)));
+}
+
 /**
  * Energy used in a statement period. A bill can include money that left the
  * account without being used — a refund, for example — so usage is the bill

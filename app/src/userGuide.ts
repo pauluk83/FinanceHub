@@ -333,7 +333,7 @@ export const USER_GUIDE: GuideEntry[] = [
     ],
     notes: [
       'Balance = previous balance + payment − bill for each period.',
-      'Bill periods arrive quarterly, so several rows share a payment month.',
+      'Bill periods arrive half-yearly, so several rows share a payment month.',
     ],
   },
   {
