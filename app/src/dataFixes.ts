@@ -602,6 +602,16 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // The 26-27 charge letter now lives in Dropbox rather than the old
+    // self-hosted copy, which no longer resolves.
+    id: 'rent-charge-letter-dropbox',
+    apply: (dataset) => {
+      const rent = dataset.providers?.rent as { chargeLetterUrl?: string } | undefined;
+      if (!rent) return;
+      rent.chargeLetterUrl = 'https://www.dropbox.com/scl/fi/720x2ikfwgzj58ymmwd91/Rent-Charge-Letter-26-27.pdf?rlkey=p8sl1rilpqbw42zzca7psy4o7&st=cnd5xwzu&dl=0';
+    },
+  },
+  {
     id: 'changelog-2026-11-07-descriptions',
     apply: (dataset) => {
       const entry = ((dataset.changelog ?? []) as any[]).find((existing: any) => existing.signature === 'financehub-2026-11-07-dan-account');
