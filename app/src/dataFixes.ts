@@ -358,6 +358,19 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // A budget saved from an earlier build can carry only the imported Ovo
+    // blocks (2027/2028) while the year bar already offers 2040, so those years
+    // opened on nothing. This repairs the shape rather than the labels: the
+    // missing years are generated, then laid out with their bill left blank.
+    id: 'ovo-years-to-2040-blocks',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[] } | undefined;
+      if (!ovo) return;
+      extendProvidersToPlanYear(dataset as { providers?: Record<string, any> });
+      blankYearBills(ovo, OVO_SPEC, Number(dataset.settings.targetYear) + 1);
+    },
+  },
+  {
     // The bills were briefly copied into 2027-2040 from 2026. They are guesses at
     // statements that do not exist yet, so the first fix's guesswork is cleared
     // here for any dataset that already ran it.

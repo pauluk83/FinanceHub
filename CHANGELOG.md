@@ -29,6 +29,7 @@ and the build time.
 - Ovo leaves every bill from 2027 to 2040 blank to type into, and the supply contract is editable in place with left-aligned columns
 - Supply contract drops its summary line, the Fixed to badge and the exit fee note, leaving just the editable table
 - Ovo gas gets its own supply contract: plan name, start and end dates and exit fee are per fuel, alongside its own consumption and rates
+- Repair a saved budget whose Ovo years stopped at the imported blocks: the missing years to 2040 are generated and laid out with blank bills
 
 ## [2026.11.23] — 23 November 2026
 
