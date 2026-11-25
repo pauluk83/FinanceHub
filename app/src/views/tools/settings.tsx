@@ -7,6 +7,7 @@ import { stripLegacySecrets } from '../../vault';
 import { decodeBackupDataset } from '../../backup';
 import { backupFileProblem } from '../../../../core/importLimits';
 import { FINANCEHUB_URL, LEGAL_COPYRIGHT, LEGAL_TRADEMARK, LEGAL_VERSION } from '../../legal';
+import { APP_CHANGELOG } from '../../appChangelog.generated';
 import { GITHUB_REPO_URL } from '../../installer';
 import { MenuLayoutSection } from '../menuLayout';
 import { AiSettings } from '../aiSettings';
@@ -334,6 +335,11 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       <Section title="About & legal" sub="Ownership, copyright, trademark and the documents that govern your use of FinanceHub">
         <div style={{ padding: 16, display: 'grid', gap: 10 }}>
           <div><strong>FinanceHub™</strong> <span className="muted small">· version {LEGAL_VERSION}</span></div>
+          {/* The build id is the only way to tell two builds of the same day apart,
+              so it is listed here rather than only on the changelog page. */}
+          <div className="muted small">
+            Running build <strong>{APP_CHANGELOG.buildId}</strong> · built {APP_CHANGELOG.builtAt.slice(0, 10)}
+          </div>
           <div className="muted small">Designed, built and owned by Zane Stanton. {LEGAL_COPYRIGHT}</div>
           <div className="muted small">{LEGAL_TRADEMARK} The name, logo and source code may not be used without permission.</div>
           <div className="toolbar" style={{ borderBottom: 0, padding: 0 }}>

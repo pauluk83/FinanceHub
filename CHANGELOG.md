@@ -30,6 +30,7 @@ and the build time.
 - Supply contract drops its summary line, the Fixed to badge and the exit fee note, leaving just the editable table
 - Ovo gas gets its own supply contract: plan name, start and end dates and exit fee are per fuel, alongside its own consumption and rates
 - Repair a saved budget whose Ovo years stopped at the imported blocks: the missing years to 2040 are generated and laid out with blank bills
+- Settings App shows the build number the app is running, not just the version
 
 ## [2026.11.23] — 23 November 2026
 
