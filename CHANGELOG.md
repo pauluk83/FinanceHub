@@ -17,7 +17,6 @@ and the build time.
 - Removing a bill in a future year now hides it from that year's plan and keeps it gone for every later year, with the Bill changes row as the way back
 - Ovo statement gains a Refund column: balance = previous + payment + credit - bill - refund, September 2026 reads a 52.92 bill with the 629 refund as its own line
 - Income schedule drops the 2026/2027/2028 tabs; the year bar already picks the schedule year
-- Income shows a later year's planned PIP and UC payments instead of falling back to the 2026 schedule
 - Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels
 - Pure Cremation ends with the December 2027 payoff: the bill and its plan stop after that year
 - Stopping a bill from the live year keeps its history: it now stops from the chosen month instead of deleting the bill, so earlier months and earlier years still count the payments
