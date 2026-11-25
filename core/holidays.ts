@@ -11,6 +11,26 @@ export interface HolidayShape {
   end?: string;
   nights?: number | string;
   totalPence?: number | null;
+  totalText?: string;
+}
+
+/**
+ * A cost line that names the stay or the travel is the booking itself, so the
+ * trip row's own figure is the older total it replaced rather than a cost of
+ * its own. Parking, insurance and the like never match and stay additive.
+ */
+const BOOKING_LINE = /hotel|flight|accommodation|apartment|villa|resort|lodge|booking/i;
+
+/**
+ * A row's amount in pounds. Imported rows keep the workbook's exact text, which
+ * can carry half-pence (34.395), so it is preferred over the rounded pence; rows
+ * edited in the app have no text and use their pence.
+ */
+function amountOf(holiday: HolidayShape): number | null {
+  if (typeof holiday.totalPence !== 'number') return null;
+  const text = typeof holiday.totalText === 'string' ? holiday.totalText.trim() : '';
+  if (/^\d+(\.\d+)?$/.test(text)) return Number(text);
+  return holiday.totalPence / 100;
 }
 
 export interface HolidayTrip<T> {
@@ -102,22 +122,23 @@ export function groupHolidayTrips<T>(
     .map((group) => {
       const headline = group.headline ?? group.rows[0];
       const extras = group.rows.filter((row) => row !== headline);
-      const priced = group.rows.filter((row) => typeof read(row).totalPence === 'number');
-      const headlinePence = priced.includes(headline) ? Number(read(headline).totalPence) : null;
-      const extraPence = priced
+      const priced = group.rows.filter((row) => amountOf(read(row)) !== null);
+      const headlineAmount = amountOf(read(headline));
+      const extraAmount = priced
         .filter((row) => row !== headline)
-        .reduce((sum, row) => sum + Number(read(row).totalPence), 0);
-      // Some trips store their own total already covering the cost lines (the
-      // workbook's December trip carries 700.54, which is flights 633.38 +
-      // parking 34.395 + insurance 32.765). Adding them again would double count,
-      // so a headline that matches its cost lines within a penny or so is the
-      // trip total; anything else is the booking and the lines add to it.
-      const extrasIncluded = headlinePence !== null && priced.length > 1 && Math.abs(headlinePence - extraPence) <= 2;
-      const totalPence = priced.length === 0
-        ? null
-        : extrasIncluded
-          ? headlinePence
-          : priced.reduce((sum, row) => sum + Number(read(row).totalPence), 0);
+        .reduce((sum, row) => sum + (amountOf(read(row)) ?? 0), 0);
+      // A trip's own figure is either its booking, which the cost lines add to,
+      // or a total the lines already make up. It is the total when a cost line
+      // names the stay or the travel (the amended Kn Matas trip carries 776 of
+      // "flights and hotel" over an old 761), or when it matches the lines to
+      // the penny (December's 700.54 is flights 633.38 + parking 34.395 +
+      // insurance 32.765). Otherwise the lines are extras and are added, as with
+      // Spain xmas: 450 for the stay plus 40 of parking.
+      const itemised = extras.some((row) => BOOKING_LINE.test(String(read(row).event ?? '')));
+      const coveredByLines = headlineAmount !== null && extras.length > 0
+        && Math.abs(headlineAmount - extraAmount) <= 0.02;
+      const tripAmount = extraAmount + (headlineAmount !== null && !itemised && !coveredByLines ? headlineAmount : 0);
+      const totalPence = priced.length === 0 ? null : Math.round(tripAmount * 100);
       const nights = read(headline).nights;
       return {
         key: group.key,

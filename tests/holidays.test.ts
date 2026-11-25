@@ -41,6 +41,17 @@ test('yearly holiday totals match the workbook (extras are not counted twice)', 
   assert.equal(yearTotal('2027'), 158312, 'Dashboard I78, where the extras are separate from the booking');
 });
 
+test('a trip itemised as flights and hotel drops the booking total those lines replaced', () => {
+  const [trip] = groupHolidayTrips([
+    { event: 'Kn Matas Blanca -Mum', start: '2027-04-17', end: '2027-04-24', nights: 7, totalPence: 76100, totalText: '761' },
+    { event: 'flights and hotel', start: '2027-04-17', end: '2027-04-24', nights: '-', totalPence: 77600 },
+    { event: 'car parking', start: '2027-04-17', end: '2027-04-24', nights: '-', totalPence: 3482 },
+    { event: 'Travel Insurance', start: '2027-04-17', end: '2027-04-24', nights: '-', totalPence: 4200 },
+  ], (row) => row);
+
+  assert.equal(trip.totalPence, 85282, '776 + 34.82 + 42, with the old 761 not added on top');
+});
+
 test('a booking total that excludes its cost lines still adds them', () => {
   const [trip] = groupHolidayTrips([
     { event: 'Hotel', start: '2026-02-01', end: '2026-02-05', nights: 4, totalPence: 30000 },

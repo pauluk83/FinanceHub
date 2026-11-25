@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "4d3494baf7ef",
+  "buildId": "b1b30fb209c3",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -15,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Fix holiday trip totals: a trip whose stored total already covers its cost lines (the December Hesperia trip) is no longer counted twice"
+            "Fix holiday trip totals: a trip whose stored total already covers its cost lines (the December Hesperia trip) is no longer counted twice",
+            "Take a holiday trip total from its cost lines when a line such as flights and hotel itemises the booking, so the Kn Matas trip shows 776 + 34.82 + 42 = £852.82 and December stays £700.54"
           ]
         }
       ]

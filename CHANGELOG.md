@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Fix holiday trip totals: a trip whose stored total already covers its cost lines (the December Hesperia trip) is no longer counted twice
+- Take a holiday trip total from its cost lines when a line such as flights and hotel itemises the booking, so the Kn Matas trip shows 776 + 34.82 + 42 = £852.82 and December stays £700.54
 
 ## [2026.11.23] — 23 November 2026
 
