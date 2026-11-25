@@ -1003,8 +1003,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   );
 }
 
-const nextTheme = (theme: Theme): Theme => theme === 'dark' ? 'light' : theme === 'light' ? 'contrast' : 'dark';
-const THEME_LABELS: Record<Theme, string> = { dark: '🌙 Dark', light: '☀ Light', contrast: '◐ Contrast' };
+const nextTheme = (theme: Theme): Theme => theme === 'dark' ? 'glass' : theme === 'glass' ? 'light' : theme === 'light' ? 'contrast' : 'dark';
+const THEME_LABELS: Record<Theme, string> = { dark: '🌙 Dark', glass: '🫧 Liquid glass', light: '☀ Light', contrast: '◐ Contrast' };
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);

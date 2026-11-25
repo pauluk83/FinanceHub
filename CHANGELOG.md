@@ -22,6 +22,7 @@ and the build time.
 - Stopping a bill from the live year keeps its history: it now stops from the chosen month instead of deleting the bill, so earlier months and earlier years still count the payments
 - Ovo provider page shows the supply contract: plan, term, exit fee, future annual consumption and standing/unit rates for electricity and gas
 - Ovo account details shows a card with the year's total bill, updating as each bill is entered
+- Add a liquid glass theme: a dark backdrop with frosted, translucent panels and a glass round in the theme switcher
 
 ## [2026.11.23] — 23 November 2026
 

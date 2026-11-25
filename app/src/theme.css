@@ -25,6 +25,33 @@
   --radius-sm: 9px;
 }
 
+/* Liquid glass: a deep night backdrop with frosted, light-catching surfaces. */
+:root[data-theme='glass'] {
+  --bg: #05080f;
+  --bg-2: #080d18;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel-2: rgba(255, 255, 255, 0.09);
+  --panel-3: rgba(255, 255, 255, 0.13);
+  --line: rgba(255, 255, 255, 0.13);
+  --line-strong: rgba(255, 255, 255, 0.24);
+  --text: #f4f7ff;
+  --muted: #c3cee2;
+  --faint: #9aa9c2;
+  --accent: #5eead4;
+  --accent-soft: rgba(94, 234, 212, 0.16);
+  --accent-2: #7dd3fc;
+  --accent-2-soft: rgba(125, 211, 252, 0.16);
+  --danger: #fb7185;
+  --danger-soft: rgba(251, 113, 133, 0.18);
+  --warn: #fcd34d;
+  --warn-soft: rgba(252, 211, 77, 0.16);
+  --violet: #c4b5fd;
+  --violet-soft: rgba(196, 181, 253, 0.16);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --radius: 18px;
+  --radius-sm: 12px;
+}
+
 /* High-contrast: a black background with white, yellow and green only. */
 :root[data-theme='contrast'] {
   --bg: #000000;
@@ -79,6 +106,97 @@
   --violet: #7c3aed;
   --violet-soft: rgba(124, 58, 237, 0.1);
   --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+/* The colour washes are what the frosted surfaces pick up: without something
+   behind them, backdrop blur would have nothing to blur. */
+:root[data-theme='glass'] body {
+  background:
+    radial-gradient(1200px 720px at 6% -12%, rgba(94, 234, 212, 0.20), transparent 62%),
+    radial-gradient(1000px 640px at 98% 2%, rgba(125, 211, 252, 0.18), transparent 64%),
+    radial-gradient(900px 720px at 48% 112%, rgba(196, 181, 253, 0.18), transparent 62%),
+    linear-gradient(160deg, #04070d 0%, #070c17 46%, #04060b 100%);
+  background-attachment: fixed;
+}
+
+/* One shared surface: frosted fill, a bright top edge and a soft drop shadow. */
+:root[data-theme='glass'] .card,
+:root[data-theme='glass'] .panel,
+:root[data-theme='glass'] .hero,
+:root[data-theme='glass'] .metric,
+:root[data-theme='glass'] .notice,
+:root[data-theme='glass'] .settings-switcher,
+:root[data-theme='glass'] .provider-brand,
+:root[data-theme='glass'] .provider-card,
+:root[data-theme='glass'] .portal-note,
+:root[data-theme='glass'] .portal-owner-card,
+:root[data-theme='glass'] .portal-inbox-item,
+:root[data-theme='glass'] .people-owed-item,
+:root[data-theme='glass'] .feedback-item,
+:root[data-theme='glass'] .feedback-dialog,
+:root[data-theme='glass'] .palette,
+:root[data-theme='glass'] .auth-card,
+:root[data-theme='glass'] .auth-mode-card,
+:root[data-theme='glass'] .auth-social,
+:root[data-theme='glass'] .auth-local,
+:root[data-theme='glass'] .auth-people,
+:root[data-theme='glass'] .workspace-choice-card,
+:root[data-theme='glass'] .month-btn,
+:root[data-theme='glass'] .toast {
+  backdrop-filter: blur(22px) saturate(160%);
+  border-color: var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow);
+}
+
+:root[data-theme='glass'] .sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border-right: 1px solid var(--line);
+  backdrop-filter: blur(26px) saturate(150%);
+}
+
+:root[data-theme='glass'] .topbar {
+  background: rgba(6, 10, 19, 0.55);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+
+/* Inputs sit darker than the glass so typed figures stay crisp. */
+:root[data-theme='glass'] .input,
+:root[data-theme='glass'] .select,
+:root[data-theme='glass'] .month-select,
+:root[data-theme='glass'] .btn,
+:root[data-theme='glass'] .auth-input,
+:root[data-theme='glass'] .field input,
+:root[data-theme='glass'] .field select,
+:root[data-theme='glass'] .kbd {
+  background: rgba(4, 8, 16, 0.45);
+  border-color: var(--line-strong);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+:root[data-theme='glass'] .btn:hover { background: rgba(255, 255, 255, 0.12); }
+:root[data-theme='glass'] .btn.primary {
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #04120c;
+  box-shadow: 0 10px 26px rgba(94, 234, 212, 0.28);
+}
+
+/* The sticky table header needs its own pane or rows scroll through it. */
+:root[data-theme='glass'] thead th {
+  background: rgba(8, 13, 24, 0.8);
+  backdrop-filter: blur(16px);
+}
+
+:root[data-theme='glass'] .nav-item.active {
+  background: var(--accent-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 2px 0 0 var(--accent);
+}
+
+:root[data-theme='glass'] .brand-mark {
+  background: linear-gradient(145deg, #5eead4, #38bdf8 55%, #a78bfa);
+  color: #05121a;
+  box-shadow: 0 8px 24px rgba(94, 234, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 * { box-sizing: border-box; }

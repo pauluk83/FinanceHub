@@ -4,7 +4,7 @@ import type { PortalFeedback } from './portal';
 import type { EncryptedVault, UnlockedVault } from './vault';
 import type { AppLockConfig } from './appLock';
 
-export type Theme = 'dark' | 'light' | 'contrast';
+export type Theme = 'dark' | 'glass' | 'light' | 'contrast';
 export type WorkspaceMode = 'account' | 'local' | 'demo';
 
 export interface LocalAccountControls {
