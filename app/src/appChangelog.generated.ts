@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "1f7eeadbf5e7",
+  "buildId": "947fe448ec81",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -41,7 +41,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Ovo year blocks that were saved without rows are laid out again on every load, so 2027 to 2040 open on their months and blank bills",
             "Build ids ignore the line endings a checkout uses, so the Windows build and the CI build of the same commit report one id",
             "Ovo's credit and refund columns are cleared from 2027 onwards, so a future statement shows the payment alone until a real one arrives",
-            "The Ovo Payment column is linked to the Ovo bill: a bill change or override on the Bills tab cascades into the statement for that month onwards, and a payment typed on the statement becomes the same bill change"
+            "The Ovo Payment column is linked to the Ovo bill: a bill change or override on the Bills tab cascades into the statement for that month onwards, and a payment typed on the statement becomes the same bill change",
+            "Water, Park Xmas and Pure Cremation payments follow their bills: an amount changed on either screen applies from that month onward, with earlier months and the rest of the plan kept"
           ]
         }
       ]

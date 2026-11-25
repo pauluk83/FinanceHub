@@ -7,6 +7,7 @@ import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { applyBillDueDay } from '../providerSetup';
+import { applyProviderPayment, PAYMENT_PLANS } from '../../../core/providerBillLink';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
@@ -18,6 +19,22 @@ import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { PeopleAccessSection } from './peoplePortal';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
+
+/**
+ * A linked plan's payment follows a base-amount edit on the Bills tab.
+ *
+ * The edit is year-agnostic, so it applies from the as-of month onwards: earlier
+ * months keep what actually happened and the rest of the plan moves with it.
+ */
+function applyLinkedPlanPayment(d: any, bill: any, amountPence: number) {
+  const sheet = String(bill?.linkedSheet ?? '').trim().toLowerCase();
+  const key = Object.keys(PAYMENT_PLANS).find((entry) => PAYMENT_PLANS[entry].sheet.toLowerCase() === sheet);
+  if (!key) return;
+  const asOf = String(d?.settings?.asOfDate ?? '');
+  const year = Number(asOf.slice(0, 4)) || Number(d?.settings?.targetYear) || 0;
+  if (!year) return;
+  applyProviderPayment(d, key, year, Number(asOf.slice(5, 7)) || 1, amountPence);
+}
 
 function nextAprilDate(asOfDate: string): string {
   const year = Number(asOfDate.slice(0, 4)) || new Date().getFullYear();
@@ -1337,7 +1354,13 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                   disabled={planning && yearChange(b.name)?.skip === true}
                   onChange={(e) => planning
                     ? setPlan(b.name, { amountOverridePence: e.target.value.trim() ? parseMoney(e.target.value) : null })
-                    : update((d) => { d.bills[i].baseAmountPence = parseMoney(e.target.value); d.bills[i].amountPence = parseMoney(e.target.value); })}
+                    : update((d) => {
+                      const amount = parseMoney(e.target.value);
+                      d.bills[i].baseAmountPence = amount;
+                      d.bills[i].amountPence = amount;
+                      // A linked plan's payment is this amount from the as-of month on.
+                      applyLinkedPlanPayment(d, b, amount);
+                    })}
                 />
               </td>
               <td className="num">

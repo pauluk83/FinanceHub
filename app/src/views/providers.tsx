@@ -11,6 +11,7 @@ import { sheetNameForProviderKey } from '../billSheets';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
 import { setOvoSheetPayment } from '../../../core/ovoLink';
+import { applyProviderPayment, PAYMENT_PLANS } from '../../../core/providerBillLink';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
 import type { VaultSecrets } from '../vault';
@@ -466,9 +467,11 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
           list[index].paymentEdited = true;
           // Ovo's payment is the Ovo bill: typing it here records the same change
           // on the Bills tab, from this month onwards.
-          if (provider === 'ovo') {
-            const month = MONTHS.indexOf(String(list[index].month ?? '')) + 1;
-            if (month > 0) setOvoSheetPayment(dataset, year, month, Number(list[index].paymentPence) || 0);
+          const month = MONTHS.indexOf(String(list[index].month ?? '')) + 1;
+          if (month > 0) {
+            const amount = Number(list[index].paymentPence) || 0;
+            if (provider === 'ovo') setOvoSheetPayment(dataset, year, month, amount);
+            else if (PAYMENT_PLANS[provider]) applyProviderPayment(dataset, provider, year, month, amount);
           }
         }
       }

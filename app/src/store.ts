@@ -8,6 +8,7 @@ import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { fillPlanYears } from '../../core/providerPlans';
 import { syncOvoProviderPayments } from '../../core/ovoLink';
+import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
@@ -250,6 +251,7 @@ export function seedState(): AppState {
 function healPlanYears(state: AppState): AppState {
   fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
   syncOvoProviderPayments(state.dataset as unknown as Dataset);
+  syncProviderPaymentsFromBills(state.dataset as unknown as Dataset);
   return state;
 }
 
