@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "a6f24a146005",
+  "buildId": "b9ceaa5d6bdc",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -51,7 +51,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Park Xmas keeps the months after August blank until a payment is entered, so 2027 and later no longer carry the old balance down the page",
             "A Park Xmas year nobody has paid into reads completely blank, carried balance included, so 2028 no longer repeats the old figure",
             "Park Xmas marks each month paid once its date arrives, and leaves the Status and Paid columns empty for months that have not been paid yet",
-            "Pure Cremation drops its Paid column and marks each month paid on its date; its early months before the plan starts read blank"
+            "Pure Cremation drops its Paid column and marks each month paid on its date; its early months before the plan starts read blank",
+            "Virgin and O2 drop the Paid column, leaving their ledgers to the bill, payment and balance figures"
           ]
         }
       ]

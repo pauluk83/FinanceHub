@@ -137,7 +137,6 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money' },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
-      { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
     ],
   },
   virgin: {
@@ -152,7 +151,6 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZeroFrom: '2028-10' },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2028-10' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankFrom: '2028-10' },
-      { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
     ],
   },
   councilTax: {

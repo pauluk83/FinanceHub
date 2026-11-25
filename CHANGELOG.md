@@ -45,6 +45,7 @@ and the build time.
 - A Park Xmas year nobody has paid into reads completely blank, carried balance included, so 2028 no longer repeats the old figure
 - Park Xmas marks each month paid once its date arrives, and leaves the Status and Paid columns empty for months that have not been paid yet
 - Pure Cremation drops its Paid column and marks each month paid on its date; its early months before the plan starts read blank
+- Virgin and O2 drop the Paid column, leaving their ledgers to the bill, payment and balance figures
 
 ## [2026.11.23] — 23 November 2026
 
