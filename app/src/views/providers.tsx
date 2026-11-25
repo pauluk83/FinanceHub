@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
-import { dateUk, download, gbp, MONTH_LONG, parseMoney, toCsv } from '../format';
+import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
 import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
@@ -10,6 +10,7 @@ import { providerBilling } from '../providerSetup';
 import { sheetNameForProviderKey } from '../billSheets';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
+import { setOvoSheetPayment } from '../../../core/ovoLink';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
 import type { VaultSecrets } from '../vault';
@@ -430,13 +431,13 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
     nearestScrollKey.current = key;
   }, [provider, ds.settings.asOfDate, displayRows]);
 
-  const mutateRows = (mutator: (list: any[], baseline: number, prov: any) => void) => {
+  const mutateRows = (mutator: (list: any[], baseline: number, prov: any, dataset: typeof ds) => void) => {
     update((d) => {
       const prov = d.providers[provider];
       const target = ensureRowsForEdit(prov, cfg.rowsKey, year);
       const list = target.rows;
       const baseline = baselineForProvider(prov, list, target.openingPence, target.block);
-      mutator(list, baseline, prov);
+      mutator(list, baseline, prov, d);
       sortRows(list, cfg);
       recalculate(cfg, list, baseline);
       if (!target.block && cfg.formula === 'telco') recalculateTelco(prov, baseline);
@@ -451,7 +452,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
 
   const patch = (index: number, key: string, raw: string) => {
     if (key === 'date' && raw.trim() && !raw.startsWith(`${year}-`)) return notify(`Choose a date in ${year}`);
-    mutateRows((list) => {
+    mutateRows((list, _baseline, _prov, dataset) => {
       if (!list[index]) return;
       if (key === 'balancePence') {
         if (raw.trim()) list[index].balanceOverridePence = parseMoney(raw);
@@ -461,7 +462,15 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
         else delete list[index].totalPaidOverridePence;
       } else {
         list[index][key] = key.endsWith('Pence') ? parseMoney(raw) : raw;
-        if (key === 'paymentPence') list[index].paymentEdited = true;
+        if (key === 'paymentPence') {
+          list[index].paymentEdited = true;
+          // Ovo's payment is the Ovo bill: typing it here records the same change
+          // on the Bills tab, from this month onwards.
+          if (provider === 'ovo') {
+            const month = MONTHS.indexOf(String(list[index].month ?? '')) + 1;
+            if (month > 0) setOvoSheetPayment(dataset, year, month, Number(list[index].paymentPence) || 0);
+          }
+        }
       }
     });
     if (key === 'balancePence') notify(raw.trim() ? 'Balance set as a new anchor; later rows recalculated' : 'Balance returned to automatic');

@@ -34,6 +34,7 @@ and the build time.
 - Ovo year blocks that were saved without rows are laid out again on every load, so 2027 to 2040 open on their months and blank bills
 - Build ids ignore the line endings a checkout uses, so the Windows build and the CI build of the same commit report one id
 - Ovo's credit and refund columns are cleared from 2027 onwards, so a future statement shows the payment alone until a real one arrives
+- The Ovo Payment column is linked to the Ovo bill: a bill change or override on the Bills tab cascades into the statement for that month onwards, and a payment typed on the statement becomes the same bill change
 
 ## [2026.11.23] — 23 November 2026
 

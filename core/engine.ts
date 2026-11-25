@@ -323,6 +323,10 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
   function providerMonthlyPence(bill: Bill, year: number, month: number): number | null {
     const key = providerKeyForSheet(bill.linkedSheet);
     if (!key) return null;
+    // Ovo runs the other way round: the bill's base amount and its dated changes
+    // decide the payment, and the statement's Payment column is written from it
+    // (core/ovoLink.ts). Reading the sheet first would make a bill edit do nothing.
+    if (key === 'ovo') return null;
     const p = ds.providers[key];
     if (!p) return null;
     const label = MONTHS[month - 1];
