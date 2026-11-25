@@ -27,6 +27,7 @@ and the build time.
 - Ovo repeats the 2026 pattern through 2040: every later year has its month, bill period, payment, bill and chained balance filled in
 - Ovo years from 2027 to 2040 are laid out with the payment and balance in place and every bill left at 0 for you to type in
 - Ovo leaves every bill from 2027 to 2040 blank to type into, and the supply contract is editable in place with left-aligned columns
+- Supply contract drops its summary line, the Fixed to badge and the exit fee note, leaving just the editable table
 
 ## [2026.11.23] — 23 November 2026
 

@@ -953,10 +953,6 @@ const numberOrUndefined = (raw: string, decimals = 0) => {
  * rebuild; the section header reads back what the table now holds.
  */
 function OvoSupplyContract({ supply, onChange }: { supply: OvoSupply; onChange: (mutate: (supply: OvoSupply) => void) => void }) {
-  const plan = supply.planName || '—';
-  const start = supply.startDate ? dateUk(supply.startDate) : '—';
-  const end = supply.endDate ? dateUk(supply.endDate) : '—';
-  const exitFee = typeof supply.exitFeePence === 'number' ? `${gbp(supply.exitFeePence)} subject to T&Cs` : '—';
   const fuel = (key: 'electricity' | 'gas'): OvoFuel => supply[key] ?? {};
   const setFuel = (key: 'electricity' | 'gas', field: keyof OvoFuel, raw: string, decimals: number) => {
     onChange((next) => {
@@ -977,11 +973,7 @@ function OvoSupplyContract({ supply, onChange }: { supply: OvoSupply; onChange: 
     </td>
   );
   return (
-    <Section
-      title="Supply contract"
-      sub={`${plan} for both fuels, ${start} to ${end}. Exit fee ${exitFee}. Edit any figure in place.`}
-      actions={<Badge tone="blue">Fixed to {end}</Badge>}
-    >
+    <Section title="Supply contract">
       <Table head={['', 'Electricity', 'Gas']}>
         <tr>
           <td><strong>Plan name</strong></td>
@@ -1011,7 +1003,6 @@ function OvoSupplyContract({ supply, onChange }: { supply: OvoSupply; onChange: 
               <SupplyInput label="Exit fee" minWidth={110}
                 value={typeof supply.exitFeePence === 'number' ? (supply.exitFeePence / 100).toFixed(2) : ''}
                 onCommit={(next) => onChange((s) => { s.exitFeePence = next ? parseMoney(next) : undefined; })} />
-              <span className="muted small">subject to T&amp;Cs</span>
             </span>
           </td>
         </tr>
