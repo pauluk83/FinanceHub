@@ -4,7 +4,7 @@ import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyApp
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
 import { extendProvidersToPlanYear } from '../../core/providerPlans';
-import { baselineFor, recordBill, type LedgerSpec } from '../../core/providerLedger';
+import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
 
 const OVO_SPEC: LedgerSpec = {
   rowsKey: 'statement',
@@ -43,6 +43,24 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
       const rows = (dataset.providers.ovo as { statement?: any[] } | undefined)?.statement;
       const september = rows?.find((row) => row.month === 'Sep' && Number(row.billAmountPence) === 68192);
       if (september) september.refundPence = 62900;
+    },
+  },
+  {
+    // The September statement was £52.92 of energy plus the £629 paid back to
+    // Starling on 14/10/2026. A refund is its own flow on the row, so the bill
+    // is the usage and the balance still moves by the same amount overall.
+    id: 'ovo-refund-sep-2026-split',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[]; ledgerOpeningPence?: number } | undefined;
+      const rows = ovo?.statement;
+      if (!Array.isArray(rows)) return;
+      const september = rows.find((row) => row.month === 'Sep' && Number(row.billAmountPence) === 68192);
+      if (!september) return;
+      september.billAmountPence = 5292;
+      september.refundPence = 62900;
+      const baseline = baselineFor(OVO_SPEC, rows, ovo?.ledgerOpeningPence);
+      recalculate(OVO_SPEC, rows, baseline);
+      carryForwardProviderYears(ovo, OVO_SPEC, Number(dataset.settings.targetYear), rows, baseline);
     },
   },
   {

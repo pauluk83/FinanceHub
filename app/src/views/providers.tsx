@@ -77,13 +77,14 @@ export const CONFIG: Record<string, LedgerConfig> = {
     rowsKey: 'statement',
     formula: 'cashflow',
     monthly: true,
-    note: 'Statement periods run 17th to 16th. Balance = previous + payment − bill + credit.',
-    defaults: { month: 'Jan', billPeriod: '', billAmountPence: '0.00', creditPence: '0.00', paymentPence: '109.00' },
+    note: 'Statement periods run 17th to 16th. Balance = previous + payment + credit − bill − refund. The bill is what the period used; a refund is money Ovo paid back for credit you held.',
+    defaults: { month: 'Jan', billPeriod: '', billAmountPence: '0.00', creditPence: '0.00', refundPence: '0.00', paymentPence: '109.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       { key: 'billPeriod', label: 'Bill period', edit: 'text' },
       { key: 'billAmountPence', label: 'Bill', money: true, edit: 'money' },
       { key: 'creditPence', label: 'Credit', money: true, edit: 'money' },
+      { key: 'refundPence', label: 'Refund', money: true, edit: 'money' },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
     ],
@@ -244,10 +245,7 @@ function UsageBalanceChart({ points, title }: { points: UsagePoint[]; title: str
         <path className="usage-line" d={line} fill="none" />
         {points.map((point, index) => {
           const top = y(Math.max(point.usagePence, 0));
-          const refund = point.billPence - point.usagePence;
-          const tooltip = refund > 0
-            ? `${point.label} usage: ${gbp(point.usagePence)} (bill ${gbp(point.billPence)} less ${gbp(refund)} refund)`
-            : `${point.label} usage: ${gbp(point.usagePence)}`;
+          const tooltip = `${point.label} usage: ${gbp(point.usagePence)}`;
           return (
             <g key={point.label}>
               <rect className="usage-bar" x={x(index) - barWidth / 2} y={top} width={barWidth} height={Math.max(1, zero - top)} rx={2}>
@@ -1148,7 +1146,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       {provider === 'ovo' && usagePoints.length > 0 && (
         <Section
           title="Usage vs balance"
-          sub={`Energy used each period against the running balance for ${year}. Refunds paid out are excluded from usage. ${latestLabel}: ${latest ? gbp(latest.balancePence) : '—'}.`}
+          sub={`Energy used each period against the running balance for ${year}. A refund is its own row after the bill, so it never shows as usage. ${latestLabel}: ${latest ? gbp(latest.balancePence) : '—'}.`}
           actions={<Badge tone="blue">{usagePoints.length} month{usagePoints.length === 1 ? '' : 's'}</Badge>}
         >
           <UsageBalanceChart points={usagePoints} title={`${title} ${year}`} />

@@ -84,18 +84,19 @@ test('recording a bill fills its period once and returns the true figures', () =
 
 test('a bill credit lifts the balance without counting as energy use', () => {
   // OVO's 17 Oct - 16 Nov 2026 statement: £98.86 of energy, less a £150 Warm Home Discount.
+  // September carries the £629 refund, its own flow after the £52.92 bill.
   const rows = [
-    { month: 'Sep', paymentPence: 10_900, billAmountPence: 6_819, refundPence: 6_290, creditPence: 0, balancePence: 30_956 },
+    { month: 'Sep', paymentPence: 10_900, billAmountPence: 5_292, refundPence: 62_900, creditPence: 0, balancePence: 30_956 },
     { month: 'Oct', paymentPence: 10_900, billAmountPence: 9_886, creditPence: 15_000, balancePence: 0 },
   ];
   const baseline = baselineFor(cashflow, rows);
   recalculate(cashflow, rows, baseline);
 
-  assert.equal(baseline, 26_875);
+  assert.equal(baseline, 88_248);
   assert.equal(rows[0].balancePence, 30_956);
   assert.equal(rows[1].balancePence, 46_970);
   assert.equal(usagePenceFor(rows[1]), 9_886);
-  assert.equal(usagePenceFor(rows[0]), 529);
+  assert.equal(usagePenceFor(rows[0]), 5_292, 'the refund is not part of the bill');
 
   // A row with no credit keeps the old arithmetic exactly.
   const plain = [{ month: 'Nov', paymentPence: 10_900, billAmountPence: 5_000, balancePence: 0 }];
@@ -168,10 +169,15 @@ test('a stored opening baseline survives a manual balance override', () => {
   assert.deepEqual(rows.map((row) => row.balancePence), [11_000, 16_000]);
 });
 
-test('usage excludes a refund recorded on the bill but keeps the balance whole', () => {
-  const row = { month: 'Sep', billAmountPence: 68_192, refundPence: 62_900, paymentPence: 10_900, balancePence: 30_956 };
-  assert.equal(usagePenceFor(row), 5_292);
-  assert.equal(row.balancePence, 30_956, 'usage is a view of the bill, not a balance change');
+test('a refund is its own flow: the bill is the usage and the balance moves by it', () => {
+  const rows = [
+    { month: 'Aug', billAmountPence: 0, paymentPence: 10_900, balancePence: 88_248 },
+    { month: 'Sep', billAmountPence: 5_292, refundPence: 62_900, paymentPence: 10_900, balancePence: 0 },
+  ];
+  recalculate(cashflow, rows, baselineFor(cashflow, rows));
+
+  assert.equal(usagePenceFor(rows[1]), 5_292, 'September used £52.92');
+  assert.equal(rows[1].balancePence, 30_956, 'the £629 refund comes off the balance');
   assert.equal(usagePenceFor({ month: 'Aug', billAmountPence: 4_237 }), 4_237);
 });
 

@@ -89,8 +89,9 @@ export function baselineFor(spec: LedgerSpec, rows: any[], stored?: number): num
   const payment = Number(first.paymentPence) || 0;
   const bill = Number(first.billAmountPence) || 0;
   const credit = Number(first.creditPence) || 0;
+  const refund = Math.max(0, Number(first.refundPence) || 0);
   const amount = Number(first.amountPence) || 0;
-  if (spec.formula === 'cashflow') return balance - payment + bill - credit;
+  if (spec.formula === 'cashflow') return balance - payment + bill - credit + refund;
   if (spec.formula === 'savings') return balance + payment;
   if (spec.formula === 'telco') return balance - payment + amount;
   return balance - amount;
@@ -116,9 +117,12 @@ export function recalculate(spec: LedgerSpec, rows: any[], baseline: number) {
     // A credit on the bill (Warm Home Discount, a goodwill credit) raises the
     // balance like a payment. It is not energy use, so `usagePenceFor` ignores it.
     const credit = Number(row.creditPence) || 0;
+    // A refund is money the provider paid back for credit held, so it leaves the
+    // account like a bill. Balance = previous + payment + credit − bill − refund.
+    const refund = Math.max(0, Number(row.refundPence) || 0);
     const amount = Number(row.amountPence) || 0;
     const stored = Number(row.balancePence);
-    if (spec.formula === 'cashflow') running += payment - bill + credit;
+    if (spec.formula === 'cashflow') running += payment - bill + credit - refund;
     else if (spec.formula === 'savings') {
       if (row.opening === true) {
         running = Number(row.balancePence) || 0;
@@ -224,14 +228,12 @@ export function recordBill(
 }
 
 /**
- * Energy used in a statement period. A bill can include money that left the
- * account without being used — a refund, for example — so usage is the bill
- * less any refund recorded on the row. Balances keep using the full bill.
+ * Energy used in a statement period. The bill is what the period used; a refund
+ * is its own flow on the row (money paid back for credit), so it never inflates
+ * the usage a payment plan is built from.
  */
 export function usagePenceFor(row: any): number {
-  const bill = Number(row?.billAmountPence) || 0;
-  const refund = Math.max(0, Number(row?.refundPence) || 0);
-  return bill - refund;
+  return Number(row?.billAmountPence) || 0;
 }
 
 /**
