@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -100,9 +100,9 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'month', label: 'Month', edit: 'month' },
       // The plan is paid off each August from 2027, so the rest of that year and
       // every later year opens blank until a new plan's figures are typed.
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-09' },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2027-09' },
-      { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money', blankZeroFrom: '2027-09' },
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-09', blankUntilPaidFrom: 9 },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2027-09', blankUntilPaidFrom: 9 },
+      { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money', blankZeroFrom: '2027-09', blankUntilPaidFrom: 9 },
       { key: 'status', label: 'Status', edit: 'text' },
       { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
     ],
@@ -410,6 +410,12 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
   const rows = edit?.rows ?? [];
   const openingPence = edit?.openingPence ?? p?.ledgerOpeningPence;
   const displayRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
+  const restartMonth = cfg.columns.find((column) => column.blankUntilPaidFrom !== undefined)?.blankUntilPaidFrom;
+  // The first payment after the summer payoff. Until there is one, the months
+  // after the opening balance stay empty instead of printing the carried figure.
+  const firstPaidAfterRestart = restartMonth === undefined
+    ? -1
+    : displayRows.findIndex((row) => (monthOf(row) ?? 0) >= restartMonth && Number(row.paymentPence ?? 0) !== 0);
   const editable = cfg.columns.filter((c) => c.edit);
   const manualOrder = hasManualOrder(rows);
   const liveYear = Number(p?.year ?? ds.settings.targetYear);
@@ -597,7 +603,17 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
         <button className="btn primary" onClick={add}>Add entry</button>
       </div>
       <Table head={[...cfg.columns.map((c) => c.label), '']} className="ledger-table-start" wrapRef={tableWrapRef}>
-        {displayRows.map((row, index) => (
+        {displayRows.map((row, index) => {
+          const shown = (column: LedgerColumn, value: unknown) => {
+            const month = monthOf(row);
+            if (!column.money) return false;
+            if (column.blankUntilPaidFrom !== undefined && row.opening !== true) {
+              const after = (month ?? 0) >= column.blankUntilPaidFrom;
+              if (after && (firstPaidAfterRestart < 0 || index < firstPaidAfterRestart)) return true;
+            }
+            return blankCell(column, value, year, month);
+          };
+          return (
           <tr key={`${row.month ?? row.date ?? 'row'}-${index}`}>
             {cfg.columns.map((column) => {
               const value = row[column.key];
@@ -623,7 +639,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
                     <CellInput
                       label={`${column.label} ${row.month || row.date || index + 1}`}
                       kind={column.edit}
-                      value={column.money && blankCell(column, value, year, monthOf(row)) ? '' : column.money ? penceInput(value) : String(value ?? '')}
+                      value={column.money && shown(column, value) ? '' : column.money ? penceInput(value) : String(value ?? '')}
                       onCommit={(next) => patch(index, column.key, next)}
                     />
                   )}
@@ -638,7 +654,8 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
               </div>
             </td>
           </tr>
-        ))}
+          );
+        })}
       </Table>
       {displayRows.length === 0 && <Empty>No entries yet. Add the first line below.</Empty>}
     </Section>

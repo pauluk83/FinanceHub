@@ -21,6 +21,12 @@ export type LedgerColumn = {
   blankZeroFrom?: string;
   /** Blank the cell from this month (YYYY-MM) onwards whatever it holds. */
   blankFrom?: string;
+  /**
+   * From this month number onwards, keep money cells empty until the year has a
+   * payment again: a plan that was paid off prints no balance for months that
+   * have not been filled in, and starts showing figures at the first payment.
+   */
+  blankUntilPaidFrom?: number;
 };
 
 /**
