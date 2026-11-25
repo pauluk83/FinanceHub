@@ -424,17 +424,54 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
     return scheduledBills(year, month).reduce((s, b) => s + b.amountPence, 0);
   }
 
-  /** Bill payments that can fill a linked provider's monthly Paid column. */
+  /**
+   * What each linked bill actually took from the bank in a month, from the log.
+   *
+   * A telco bill varies, so the scheduled figure is only a guess: when the month
+   * holds logged payments naming the bill, their total is the amount paid and
+   * that is what the provider's sheet should show.
+   */
+  function loggedBillMonthlyTotals(bill: Bill, upto: string) {
+    const totals = new Map<string, number>();
+    const nameWords = words(bill.name);
+    if (nameWords.length === 0 || nameWords.some((word) => word.length < 2)) return totals;
+    const phrase = ` ${nameWords.join(' ')} `;
+    const account = bill.account || primaryAccount;
+    for (const row of loggedBillPaymentRows()) {
+      if (row.account !== account || !row.phrase.includes(phrase)) continue;
+      if (row.date > upto) continue;
+      const key = row.date.slice(0, 7);
+      totals.set(key, (totals.get(key) ?? 0) + row.amountPence);
+    }
+    return totals;
+  }
+
+  /** Bill payments that fill a linked provider's monthly payment. */
   function providerBillPayments(provider: string, year = ds.settings.targetYear) {
-    const payments: Record<string, { bill: string; amountPence: number; dueDate: string }> = {};
+    const payments: Record<string, { bill: string; amountPence: number; dueDate: string; fromLog: boolean }> = {};
+    const loggedTotals = new Map<string, Map<string, number>>();
+    const totalsFor = (source: Bill) => {
+      const key = `${source.account ?? ''}|${source.name}`;
+      let totals = loggedTotals.get(key);
+      if (!totals) {
+        totals = loggedBillMonthlyTotals(source, paidThrough);
+        loggedTotals.set(key, totals);
+      }
+      return totals;
+    };
     for (let month = 1; month <= 12; month++) {
+      const monthKey = `${year}-${pad(month)}`;
       for (const bill of scheduledBills(year, month)) {
-        if (!bill.paid || !bill.linkedSheet) continue;
+        if (!bill.linkedSheet) continue;
         if (providerKeyForSheet(bill.linkedSheet) !== provider) continue;
+        const source = ds.bills.find((entry) => entry.name === bill.name);
+        const loggedPence = source ? totalsFor(source).get(monthKey) ?? 0 : 0;
+        if (!bill.paid && loggedPence <= 0) continue;
         payments[MONTHS[month - 1]] = {
           bill: bill.name,
-          amountPence: bill.amountPence,
+          amountPence: loggedPence > 0 ? loggedPence : bill.amountPence,
           dueDate: bill.dueDate,
+          fromLog: loggedPence > 0,
         };
       }
     }

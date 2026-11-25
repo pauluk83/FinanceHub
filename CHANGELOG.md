@@ -46,6 +46,7 @@ and the build time.
 - Park Xmas marks each month paid once its date arrives, and leaves the Status and Paid columns empty for months that have not been paid yet
 - Pure Cremation drops its Paid column and marks each month paid on its date; its early months before the plan starts read blank
 - Virgin and O2 drop the Paid column, leaving their ledgers to the bill, payment and balance figures
+- A linked bill now fills the provider's payment with the amount actually paid, taken from the payments logged against that bill
 
 ## [2026.11.23] — 23 November 2026
 

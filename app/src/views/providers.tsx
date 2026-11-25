@@ -28,7 +28,7 @@ const providerCustomLogo = (provider: any) =>
     ? provider.logoData as string
     : undefined;
 
-type AutoPayment = { bill: string; amountPence: number; dueDate: string };
+type AutoPayment = { bill: string; amountPence: number; dueDate: string; fromLog?: boolean };
 type ContractTier = { label: string; amountPence: number };
 type ProviderContract = {
   accountName?: string;
@@ -212,7 +212,12 @@ function effectiveRowsFor(cfg: LedgerConfig, rows: any[], autoPayments?: Record<
   let changed = false;
   const display = rows.map((row) => {
     const auto = row.month && autoPayments ? autoPayments[row.month] : undefined;
-    if (!auto || (Number(row.paymentPence) || 0) !== 0) return { ...row };
+    const current = Number(row.paymentPence) || 0;
+    if (!auto) return { ...row };
+    // A logged payment is what really left the bank, so it replaces the figure
+    // on the sheet; a due bill only fills a month nothing has been typed into.
+    if (!auto.fromLog && current !== 0) return { ...row };
+    if (current === auto.amountPence) return { ...row };
     changed = true;
     return { ...row, paymentPence: auto.amountPence };
   });
@@ -558,7 +563,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
   return (
     <Section
       title={`${title} ${year} ${cfg.rowsKey === 'entries' ? 'ledger' : 'statement'}`}
-      sub={`${displayRows.length} entries · ${cfg.note}${cfg.monthly && Object.keys(autoPayments ?? {}).length ? ' · Due linked bills auto-fill Paid.' : ''} · Edits carry the new close into later years. Type a balance or total paid to anchor it; clear the cell for automatic. Move rows with ↑/↓.`}
+      sub={`${displayRows.length} entries · ${cfg.note}${cfg.monthly && Object.keys(autoPayments ?? {}).length ? ' · Linked bills fill the payment.' : ''} · Edits carry the new close into later years. Type a balance or total paid to anchor it; clear the cell for automatic. Move rows with ↑/↓.`}
       actions={(manualOrder || laterYears.length > 0) ? (
         <div className="page-actions">
           {laterYears.length > 0 && (

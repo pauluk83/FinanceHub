@@ -213,5 +213,21 @@ test('due bills auto-mark paid and supply linked provider payments', () => {
     bill: 'Virgin Media',
     amountPence: 3299,
     dueDate: '2026-11-30',
+    fromLog: false,
   });
+});
+
+test('a linked provider takes the amount actually paid from the log', () => {
+  const live: Dataset = {
+    ...ds,
+    settings: { ...ds.settings, asOfDate: '2026-11-25' },
+    bills: ds.bills.map((b) => (b.name === 'O2' ? { ...b, active: true, effectiveFrom: '' } : b)),
+  };
+  const engine = buildEngine(live);
+  const o2 = engine.providerBillPayments('o2', 2026);
+  // O2 bill payments logged on 24 Sep, 26 Oct + 31 Oct, and 1 Nov.
+  assert.deepEqual(o2['Sep'], { bill: 'O2', amountPence: 933, dueDate: '2026-09-30', fromLog: true });
+  assert.equal(o2['Oct'].amountPence, 13_000, 'two payments in the month add up');
+  assert.equal(o2['Oct'].fromLog, true);
+  assert.equal(o2['Nov'].amountPence, 2_250);
 });
