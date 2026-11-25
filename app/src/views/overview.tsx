@@ -838,11 +838,10 @@ function ScheduleInput({ kind, value, onCommit, label }: { kind: 'date' | 'money
   );
 }
 
-export function Income({ ds, engine, year: pageYear, setYear, month, update, notify }: ViewProps) {
+export function Income({ ds, engine, year: pageYear, month, update, notify }: ViewProps) {
   const targetYear = ds.settings.targetYear;
-  // The page follows the year in the app's year bar, and the tabs below set that
-  // same year so Dashboard and Monthly do not disagree with it. A schedule only
-  // exists for 2026–2028, so any other year falls back to the target year.
+  // The page follows the year in the app's year bar. A schedule only exists for
+  // 2026–2028, so any other year falls back to the target year.
   const year = (SCHEDULE_YEARS as readonly number[]).includes(pageYear) ? pageYear : targetYear;
   const [draft, setDraft] = useState<ScheduleDraft>(() => ({ scheme: 'pip', month: MONTHS[month - 1], date: '', amount: '' }));
   const [rate, setRate] = useState<{ scheme: ScheduleScheme; month: string; amount: string }>(() => ({ scheme: 'pip', month: MONTHS[month - 1], amount: '' }));
@@ -1010,11 +1009,6 @@ export function Income({ ds, engine, year: pageYear, setYear, month, update, not
         </div>
         <div className="notice" style={{ margin: '14px' }}>
           <strong>Where this month’s income comes from:</strong> Dashboard and Monthly read these rows for the year in the app bar. PIP rows for the selected month are added together; UC uses one row per month. Locked months keep their saved month-end totals, so editing a past locked month does not rewrite its snapshot.
-        </div>
-        <div className="tabs">
-          {SCHEDULE_YEARS.map((option) => (
-            <button key={option} className={`tab ${year === option ? 'active' : ''}`} onClick={() => setYear(option)}>{option}</button>
-          ))}
         </div>
       </Section>
 

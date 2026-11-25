@@ -17,6 +17,7 @@ and the build time.
 - Plan PIP every 28 days and Universal Credit on the 27th through 2040, moving a 27th that falls on a weekend or bank holiday back to the last working day
 - Removing a bill in a future year now hides it from that year's plan and keeps it gone for every later year, with the Bill changes row as the way back
 - Ovo statement gains a Refund column: balance = previous + payment + credit - bill - refund, September 2026 reads a 52.92 bill with the 629 refund as its own line
+- Income schedule drops the 2026/2027/2028 tabs; the year bar already picks the schedule year
 
 ## [2026.11.23] — 23 November 2026
 
