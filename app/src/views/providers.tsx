@@ -1166,23 +1166,24 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           <div className="card"><div className="card-title">Latest balance</div><div className="kpi-value">{latest ? gbp(latest.balancePence) : '—'}</div><div className="card-sub">{latest?.date ? dateUk(latest.date) : latest?.month || '—'}</div></div>
         </div>
       )}
-      {provider === 'ovo' && (
-        <div className="kpi-grid">
-          <div className="card">
-            <div className="card-title">Total billed {year}</div>
-            <div className="kpi-value">{gbp(billedThisYear)}</div>
-            <div className="card-sub">
-              {billsThisYear === 0
-                ? 'No bills entered yet this year'
-                : `${billsThisYear} bill${billsThisYear === 1 ? '' : 's'} · updates as you enter each bill`}
-            </div>
-          </div>
-        </div>
-      )}
       {/* O2 and Virgin keep only the contract and ledger: their account fields and
           vault logins are not used, so the two summary sections would be empty noise. */}
       {provider !== 'o2' && provider !== 'virgin' && (
-        <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined} />
+        <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined}>
+          {provider === 'ovo' && (
+            <div className="kpi-grid" style={{ padding: '14px 16px 0' }}>
+              <div className="card">
+                <div className="card-title">Total billed {year}</div>
+                <div className="kpi-value">{gbp(billedThisYear)}</div>
+                <div className="card-sub">
+                  {billsThisYear === 0
+                    ? 'No bills entered yet this year'
+                    : `${billsThisYear} bill${billsThisYear === 1 ? '' : 's'} · updates as you enter each bill`}
+                </div>
+              </div>
+            </div>
+          )}
+        </AccountDetails>
       )}
       {provider !== 'pureCremation' && provider !== 'o2' && provider !== 'virgin' && (vaultSession ? (
         <AccessDetails
