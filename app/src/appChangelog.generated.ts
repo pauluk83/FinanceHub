@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "3462c17c2313",
+  "buildId": "25af994db7b9",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -25,7 +25,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Removing a bill in a future year now hides it from that year's plan and keeps it gone for every later year, with the Bill changes row as the way back",
             "Ovo statement gains a Refund column: balance = previous + payment + credit - bill - refund, September 2026 reads a 52.92 bill with the 629 refund as its own line",
             "Income schedule drops the 2026/2027/2028 tabs; the year bar already picks the schedule year",
-            "Income shows a later year's planned PIP and UC payments instead of falling back to the 2026 schedule"
+            "Income shows a later year's planned PIP and UC payments instead of falling back to the 2026 schedule",
+            "Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels"
           ]
         }
       ]

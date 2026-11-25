@@ -127,6 +127,31 @@ export function extendProviderYears(provider: any, spec: LedgerSpec, lastYear = 
 }
 
 /** Extend every plan provider on the dataset; excluded sheets are never touched. */
+/**
+ * Re-align a later block's month and bill period to the sheet it repeats.
+ *
+ * An early carry forward copied the wrong labels into the future blocks, so a
+ * year could show January's bill period on March's row. Position is the month
+ * order, so labels only ever move — a balance never does.
+ */
+export function alignMonthsToTemplate(rows: any[], template: any[]): boolean {
+  if (!Array.isArray(rows) || !Array.isArray(template) || rows.length !== template.length) return false;
+  let changed = false;
+  rows.forEach((row, index) => {
+    const source = template[index];
+    if (!source) return;
+    if (source.month && row.month !== source.month) {
+      row.month = source.month;
+      changed = true;
+    }
+    if (source.billPeriod && row.billPeriod !== source.billPeriod) {
+      row.billPeriod = source.billPeriod;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 export function extendProvidersToPlanYear(
   dataset: { providers?: Record<string, any> },
   lastYear = PLAN_LAST_YEAR,

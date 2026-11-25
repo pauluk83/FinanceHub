@@ -19,6 +19,7 @@ and the build time.
 - Ovo statement gains a Refund column: balance = previous + payment + credit - bill - refund, September 2026 reads a 52.92 bill with the 629 refund as its own line
 - Income schedule drops the 2026/2027/2028 tabs; the year bar already picks the schedule year
 - Income shows a later year's planned PIP and UC payments instead of falling back to the 2026 schedule
+- Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels
 
 ## [2026.11.23] — 23 November 2026
 

@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, extendProvidersToPlanYear } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, extendProvidersToPlanYear } from '../core/providerPlans.ts';
 import { buildEngine } from '../core/engine.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -104,4 +104,23 @@ test('running the plan twice adds nothing', () => {
   const created = extendProvidersToPlanYear(ds);
   assert.deepEqual(Object.values(created).flat(), [], 'no year is generated twice');
   assert.equal(JSON.stringify(ds.providers), once);
+});
+
+test('a later block is re-aligned to the sheet it repeats, labels only', () => {
+  const template = [
+    { month: 'Jan', billPeriod: '17 Jan - 16 Feb', balancePence: 500 },
+    { month: 'Feb', billPeriod: '17 Feb - 16 Mar', balancePence: 900 },
+  ];
+  const block = [
+    { month: 'Feb', billPeriod: '17 Feb - 16 Mar', billAmountPence: 4_000, balancePence: 500 },
+    { month: 'Feb', billPeriod: '17 Feb - 16 Mar', billAmountPence: 0, balancePence: 900 },
+  ];
+
+  assert.equal(alignMonthsToTemplate(block, template), true);
+  assert.deepEqual(block.map((row) => row.month), ['Jan', 'Feb']);
+  assert.deepEqual(block.map((row) => row.billPeriod), ['17 Jan - 16 Feb', '17 Feb - 16 Mar']);
+  assert.deepEqual(block.map((row) => row.balancePence), [500, 900], 'money is untouched');
+  assert.deepEqual(block.map((row) => row.billAmountPence), [4_000, 0]);
+  assert.equal(alignMonthsToTemplate(block, template), false, 'a second pass changes nothing');
+  assert.equal(alignMonthsToTemplate([{ month: 'Jan' }], template), false, 'a short block is left alone');
 });

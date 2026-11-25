@@ -3,7 +3,7 @@ import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
-import { extendProvidersToPlanYear } from '../../core/providerPlans';
+import { alignMonthsToTemplate, extendProvidersToPlanYear } from '../../core/providerPlans';
 import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
 
 const OVO_SPEC: LedgerSpec = {
@@ -61,6 +61,22 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
       const baseline = baselineFor(OVO_SPEC, rows, ovo?.ledgerOpeningPence);
       recalculate(OVO_SPEC, rows, baseline);
       carryForwardProviderYears(ovo, OVO_SPEC, Number(dataset.settings.targetYear), rows, baseline);
+    },
+  },
+  {
+    // The 2027+ Ovo blocks were carried forward with the wrong month and bill
+    // period on their rows. The 2026 statement is the reference pattern, so
+    // every later block is re-aligned to it — labels only, no money moves.
+    id: 'ovo-later-years-2026-pattern',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[]; years?: Record<string, { rows?: any[] }> } | undefined;
+      const template = (ovo?.statement ?? []).filter((row) => row && row.month !== 'Opening Balance');
+      if (template.length !== 12) return;
+      for (const key of Object.keys(ovo?.years ?? {})) {
+        const block = ovo?.years?.[key];
+        if (!block || !Array.isArray(block.rows)) continue;
+        alignMonthsToTemplate(block.rows.filter((row) => row?.month !== 'Opening Balance'), template);
+      }
     },
   },
   {
