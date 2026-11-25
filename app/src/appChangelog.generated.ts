@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "5c0627b8c626",
+  "buildId": "d5dcf228e964",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -46,7 +46,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Ovo follows the same rule as the other plans: an amount changed on the sheet or the Bills tab applies from that month onwards, and the separate bill-owned sync is gone",
             "Virgin's statement leaves every £0.00 blank from October 2028, where the contract has ended",
             "Virgin's balance is left blank from October 2028 as well, so the ended contract shows no running figure",
-            "Pure Cremation ends with the 2027 payoff: later year copies are removed and those years open blank instead of repeating the last statement"
+            "Pure Cremation ends with the 2027 payoff: later year copies are removed and those years open blank instead of repeating the last statement",
+            "Park Xmas is paid off each August: every year from 2027 keeps its own opening balance line after August, the months after it open blank, and typing a new opening balance and payment fills the year in until it is paid off again"
           ]
         }
       ]

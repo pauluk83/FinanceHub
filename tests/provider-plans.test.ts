@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, PURE_CREMATION_END_YEAR, alignMonthsToTemplate, blankYearBills, dropYearsAfter, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears, recordLiveYear } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, PURE_CREMATION_END_YEAR, alignMonthsToTemplate, blankYearBills, dropYearsAfter, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears, recordLiveYear, shapeRestartYear } from '../core/providerPlans.ts';
 import { rowsForYear } from '../core/providerYears.ts';
 import { buildEngine } from '../core/engine.ts';
 
@@ -273,4 +273,41 @@ test('a plan that ended in 2027 opens blank after it', () => {
   assert.equal(rowsForYear(provider, 'statement', 2028), null, '2028 has no block, so the statement is blank');
   assert.equal(rowsForYear(provider, 'statement', 2026)?.rows.length, 2, 'the live year still reads its own rows');
   assert.equal(recordLiveYear(provider, 2027), false, 'a recorded year is not overwritten');
+});
+
+test('a plan that pays off in August gets a fresh opening balance line', () => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const rowsFor = (payments: number[], status = 'Paid Off') => months.map((month, index) => ({
+    month,
+    paymentPence: payments[index] ?? 0,
+    balancePence: 0,
+    totalPaidPence: 0,
+    status: index >= 7 ? status : 'Owed',
+  }));
+  const provider = {
+    years: {
+      2027: { year: 2027, rows: rowsFor([5_000, 5_000, 5_000, 5_000, 5_000, 5_000, 5_000, 5_000]) },
+      // A copied year is paid off in every month until a new plan is typed.
+      2028: {
+        year: 2028,
+        rows: months.map((month) => ({ month, paymentPence: 0, balancePence: 0, totalPaidPence: 0, status: 'Paid Off' })),
+        },
+    },
+  } as any;
+
+  assert.equal(shapeRestartYear(provider, 2027, 2027), true);
+  const rows2027 = provider.years[2027].rows;
+  assert.equal(rows2027.length, 13, 'one line is added');
+  assert.equal(rows2027[8].month, '2027 Opening Balance');
+  assert.equal(rows2027[8].opening, true, 'the line anchors the new plan');
+  assert.deepEqual(rows2027.slice(9).map((row: any) => row.month), ['Sep', 'Oct', 'Nov', 'Dec'], 'the autumn months stay, empty');
+  assert.equal(rows2027[7].status, 'Paid Off', 'August keeps its payoff status');
+  assert.deepEqual(rows2027.slice(8).map((row: any) => row.status), ['', '', '', '', ''], 'the months after it stop saying Paid Off');
+
+  shapeRestartYear(provider, 2028, 2027);
+  const rows2028 = provider.years[2028].rows;
+  assert.equal(rows2028[8].month, '2028 Opening Balance');
+  assert.deepEqual(rows2028.map((row: any) => row.status), Array(13).fill(''), 'a later year is blank from January');
+
+  assert.equal(shapeRestartYear(provider, 2028, 2027), false, 'a second pass changes nothing');
 });

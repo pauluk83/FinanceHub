@@ -387,6 +387,46 @@ export function dropYearsAfter(provider: any, endYear: number): number[] {
   return dropped;
 }
 
+/**
+ * Give a plan that is paid off in the summer a fresh opening balance line.
+ *
+ * Park Xmas clears its balance in August and a new plan starts in the autumn,
+ * so each later year keeps an "Opening Balance" line after August for the owner
+ * to fill in: the months after it stay empty until a payment is typed, and the
+ * balance follows from the opening figure. Months that no longer carry a
+ * payment stop saying "Paid Off", so the empty rows read blank.
+ */
+export function shapeRestartYear(provider: any, year: number, firstRestartYear: number): boolean {
+  const rows = provider?.years?.[String(year)]?.rows;
+  if (!Array.isArray(rows) || rows.length === 0) return false;
+  const label = `${year} Opening Balance`;
+  let changed = false;
+
+  const augIndex = rows.findIndex((row) => String(row?.month ?? '') === 'Aug');
+  const hasOpening = rows.some((row) => row?.opening === true || String(row?.month ?? '') === label);
+  if (!hasOpening && augIndex >= 0) {
+    rows.splice(augIndex + 1, 0, {
+      month: label,
+      opening: true,
+      paymentPence: 0,
+      balancePence: 0,
+      totalPaidPence: 0,
+      status: '',
+    });
+    changed = true;
+  }
+
+  for (const row of rows) {
+    const month = (['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']).indexOf(String(row?.month ?? ''));
+    if (month < 0 || String(row?.status ?? '') !== 'Paid Off') continue;
+    if (year > firstRestartYear || month > 7) {
+      row.status = '';
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export function extendProvidersToPlanYear(
   dataset: { providers?: Record<string, any> },
   lastYear = PLAN_LAST_YEAR,

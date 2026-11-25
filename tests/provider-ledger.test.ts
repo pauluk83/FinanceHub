@@ -8,6 +8,7 @@ import {
   billedTotalPence,
   billingMonthsFor,
   blankCell,
+  monthRank,
   clearRowOrder,
   hasManualOrder,
   recalculate,
@@ -285,4 +286,10 @@ test('a column blanked from a month hides whatever it holds', () => {
   assert.equal(blankCell(column, -85_477, 2028, 10), true, 'October is blank even with a balance');
   assert.equal(blankCell(column, 0, 2040, 6), true);
   assert.equal(blankCell(column, -85_477, 2026, 10), false, 'earlier years keep their balance');
+});
+
+test('an opening balance for a new plan sorts after August', () => {
+  assert.ok(monthRank('2027 Opening Balance') > monthRank('Aug'), 'the line follows August');
+  assert.ok(monthRank('2027 Opening Balance') < monthRank('Sep'), 'and leads September');
+  assert.equal(monthRank('Opening Balance'), -1, 'a sheet-wide opening line still comes first');
 });

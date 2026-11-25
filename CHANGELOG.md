@@ -40,6 +40,7 @@ and the build time.
 - Virgin's statement leaves every £0.00 blank from October 2028, where the contract has ended
 - Virgin's balance is left blank from October 2028 as well, so the ended contract shows no running figure
 - Pure Cremation ends with the 2027 payoff: later year copies are removed and those years open blank instead of repeating the last statement
+- Park Xmas is paid off each August: every year from 2027 keeps its own opening balance line after August, the months after it open blank, and typing a new opening balance and payment fills the year in until it is paid off again
 
 ## [2026.11.23] — 23 November 2026
 

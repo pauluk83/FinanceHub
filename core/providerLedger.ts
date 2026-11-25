@@ -26,6 +26,9 @@ const monthIndex = (label: string) => (MONTHS as readonly string[]).indexOf(labe
 export const monthRank = (month: unknown) => {
   const label = String(month ?? '');
   if (label === 'Opening Balance') return -1;
+  // A plan that pays off in the summer restarts with a fresh opening balance
+  // after August, so that line sits between August and September.
+  if (/^\d{4}\s+opening balance$/i.test(label)) return MONTHS.indexOf('Aug') + 0.5;
   const index = monthIndex(label);
   return index < 0 ? 99 : index;
 };

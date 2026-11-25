@@ -6,7 +6,7 @@ import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
-import { dropYearsAfter, fillPlanYears, PURE_CREMATION_END_YEAR, recordLiveYear } from '../../core/providerPlans';
+import { dropYearsAfter, fillPlanYears, PLAN_LAST_YEAR, PURE_CREMATION_END_YEAR, recordLiveYear, shapeRestartYear } from '../../core/providerPlans';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
@@ -249,6 +249,16 @@ export function seedState(): AppState {
  */
 function healPlanYears(state: AppState): AppState {
   fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
+  const parkXmas = (state.dataset as unknown as { providers?: Record<string, any> }).providers?.parkXmas;
+  if (parkXmas) {
+    const liveYear = Number(state.dataset.settings.targetYear);
+    recordLiveYear(parkXmas, liveYear);
+    // Each year after the summer payoff keeps an opening balance line for the
+    // new plan; the months after it stay empty until a payment is typed.
+    for (let year = liveYear + 1; year <= PLAN_LAST_YEAR; year += 1) {
+      shapeRestartYear(parkXmas, year, liveYear + 1);
+    }
+  }
   const cremation = (state.dataset as unknown as { providers?: Record<string, any> }).providers?.pureCremation;
   if (cremation) {
     // The sheet has no year of its own, so every year picked read the live rows.

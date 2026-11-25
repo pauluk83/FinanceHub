@@ -98,9 +98,11 @@ export const CONFIG: Record<string, LedgerConfig> = {
     defaults: { month: 'Jan', paymentPence: '50.00', status: 'Owed' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
-      { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money' },
+      // The plan is paid off each August from 2027, so the rest of that year and
+      // every later year opens blank until a new plan's figures are typed.
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-09' },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2027-09' },
+      { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money', blankZeroFrom: '2027-09' },
       { key: 'status', label: 'Status', edit: 'text' },
       { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
     ],
@@ -193,6 +195,8 @@ function nearestDateRowIndex(rows: any[], asOfDate: string) {
 /** Show a scheduled payment only when the provider has no actual payment for that month. */
 /** The month a row covers: the monthly label, or a dated row's month. */
 function monthOf(row: any): number | undefined {
+  // A plan's opening balance sits after August, where the new plan starts.
+  if (row?.opening === true) return 9;
   const index = MONTHS.indexOf(String(row?.month ?? '')) + 1;
   if (index > 0) return index;
   const fromDate = Number(String(row?.date ?? '').slice(5, 7));
