@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "ea6bc4833000",
+  "buildId": "7d01b95ef68a",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -37,7 +37,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Supply contract drops its summary line, the Fixed to badge and the exit fee note, leaving just the editable table",
             "Ovo gas gets its own supply contract: plan name, start and end dates and exit fee are per fuel, alongside its own consumption and rates",
             "Repair a saved budget whose Ovo years stopped at the imported blocks: the missing years to 2040 are generated and laid out with blank bills",
-            "Settings App shows the build number the app is running, not just the version"
+            "Settings App shows the build number the app is running, not just the version",
+            "Ovo year blocks that were saved without rows are laid out again on every load, so 2027 to 2040 open on their months and blank bills"
           ]
         }
       ]

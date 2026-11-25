@@ -6,6 +6,7 @@ import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
+import { fillPlanYears } from '../../core/providerPlans';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
@@ -229,12 +230,25 @@ export function removePersistedValue(key: string): void {
  */
 
 export function seedState(): AppState {
-  return normaliseHolidayYears(applyDataFixes(hydrateProviderPaid(hydrateRentMatched({
+  return normaliseHolidayYears(healPlanYears(applyDataFixes(hydrateProviderPaid(hydrateRentMatched({
     version: 1,
     dataset: structuredClone(seed) as unknown as Dataset,
     theme: 'dark',
     savedAt: new Date().toISOString(),
-  }))));
+  })))));
+}
+
+/**
+ * Lay out any plan year that is present without rows before the budget is read.
+ *
+ * A saved budget can hold a year block that a fix skipped while it was empty, so
+ * the statement opened on a blank grid and the fix was already recorded as done.
+ * This runs on every load instead of once per budget, and only adds rows to a
+ * block that has none — a typed statement is never replaced.
+ */
+function healPlanYears(state: AppState): AppState {
+  fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
+  return state;
 }
 
 const seedProviders = seed.providers as Record<string, Record<string, any>>;
@@ -390,7 +404,7 @@ function decodeState(raw: string | null): AppState | null {
     if (!repaired) return null;
     const theme: Theme = parsed.theme === 'glass' || parsed.theme === 'light' || parsed.theme === 'contrast' ? parsed.theme : 'dark';
     const base: AppState = { ...parsed, dataset: repaired.dataset, theme };
-    return normaliseHolidayYears(ensureAsOfCoversTransactions(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails(base)))))));
+    return normaliseHolidayYears(ensureAsOfCoversTransactions(healPlanYears(applyDataFixes(hydrateProviderPaid(hydrateRentMatched(hydrateParkXmasPlan(hydrateProviderDetails(base))))))));
   } catch {
     return null;
   }

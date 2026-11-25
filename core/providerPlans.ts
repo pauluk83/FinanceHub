@@ -243,6 +243,109 @@ export function blankYearBills(
   return changed;
 }
 
+/**
+ * The rows a missing year is patterned on: the newest block that still has
+ * rows, or the sheet itself when no block does. The year those rows belong to
+ * is where the plan starts, so the year after it is the first one to lay out.
+ */
+function patternFor(provider: any, spec: LedgerSpec): { firstYear: number; rows: any[] } | null {
+  const years = provider?.years ?? {};
+  const known = Object.keys(years).map(Number).filter((year) => Number.isInteger(year)).sort((a, b) => a - b);
+  let newest: number | undefined;
+  for (let index = known.length - 1; index >= 0; index -= 1) {
+    const candidate = years[String(known[index])]?.rows;
+    if (Array.isArray(candidate) && candidate.length > 0) {
+      newest = known[index];
+      break;
+    }
+  }
+  const sheet = provider?.[spec.rowsKey];
+  const rows = newest !== undefined ? years[String(newest)].rows : Array.isArray(sheet) ? sheet : [];
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  // The live year comes from the sheet, so the plan starts the year after it —
+  // even when the block for that next year was saved without rows.
+  const stated = Number(provider?.year ?? provider?.targetYear);
+  const firstYear = Number.isInteger(stated) && stated > 0
+    ? stated + 1
+    : newest !== undefined
+      ? newest + 1
+      : known[0];
+  if (!Number.isInteger(firstYear) || firstYear <= 0) return null;
+  return { firstYear, rows };
+}
+
+/**
+ * Fill a year block that exists but carries no rows, and any year missing after
+ * the sheet's own year.
+ *
+ * A saved budget can hold a block with the right year and no rows (an earlier
+ * extension skipped it, because it only ever appended after the newest block),
+ * which opens on an empty statement. The rows are patterned on the newest block
+ * that has them, so the months, bill periods and payments come back, and the
+ * balances are chained from the sheet. Existing rows are never replaced, so a
+ * typed statement is safe.
+ */
+export function fillEmptyProviderYears(
+  provider: any,
+  spec: LedgerSpec,
+  lastYear = PLAN_LAST_YEAR,
+): number[] {
+  const years = provider?.years;
+  if (!provider || !years || typeof years !== 'object') return [];
+  const pattern = patternFor(provider, spec);
+  if (!pattern || pattern.firstYear > lastYear) return [];
+
+  let rowNumber = highestRowNumber(provider) + 1;
+  const filled: number[] = [];
+  for (let year = pattern.firstYear; year <= lastYear; year += 1) {
+    const existing = years[String(year)];
+    if (Array.isArray(existing?.rows) && existing.rows.length > 0) continue;
+    years[String(year)] = {
+      year,
+      openingPence: Number(existing?.openingPence) || 0,
+      closingPence: 0,
+      rows: repeatYear(pattern.rows, year, spec, () => {
+        rowNumber += 1;
+        return rowNumber;
+      }),
+    };
+    filled.push(year);
+  }
+
+  if (filled.length > 0) {
+    const fromYear = pattern.firstYear - 1;
+    const fromRows = years[String(fromYear)]?.rows ?? provider?.[spec.rowsKey] ?? pattern.rows;
+    carryForwardProviderYears(provider, spec, fromYear, fromRows, years[String(fromYear)]?.openingPence);
+  }
+  return filled;
+}
+
+/**
+ * Keep every plan provider laid out through the plan year, on every load.
+ *
+ * This is not a data fix: a build can only record a fix once, so a budget that
+ * ran one on an already-empty block would stay empty for good. Healing the
+ * shape each time the budget is read means the statement is there whichever
+ * build saved it, and Ovo's future bills stay blank for the owner to type.
+ */
+export function fillPlanYears(
+  dataset: { providers?: Record<string, any>; settings?: { targetYear?: number } },
+  lastYear = PLAN_LAST_YEAR,
+): Record<string, number[]> {
+  const filled: Record<string, number[]> = {};
+  for (const [key, spec] of Object.entries(PLAN_PROVIDERS)) {
+    const provider = dataset.providers?.[key];
+    if (!provider) continue;
+    const years = fillEmptyProviderYears(provider, spec, lastYear);
+    if (key === 'ovo' && years.length > 0) {
+      const target = Number(dataset.settings?.targetYear) || 0;
+      blankYearBills(provider, spec, target > 0 ? target + 1 : years[0]);
+    }
+    filled[key] = years;
+  }
+  return filled;
+}
+
 export function extendProvidersToPlanYear(
   dataset: { providers?: Record<string, any> },
   lastYear = PLAN_LAST_YEAR,

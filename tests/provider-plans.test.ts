@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, blankYearBills, endPureCremationPlan, extendProvidersToPlanYear } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, blankYearBills, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears } from '../core/providerPlans.ts';
 import { buildEngine } from '../core/engine.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -189,4 +189,43 @@ test('every later year is laid out with its bill left blank', () => {
   rows2027[0].billAmountPence = 9_000;
   blankYearBills(provider, spec, 2027, 2040);
   assert.deepEqual(rows2027.map((row) => row.billAmountPence), [0, 0, 0], 'the layout pass only ever clears bills');
+});
+
+test('a year block saved with no rows is laid out again on the next load', () => {
+  const row = (month: string, period: string, bill: number, payment: number, balance: number) => ({
+    month, billPeriod: period, billAmountPence: bill, paymentPence: payment, balancePence: balance,
+  });
+  const provider = {
+    year: 2026,
+    statement: [
+      row('Jan', '17 Jan - 16 Feb', 10_000, 11_000, 1_000),
+      row('Feb', '17 Feb - 16 Mar', 20_000, 11_000, 2_000),
+      row('Mar', '17 Mar - 16 Apr', 5_000, 11_000, 3_000),
+    ],
+    years: {
+      2027: { openingPence: 0, rows: [] },
+      2028: {
+        openingPence: 0,
+        rows: [
+          row('Jan', '17 Jan - 16 Feb', 4_000, 11_000, 0),
+          row('Feb', '17 Feb - 16 Mar', 4_000, 11_000, 0),
+          row('Mar', '17 Mar - 16 Apr', 4_000, 11_000, 0),
+        ],
+      },
+    },
+  } as any;
+  const spec = { rowsKey: 'statement', formula: 'cashflow', monthly: true } as const;
+  assert.deepEqual(fillEmptyProviderYears(provider, spec, 2026), [], 'the live year is left alone');
+
+  const filled = fillPlanYears({ providers: { ovo: provider }, settings: { targetYear: 2026 } }, 2028);
+  assert.deepEqual(filled.ovo, [2027], 'the empty block is the one that is filled');
+
+  const rows = provider.years[2027].rows;
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows.map((entry: any) => entry.month), ['Jan', 'Feb', 'Mar']);
+  assert.deepEqual(rows.map((entry: any) => entry.billAmountPence), [0, 0, 0], 'the future bill waits for a statement');
+  assert.deepEqual(rows.map((entry: any) => entry.paymentPence), [11_000, 11_000, 11_000]);
+  assert.deepEqual(rows.map((entry: any) => entry.balancePence), [14_000, 25_000, 36_000], 'chained from the 2026 close');
+  assert.deepEqual(provider.years[2028].rows.map((entry: any) => entry.balancePence), [47_000, 58_000, 69_000]);
+  assert.deepEqual(fillPlanYears({ providers: { ovo: provider }, settings: { targetYear: 2026 } }, 2028).ovo, [], 'a second load changes nothing');
 });
