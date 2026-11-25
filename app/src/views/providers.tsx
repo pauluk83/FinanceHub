@@ -131,12 +131,13 @@ export const CONFIG: Record<string, LedgerConfig> = {
     formula: 'telco',
     monthly: true,
     note: 'Contract amounts by month. Balance = previous + payment − bill.',
-    quietUntilPaid: true,
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money' },
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
+      // Blank until the bill is paid on its date, so an unpaid month shows the
+      // contract's figure and the balance it leaves rather than a zero.
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-01' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
     ],
   },
@@ -145,13 +146,12 @@ export const CONFIG: Record<string, LedgerConfig> = {
     formula: 'telco',
     monthly: true,
     note: 'Contract amounts by month; £32.99 from Oct 2026. Balance = previous + payment − bill.',
-    quietUntilPaid: true,
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       // The contract ends in September 2028, so nothing is left to show after it.
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZeroFrom: '2028-10' },
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2028-10' },
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-01' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankFrom: '2028-10' },
     ],
   },
@@ -207,21 +207,27 @@ function monthOf(row: any): number | undefined {
   return Number.isInteger(fromDate) && fromDate > 0 ? fromDate : undefined;
 }
 
-function effectiveRowsFor(cfg: LedgerConfig, rows: any[], autoPayments?: Record<string, AutoPayment>, openingPence?: number) {
+function effectiveRowsFor(cfg: LedgerConfig, rows: any[], autoPayments?: Record<string, AutoPayment>, openingPence?: number, autoBills?: Record<string, number>) {
   if (!cfg.monthly) return rows;
   const hasOpening = rows.some((row) => row.opening === true);
-  if (!autoPayments && !hasOpening) return rows;
+  if (!autoPayments && !autoBills && !hasOpening) return rows;
   let changed = false;
   const display = rows.map((row) => {
+    const next = { ...row };
+    const bill = row.month && autoBills ? autoBills[row.month] : undefined;
+    if (bill && (Number(row.amountPence) || 0) === 0) {
+      next.amountPence = bill;
+      changed = true;
+    }
     const auto = row.month && autoPayments ? autoPayments[row.month] : undefined;
     const current = Number(row.paymentPence) || 0;
-    if (!auto) return { ...row };
+    if (!auto) return next;
     // A logged payment is what really left the bank, so it replaces the figure
     // on the sheet; a due bill only fills a month nothing has been typed into.
-    if (!auto.fromLog && current !== 0) return { ...row };
-    if (current === auto.amountPence) return { ...row };
+    if (!auto.fromLog && current !== 0) return next;
+    if (current === auto.amountPence) return next;
     changed = true;
-    return { ...row, paymentPence: auto.amountPence };
+    return { ...next, paymentPence: auto.amountPence };
   });
   if (!changed && !hasOpening) return rows;
   recalculate(cfg, display, baselineFor(cfg, rows, openingPence));
@@ -413,12 +419,12 @@ function CellInput({ value, onCommit, kind, label }: { value: string; onCommit: 
   );
 }
 
-function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPayments }: Pick<ViewProps, 'ds' | 'update' | 'notify'> & { provider: string; title: string; cfg: LedgerConfig; year: number; autoPayments?: Record<string, AutoPayment> }) {
+function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPayments, autoBills }: Pick<ViewProps, 'ds' | 'update' | 'notify'> & { provider: string; title: string; cfg: LedgerConfig; year: number; autoPayments?: Record<string, AutoPayment>; autoBills?: Record<string, number> }) {
   const p = ds.providers[provider];
   const edit = rowsForEdit(p, cfg.rowsKey, year);
   const rows = edit?.rows ?? [];
   const openingPence = edit?.openingPence ?? p?.ledgerOpeningPence;
-  const effectiveRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
+  const effectiveRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence, autoBills);
   const displayRows = cfg.markPaidByDate ? markPaidRows(effectiveRows, year, ds.settings.asOfDate) : effectiveRows;
   // A plan that was paid off prints nothing for months nobody has filled in yet.
   const quietRows = cfg.quietUntilPaid ? quietPlanRows(displayRows) : [];
@@ -1137,7 +1143,10 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   const remainingMonths = contract ? telcoRemainingMonths(p, ds.settings.asOfDate) : null;
   const contractView = contract && remainingMonths !== null ? { ...contract, remaining: String(remainingMonths) } : contract;
   const autoPayments = editableYear ? engine.providerBillPayments(provider, year) : undefined;
-  const displayRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
+  // A telco contract runs for months the sheet has not been filled in for, so
+  // its bill comes from the linked bill until the month has its own figure.
+  const autoBills = editableYear && cfg.formula === 'telco' ? engine.providerBillAmounts(provider, year) : undefined;
+  const displayRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence, autoBills);
   const statementYear = year;
   const comparisonDate = year === ds.settings.targetYear ? ds.settings.asOfDate : `${year}-12-31`;
   const latest = balanceAsOf(displayRows, statementYear, comparisonDate);
@@ -1353,7 +1362,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
         />
       )}
       {editableYear ? (
-        <LedgerEditor ds={ds} provider={provider} title={title} cfg={cfg} year={year} update={update} notify={notify} autoPayments={autoPayments} />
+        <LedgerEditor ds={ds} provider={provider} title={title} cfg={cfg} year={year} update={update} notify={notify} autoPayments={autoPayments} autoBills={autoBills} />
       ) : resolvedRows ? (
         <ArchivedLedger title={title} cfg={cfg} rows={rows} year={year} />
       ) : (

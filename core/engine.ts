@@ -446,6 +446,25 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
     return totals;
   }
 
+  /**
+   * The bill each month of a linked provider's contract carries.
+   *
+   * A contract runs for months the sheet has not been filled in for, so the
+   * scheduled bill supplies the figure and the balance can run through the rest
+   * of the contract.
+   */
+  function providerBillAmounts(provider: string, year = ds.settings.targetYear) {
+    const amounts: Record<string, number> = {};
+    for (let month = 1; month <= 12; month++) {
+      for (const bill of scheduledBills(year, month)) {
+        if (!bill.linkedSheet || bill.amountPence <= 0) continue;
+        if (providerKeyForSheet(bill.linkedSheet) !== provider) continue;
+        amounts[MONTHS[month - 1]] = (amounts[MONTHS[month - 1]] ?? 0) + bill.amountPence;
+      }
+    }
+    return amounts;
+  }
+
   /** Bill payments that fill a linked provider's monthly payment. */
   function providerBillPayments(provider: string, year = ds.settings.targetYear) {
     const payments: Record<string, { bill: string; amountPence: number; dueDate: string; fromLog: boolean }> = {};
@@ -1094,7 +1113,7 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
   }
 
   return {
-    lockCutoff, billVisible, billAmount, billDueDate, scheduledBills, scheduledBillsTotal, providerBillPayments,
+    lockCutoff, billVisible, billAmount, billDueDate, scheduledBills, scheduledBillsTotal, providerBillAmounts, providerBillPayments,
     scheduledBillsPostAnchor, monthlyIncome, monthlyExpenses, monthlySummary, owedAt, owedByPerson,
     cardBalances, starlingBalance, starlingBreakdown, accountBalances, accountFlow, yearToDate, statement, rentLedger, holidays, dashboard, throughFor,
   };

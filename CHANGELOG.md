@@ -49,6 +49,7 @@ and the build time.
 - A linked bill now fills the provider's payment with the amount actually paid, taken from the payments logged against that bill
 - O2 is an active bill again from November 2026, so its payments reach the plan and the O2 sheet
 - Virgin and O2 open blank for the months before the contract started, January to September and January to August
+- Virgin and O2 keep their full contract: the bill and running balance show every month, while the payment stays blank until the bill is paid on its date
 
 ## [2026.11.23] — 23 November 2026
 

@@ -570,6 +570,26 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // Virgin's contract begins in October and O2's in September: the months in
+    // front of them carried nothing but zeros, so the statement opens where the
+    // contract does instead of listing empty months.
+    id: 'virgin-o2-empty-months-2026',
+    apply: (dataset) => {
+      for (const key of ['virgin', 'o2']) {
+        const provider = dataset.providers?.[key] as { statement?: any[] } | undefined;
+        const rows = provider?.statement;
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+        const empty = (row: any) => !Number(row?.amountPence ?? row?.billAmountPence ?? 0)
+          && !Number(row?.paymentPence ?? 0)
+          && !Number(row?.balancePence ?? 0)
+          && !Number(row?.totalPaidPence ?? 0);
+        const first = rows.findIndex((row) => !empty(row));
+        if (first <= 0) continue;
+        provider.statement = rows.slice(first);
+      }
+    },
+  },
+  {
     // O2 was left switched off when its old rows were retired, so the live bill
     // never reached the plan or the O2 sheet. It is a running bill again from
     // November 2026; the months it has already paid stay visible.
