@@ -128,7 +128,8 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
     })
     : trips;
   const totalNights = rows.reduce((sum, row) => sum + (typeof row.holiday.nights === 'number' ? row.holiday.nights : 0), 0);
-  const totalSpend = rows.reduce((sum, row) => sum + (typeof row.holiday.totalPence === 'number' ? row.holiday.totalPence : 0), 0);
+  // Trip totals, not every row: a trip whose total already covers its cost lines is counted once.
+  const totalSpend = trips.reduce((sum, trip) => sum + (trip.totalPence ?? 0), 0);
 
   const toggleTrip = (key: string) => setOpenTrips((current) => {
     const next = new Set(current);

@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.23",
-  "buildId": "49d7a70e0112",
-  "builtAt": "2026-11-23",
+  "version": "2026.11.25",
+  "buildId": "4d3494baf7ef",
+  "builtAt": "2026-11-25",
   "releases": [
+    {
+      "version": "2026.11.25",
+      "date": "25 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Fix holiday trip totals: a trip whose stored total already covers its cost lines (the December Hesperia trip) is no longer counted twice"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.23",
       "date": "23 November 2026",

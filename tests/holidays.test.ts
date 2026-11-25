@@ -28,7 +28,26 @@ test('the December trip is one group with its three cost lines and full total', 
   assert.equal(december.rows.length, 4);
   assert.equal(december.extras.length, 3);
   assert.equal(december.nights, 7);
-  assert.equal(december.totalPence, 140109);
+  assert.equal(december.totalPence, 70054, 'the stored trip total already covers its cost lines, so it is not added twice');
+});
+
+test('yearly holiday totals match the workbook (extras are not counted twice)', () => {
+  const trips = groupHolidayTrips(loadRows(), (row) => row);
+  const yearTotal = (prefix: string) => trips
+    .filter((trip) => trip.start.startsWith(prefix))
+    .reduce((sum, trip) => sum + (trip.totalPence ?? 0), 0);
+
+  assert.equal(yearTotal('2026'), 198219, 'Dashboard I64, bookings only, extras already inside the trip total');
+  assert.equal(yearTotal('2027'), 158312, 'Dashboard I78, where the extras are separate from the booking');
+});
+
+test('a booking total that excludes its cost lines still adds them', () => {
+  const [trip] = groupHolidayTrips([
+    { event: 'Hotel', start: '2026-02-01', end: '2026-02-05', nights: 4, totalPence: 30000 },
+    { event: 'car parking', start: '2026-02-01', end: '2026-02-05', nights: '-', totalPence: 2500 },
+  ], (row) => row);
+
+  assert.equal(trip.totalPence, 32500);
 });
 
 test('the 2027 insurance line ends with the Kn Matas trip and joins it', () => {

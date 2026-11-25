@@ -103,9 +103,21 @@ export function groupHolidayTrips<T>(
       const headline = group.headline ?? group.rows[0];
       const extras = group.rows.filter((row) => row !== headline);
       const priced = group.rows.filter((row) => typeof read(row).totalPence === 'number');
-      const totalPence = priced.length
-        ? priced.reduce((sum, row) => sum + Number(read(row).totalPence), 0)
-        : null;
+      const headlinePence = priced.includes(headline) ? Number(read(headline).totalPence) : null;
+      const extraPence = priced
+        .filter((row) => row !== headline)
+        .reduce((sum, row) => sum + Number(read(row).totalPence), 0);
+      // Some trips store their own total already covering the cost lines (the
+      // workbook's December trip carries 700.54, which is flights 633.38 +
+      // parking 34.395 + insurance 32.765). Adding them again would double count,
+      // so a headline that matches its cost lines within a penny or so is the
+      // trip total; anything else is the booking and the lines add to it.
+      const extrasIncluded = headlinePence !== null && priced.length > 1 && Math.abs(headlinePence - extraPence) <= 2;
+      const totalPence = priced.length === 0
+        ? null
+        : extrasIncluded
+          ? headlinePence
+          : priced.reduce((sum, row) => sum + Number(read(row).totalPence), 0);
       const nights = read(headline).nights;
       return {
         key: group.key,
