@@ -838,24 +838,27 @@ function ScheduleInput({ kind, value, onCommit, label }: { kind: 'date' | 'money
   );
 }
 
-export function Income({ ds, engine, year: pageYear, month, update, notify }: ViewProps) {
+export function Income({ ds, engine, year, month, update, notify }: ViewProps) {
   const targetYear = ds.settings.targetYear;
-  // The page follows the year in the app's year bar. A schedule only exists for
-  // 2026–2028, so any other year falls back to the target year.
-  const year = (SCHEDULE_YEARS as readonly number[]).includes(pageYear) ? pageYear : targetYear;
+  // The stored schedule only covers 2026–2028. A later year is read from the
+  // PIP/UC plan, so the page never shows one year's rows as another's.
+  const planned = !(SCHEDULE_YEARS as readonly number[]).includes(year);
   const [draft, setDraft] = useState<ScheduleDraft>(() => ({ scheme: 'pip', month: MONTHS[month - 1], date: '', amount: '' }));
   const [rate, setRate] = useState<{ scheme: ScheduleScheme; month: string; amount: string }>(() => ({ scheme: 'pip', month: MONTHS[month - 1], amount: '' }));
 
   useEffect(() => setDraft((current) => ({ ...current, month: MONTHS[month - 1] })), [month]);
   useEffect(() => setRate((current) => ({ ...current, month: MONTHS[month - 1] })), [month]);
 
-  const yearKey = scheduleYearKey(year);
+  const yearKey: ScheduleYearKey = planned ? 'year2026' : scheduleYearKey(year);
   const asOf = ds.settings.asOfDate;
   const current = engine.monthlyIncome(year, month);
   const rowsFor = (scheme: ScheduleScheme) => ds.incomeSchedules[scheme]
     .map((row, index) => ({ row, index, cell: row[yearKey] ?? { date: '', amountPence: 0 } }));
-  const pipRows = rowsFor('pip');
-  const ucRows = rowsFor('uc');
+  /** The plan carries on from the 2028 payments: PIP every 28 days, UC on the 27th. */
+  const planRows = (scheme: ScheduleScheme) => plannedPayments(ds, scheme, `${year}-01-01`, `${year}-12-31`)
+    .map((payment, index) => ({ row: { month: MONTHS[Number(payment.date.slice(5, 7)) - 1] }, index, cell: payment }));
+  const pipRows = planned ? planRows('pip') : rowsFor('pip');
+  const ucRows = planned ? planRows('uc') : rowsFor('uc');
   const pipTotal = pipRows.reduce((sum, entry) => sum + (entry.cell.amountPence || 0), 0);
   const ucTotal = ucRows.reduce((sum, entry) => sum + (entry.cell.amountPence || 0), 0);
   const selectedTotal = pipTotal + ucTotal;
@@ -957,26 +960,35 @@ export function Income({ ds, engine, year: pageYear, month, update, notify }: Vi
   const renderScheme = (scheme: ScheduleScheme, title: string, rows: { row: any; index: number; cell: any }[], total: number) => {
     const setCount = countSet(rows);
     return (
-    <Section title={title} sub={`${year} — ${setCount} payment${setCount === 1 ? '' : 's'} set; every month's date and amount can be edited`}>
+    <Section
+      title={title}
+      sub={planned
+        ? `${year} — ${setCount} planned payment${setCount === 1 ? '' : 's'}; the plan carries the 2028 amount forward`
+        : `${year} — ${setCount} payment${setCount === 1 ? '' : 's'} set; every month's date and amount can be edited`}
+    >
       <Table head={['Month', 'Payment date', 'Amount', 'Status']}>
         {rows.map(({ row, index, cell }) => (
           <tr key={`${scheme}-${index}`}>
             <td><strong>{row.month}</strong></td>
             <td>
-              <ScheduleInput
-                kind="date"
-                value={cell.date || ''}
-                label={`${title} ${row.month} date`}
-                onCommit={(next) => editDate(scheme, index, row.month, next)}
-              />
+              {planned ? <span className="nowrap">{dateUk(cell.date)}</span> : (
+                <ScheduleInput
+                  kind="date"
+                  value={cell.date || ''}
+                  label={`${title} ${row.month} date`}
+                  onCommit={(next) => editDate(scheme, index, row.month, next)}
+                />
+              )}
             </td>
-            <td>
-              <ScheduleInput
-                kind="money"
-                value={cell.amountPence ? (cell.amountPence / 100).toFixed(2) : ''}
-                label={`${title} ${row.month} amount`}
-                onCommit={(next) => editAmount(scheme, index, next)}
-              />
+            <td className="num">
+              {planned ? gbp(cell.amountPence) : (
+                <ScheduleInput
+                  kind="money"
+                  value={cell.amountPence ? (cell.amountPence / 100).toFixed(2) : ''}
+                  label={`${title} ${row.month} amount`}
+                  onCommit={(next) => editAmount(scheme, index, next)}
+                />
+              )}
             </td>
             <td>{!cell?.date ? <Badge>Not set</Badge> : cell.date <= asOf ? <Badge tone="green">Paid</Badge> : <Badge>Scheduled</Badge>}</td>
           </tr>
@@ -989,7 +1001,9 @@ export function Income({ ds, engine, year: pageYear, month, update, notify }: Vi
           </tr>
         )}
       </Table>
-      {rows.length === 0 && <Empty>No {title} entries for {year}. Add one below.</Empty>}
+      {rows.length === 0 && <Empty>{planned
+        ? `No ${title} planned for ${year} — the plan runs to 2040.`
+        : `No ${title} entries for ${year}. Add one below.`}</Empty>}
     </Section>
     );
   };
@@ -997,18 +1011,28 @@ export function Income({ ds, engine, year: pageYear, month, update, notify }: Vi
   return (
     <>
       <Section
-        title="Income schedule"
-        sub="PIP and Universal Credit dates and amounts used by the monthly income engine"
-        actions={<Badge tone="blue">{year} schedule</Badge>}
+        title={planned ? 'Income plan' : 'Income schedule'}
+        sub={planned
+          ? 'Planned PIP and Universal Credit payments for this year, carried on from the 2028 schedule'
+          : 'PIP and Universal Credit dates and amounts used by the monthly income engine'}
+        actions={<Badge tone="blue">{year} {planned ? 'plan' : 'schedule'}</Badge>}
       >
         <div className="kpi-grid" style={{ padding: '14px 14px 0' }}>
-          <Card title={`PIP — ${MONTH_LONG[month - 1]}`} value={gbp(current.pip)} sub={`${year} schedule`} tone="pos" />
-          <Card title={`Universal Credit — ${MONTH_LONG[month - 1]}`} value={gbp(current.uc)} sub={`${year} schedule`} tone="pos" />
-          <Card title={`${year} scheduled`} value={gbp(selectedTotal)} sub={`${paymentsSet} payment${paymentsSet === 1 ? '' : 's'} set`} />
+          <Card title={`PIP — ${MONTH_LONG[month - 1]}`} value={gbp(current.pip)} sub={`${year} ${planned ? 'plan' : 'schedule'}`} tone="pos" />
+          <Card title={`Universal Credit — ${MONTH_LONG[month - 1]}`} value={gbp(current.uc)} sub={`${year} ${planned ? 'plan' : 'schedule'}`} tone="pos" />
+          <Card title={`${year} ${planned ? 'planned' : 'scheduled'}`} value={gbp(selectedTotal)} sub={`${paymentsSet} payment${paymentsSet === 1 ? '' : 's'} ${planned ? 'in the plan' : 'set'}`} />
           <Card title="Target year" value={String(targetYear)} sub="Default year when the app opens" />
         </div>
         <div className="notice" style={{ margin: '14px' }}>
-          <strong>Where this month’s income comes from:</strong> Dashboard and Monthly read these rows for the year in the app bar. PIP rows for the selected month are added together; UC uses one row per month. Locked months keep their saved month-end totals, so editing a past locked month does not rewrite its snapshot.
+          {planned ? (
+            <>
+              <strong>Where these dates come from:</strong> the schedule stops in 2028, so this year is planned on from it — PIP every 28 days after the 24 December 2028 payment, and Universal Credit on the 27th of each month, moved back to the last working day when the 27th is a weekend or bank holiday. Both carry the 2028 amount until you change the schedule.
+            </>
+          ) : (
+            <>
+              <strong>Where this month’s income comes from:</strong> Dashboard and Monthly read these rows for the year in the app bar. PIP rows for the selected month are added together; UC uses one row per month. Locked months keep their saved month-end totals, so editing a past locked month does not rewrite its snapshot.
+            </>
+          )}
         </div>
       </Section>
 
@@ -1017,6 +1041,7 @@ export function Income({ ds, engine, year: pageYear, month, update, notify }: Vi
         {renderScheme('uc', 'Universal Credit payments', ucRows, ucTotal)}
       </div>
 
+      {!planned && (<>
       <Section title={`Change ${year} amount from a month`} sub="An effective-dated rate change: that month and every later month with a payment take the new amount; earlier months keep theirs">
         <div className="inline-form">
           <Field label="Type">
@@ -1036,7 +1061,7 @@ export function Income({ ds, engine, year: pageYear, month, update, notify }: Vi
           <button className="btn primary" onClick={applyRateChange}>Apply from {rate.month}</button>
         </div>
         <div className="muted small" style={{ padding: '0 14px 14px' }}>
-          Applies to {year} only and leaves months without a payment alone. Use the year tabs for another year's rates.
+          Applies to {year} only and leaves months without a payment alone. Use the year bar for another year's rates.
         </div>
       </Section>
 
@@ -1065,6 +1090,7 @@ export function Income({ ds, engine, year: pageYear, month, update, notify }: Vi
           PIP allows more than one payment in a month — December 2026 has two. UC keeps one payment per month.
         </div>
       </Section>
+      </>)}
     </>
   );
 }
