@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "a5cdb4ee68b9",
+  "buildId": "56008904e0ad",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -57,7 +57,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "O2 is an active bill again from November 2026, so its payments reach the plan and the O2 sheet",
             "Virgin and O2 open blank for the months before the contract started, January to September and January to August",
             "Virgin and O2 keep their full contract: the bill and running balance show every month, while the payment stays blank until the bill is paid on its date",
-            "Water's Bill column reads blank in the months no bill arrives, so only the half-yearly bills show"
+            "Water's Bill column reads blank in the months no bill arrives, so only the half-yearly bills show",
+            "Rent, Council Tax, Ovo, Virgin and O2 leave an empty money cell blank instead of printing £0.00"
           ]
         }
       ]

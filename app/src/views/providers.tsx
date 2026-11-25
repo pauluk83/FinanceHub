@@ -53,7 +53,7 @@ const RENT_CONFIG: LedgerConfig = {
     { key: 'date', label: 'Date', edit: 'date' },
     { key: 'ref', label: 'Ref', edit: 'text' },
     { key: 'description', label: 'Description', edit: 'text', options: ['Rent Charge', 'Payment', 'Rent Free Week', 'Adjustment'] },
-    { key: 'amountPence', label: 'Amount', money: true, edit: 'money' },
+    { key: 'amountPence', label: 'Amount', money: true, edit: 'money', blankZero: true },
     { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
     { key: 'matched', label: 'Matched', edit: 'text', options: ['✓ Yes', 'No'] },
   ],
@@ -136,10 +136,10 @@ export const CONFIG: Record<string, LedgerConfig> = {
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
-      { key: 'amountPence', label: 'Bill', money: true, edit: 'money' },
+      { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
       // Blank until the bill is paid on its date, so an unpaid month shows the
       // contract's figure and the balance it leaves rather than a zero.
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-01' },
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZero: true },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
     ],
   },
@@ -152,8 +152,8 @@ export const CONFIG: Record<string, LedgerConfig> = {
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       // The contract ends in September 2028, so nothing is left to show after it.
-      { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZeroFrom: '2028-10' },
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-01' },
+      { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZero: true },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankFrom: '2028-10' },
     ],
   },
@@ -167,8 +167,8 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'date', label: 'Date', edit: 'date' },
       { key: 'ref', label: 'Ref', edit: 'text' },
       { key: 'description', label: 'Description', edit: 'text' },
-      { key: 'amountPence', label: 'Amount', money: true, edit: 'money' },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
+      { key: 'amountPence', label: 'Amount', money: true, edit: 'money', blankZero: true },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZero: true },
     ],
   },
 };

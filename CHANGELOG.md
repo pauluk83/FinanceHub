@@ -51,6 +51,7 @@ and the build time.
 - Virgin and O2 open blank for the months before the contract started, January to September and January to August
 - Virgin and O2 keep their full contract: the bill and running balance show every month, while the payment stays blank until the bill is paid on its date
 - Water's Bill column reads blank in the months no bill arrives, so only the half-yearly bills show
+- Rent, Council Tax, Ovo, Virgin and O2 leave an empty money cell blank instead of printing £0.00
 
 ## [2026.11.23] — 23 November 2026
 
