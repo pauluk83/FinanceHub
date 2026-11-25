@@ -907,11 +907,22 @@ type OvoSupply = {
   startDate?: string;
   endDate?: string;
   exitFeePence?: number;
-  electricity?: { annualKwh?: number; standingChargePence?: number; unitRatePence?: number };
-  gas?: { annualKwh?: number; standingChargePence?: number; unitRatePence?: number };
+  electricity?: OvoFuelInfo;
+  gas?: OvoFuelInfo;
 };
 
-type OvoFuel = NonNullable<OvoSupply['electricity']>;
+/** Each fuel keeps its own plan, dates, exit fee and rates. */
+type OvoFuelInfo = {
+  planName?: string;
+  startDate?: string;
+  endDate?: string;
+  exitFeePence?: number;
+  annualKwh?: number;
+  standingChargePence?: number;
+  unitRatePence?: number;
+};
+
+type OvoFuel = OvoFuelInfo;
 
 /** A contract cell that commits on Enter or blur, like the ledger cells do. */
 function SupplyInput({ value, onCommit, label, type = 'text', minWidth = 150 }: { value: string; onCommit: (value: string) => void; label: string; type?: 'text' | 'date'; minWidth?: number }) {
@@ -948,24 +959,44 @@ const numberOrUndefined = (raw: string, decimals = 0) => {
 };
 
 /**
- * The contract both fuels share, then the per-fuel consumption and rates.
- * Every figure is editable in place, so a renewal can be recorded without a
- * rebuild; the section header reads back what the table now holds.
+ * Each fuel keeps its own plan, dates, exit fee, consumption and rates, so the
+ * two can renew on different dates. Every figure is editable in place.
  */
 function OvoSupplyContract({ supply, onChange }: { supply: OvoSupply; onChange: (mutate: (supply: OvoSupply) => void) => void }) {
-  const fuel = (key: 'electricity' | 'gas'): OvoFuel => supply[key] ?? {};
-  const setFuel = (key: 'electricity' | 'gas', field: keyof OvoFuel, raw: string, decimals: number) => {
+  const fuels = ['electricity', 'gas'] as const;
+  const fuel = (key: typeof fuels[number]): OvoFuel => supply[key] ?? {};
+  const setFuel = (key: typeof fuels[number], field: keyof OvoFuel, value: string | number | undefined) => {
     onChange((next) => {
-      next[key] = { ...(next[key] ?? {}), [field]: numberOrUndefined(raw, decimals) };
+      next[key] = { ...(next[key] ?? {}), [field]: value };
     });
   };
-  const fuelCell = (key: 'electricity' | 'gas', field: keyof OvoFuel, decimals: number, unit: string) => (
-    <td>
+  // A contract saved before each fuel had its own plan still holds shared
+  // figures, so both columns read those until that fuel is edited.
+  const shared = (key: typeof fuels[number], field: 'planName' | 'startDate' | 'endDate' | 'exitFeePence') =>
+    fuel(key)[field] ?? supply[field];
+  const textRow = (label: string, field: 'planName' | 'startDate' | 'endDate', type: 'text' | 'date', minWidth: number) => (
+    <tr>
+      <td><strong>{label}</strong></td>
+      {fuels.map((key) => (
+        <td key={key}>
+          <SupplyInput
+            label={`${key} ${label.toLowerCase()}`}
+            type={type}
+            minWidth={minWidth}
+            value={String(shared(key, field) ?? '')}
+            onCommit={(next) => setFuel(key, field, next || undefined)}
+          />
+        </td>
+      ))}
+    </tr>
+  );
+  const numberCell = (key: typeof fuels[number], field: 'annualKwh' | 'standingChargePence' | 'unitRatePence', decimals: number, unit: string) => (
+    <td key={key}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <SupplyInput
           label={`${key} ${field === 'annualKwh' ? 'annual consumption' : field === 'standingChargePence' ? 'standing charge' : 'unit rate'}`}
-          value={decimals === 0 ? sizeText(fuel(key).annualKwh as number | undefined) : rateText(fuel(key)[field] as number | undefined)}
-          onCommit={(raw) => setFuel(key, field, raw, decimals)}
+          value={decimals === 0 ? sizeText(fuel(key).annualKwh) : rateText(fuel(key)[field])}
+          onCommit={(raw) => setFuel(key, field, numberOrUndefined(raw, decimals))}
           minWidth={110}
         />
         <span className="muted small">{unit}</span>
@@ -975,40 +1006,25 @@ function OvoSupplyContract({ supply, onChange }: { supply: OvoSupply; onChange: 
   return (
     <Section title="Supply contract">
       <Table head={['', 'Electricity', 'Gas']}>
-        <tr>
-          <td><strong>Plan name</strong></td>
-          <td colSpan={2}>
-            <SupplyInput label="Supply plan name" value={supply.planName ?? ''} minWidth={260}
-              onCommit={(next) => onChange((s) => { s.planName = next; })} />
-          </td>
-        </tr>
-        <tr>
-          <td><strong>Contract start date</strong></td>
-          <td colSpan={2}>
-            <SupplyInput label="Contract start date" type="date" minWidth={150} value={supply.startDate ?? ''}
-              onCommit={(next) => onChange((s) => { s.startDate = next; })} />
-          </td>
-        </tr>
-        <tr>
-          <td><strong>Contract end date</strong></td>
-          <td colSpan={2}>
-            <SupplyInput label="Contract end date" type="date" minWidth={150} value={supply.endDate ?? ''}
-              onCommit={(next) => onChange((s) => { s.endDate = next; })} />
-          </td>
-        </tr>
+        {textRow('Plan name', 'planName', 'text', 220)}
+        {textRow('Contract start date', 'startDate', 'date', 150)}
+        {textRow('Contract end date', 'endDate', 'date', 150)}
         <tr>
           <td><strong>Exit fee</strong></td>
-          <td colSpan={2}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <SupplyInput label="Exit fee" minWidth={110}
-                value={typeof supply.exitFeePence === 'number' ? (supply.exitFeePence / 100).toFixed(2) : ''}
-                onCommit={(next) => onChange((s) => { s.exitFeePence = next ? parseMoney(next) : undefined; })} />
-            </span>
-          </td>
+          {fuels.map((key) => {
+            const fee = shared(key, 'exitFeePence');
+            return (
+              <td key={key}>
+                <SupplyInput label={`${key} exit fee`} minWidth={110}
+                  value={typeof fee === 'number' ? (fee / 100).toFixed(2) : ''}
+                  onCommit={(next) => setFuel(key, 'exitFeePence', next ? parseMoney(next) : undefined)} />
+              </td>
+            );
+          })}
         </tr>
-        <tr><td><strong>Future annual consumption</strong></td>{fuelCell('electricity', 'annualKwh', 0, 'kWh')}{fuelCell('gas', 'annualKwh', 0, 'kWh')}</tr>
-        <tr><td><strong>Standing charge</strong></td>{fuelCell('electricity', 'standingChargePence', 2, 'p per day')}{fuelCell('gas', 'standingChargePence', 2, 'p per day')}</tr>
-        <tr><td><strong>Unit rate</strong></td>{fuelCell('electricity', 'unitRatePence', 2, 'p per kWh')}{fuelCell('gas', 'unitRatePence', 2, 'p per kWh')}</tr>
+        <tr><td><strong>Future annual consumption</strong></td>{fuels.map((key) => numberCell(key, 'annualKwh', 0, 'kWh'))}</tr>
+        <tr><td><strong>Standing charge</strong></td>{fuels.map((key) => numberCell(key, 'standingChargePence', 2, 'p per day'))}</tr>
+        <tr><td><strong>Unit rate</strong></td>{fuels.map((key) => numberCell(key, 'unitRatePence', 2, 'p per kWh'))}</tr>
       </Table>
     </Section>
   );
