@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear, repeatSheetMoney } from '../core/providerPlans.ts';
 import { buildEngine } from '../core/engine.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -145,4 +145,43 @@ test('the Pure Cremation plan ends with the December 2027 payoff', () => {
 
   endPureCremationPlan(ds);
   assert.equal(ds.billChanges.filter((change: any) => /pure cremation/i.test(change.bill)).length, 1, 'a second pass adds nothing');
+});
+
+test('a sheet repeats its monthly bills into the later years', () => {
+  const provider = {
+    statement: [
+      { month: 'Jan', billPeriod: '17 Jan - 16 Feb', billAmountPence: 10_000, paymentPence: 11_000, balancePence: 1_000 },
+      { month: 'Feb', billPeriod: '17 Feb - 16 Mar', billAmountPence: 20_000, paymentPence: 11_000, balancePence: 2_000 },
+      { month: 'Mar', billPeriod: '17 Mar - 16 Apr', billAmountPence: 0, paymentPence: 11_000, balancePence: 3_000 },
+    ],
+    years: {
+      2027: {
+        openingPence: 0,
+        rows: [
+          { month: 'Jan', billPeriod: 'x', billAmountPence: 0, paymentPence: 11_000, balancePence: 0 },
+          { month: 'Feb', billPeriod: 'x', billAmountPence: 0, paymentPence: 11_000, balancePence: 0 },
+          { month: 'Mar', billPeriod: 'x', billAmountPence: 0, paymentPence: 11_000, balancePence: 0 },
+        ],
+      },
+      2028: {
+        openingPence: 0,
+        rows: [
+          { month: 'Jan', billPeriod: 'x', billAmountPence: 0, paymentPence: 11_000, balancePence: 0 },
+          { month: 'Feb', billPeriod: 'x', billAmountPence: 0, paymentPence: 11_000, balancePence: 0 },
+          { month: 'Mar', billPeriod: 'x', billAmountPence: 0, paymentPence: 11_000, balancePence: 0 },
+        ],
+      },
+    },
+  };
+  const spec = { rowsKey: 'statement', formula: 'cashflow', monthly: true } as const;
+
+  assert.deepEqual(repeatSheetMoney(provider, spec, 2027, 2040), [2027, 2028]);
+  const rows2027 = provider.years[2027].rows;
+  assert.deepEqual(rows2027.map((row) => row.billAmountPence), [10_000, 20_000, 15_000], 'the unbilled month takes the average');
+  assert.deepEqual(rows2027.map((row) => row.paymentPence), [11_000, 11_000, 11_000]);
+  assert.deepEqual(rows2027.map((row) => row.billPeriod), ['17 Jan - 16 Feb', '17 Feb - 16 Mar', '17 Mar - 16 Apr']);
+  // 2026 closes at 3000, then each month adds the payment and takes the bill.
+  assert.deepEqual(rows2027.map((row) => row.balancePence), [4_000, -5_000, -9_000]);
+  assert.deepEqual(provider.years[2028].rows.map((row) => row.balancePence), [-8_000, -17_000, -21_000], 'the next year opens where the last closed');
+  assert.equal(repeatSheetMoney(provider, spec, 2027, 2040).length, 0, 'a second pass changes nothing');
 });

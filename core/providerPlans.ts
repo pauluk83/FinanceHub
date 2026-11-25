@@ -180,6 +180,75 @@ export function alignMonthsToTemplate(rows: any[], template: any[]): boolean {
   return changed;
 }
 
+/**
+ * Repeat a sheet's monthly money into every later year.
+ *
+ * The generated years only carried the standing order, so a future block showed
+ * payments but never a bill. Each month's bill, bill period and payment is
+ * copied from the reference sheet into the years after it, and a month the sheet
+ * has not billed yet takes the average of the months it has, so no month is left
+ * blank. Balances are then chained from the reference year's close.
+ *
+ * Pure: no I/O, no clock reads, integer pence only.
+ */
+export function repeatSheetMoney(
+  provider: any,
+  spec: LedgerSpec,
+  fromYear: number,
+  lastYear = PLAN_LAST_YEAR,
+): number[] {
+  const template: any[] = provider?.[spec.rowsKey] ?? [];
+  const rows = template.filter((row) => row && row.month && row.month !== 'Opening Balance');
+  if (rows.length === 0) return [];
+
+  const billed = rows.map((row) => Number(row.billAmountPence) || 0).filter((pence) => pence > 0);
+  const average = billed.length > 0
+    ? Math.round(billed.reduce((sum, pence) => sum + pence, 0) / billed.length)
+    : 0;
+  const byMonth = new Map<string, { month: string; billPeriod?: string; bill: number; payment: number }>();
+  for (const row of rows) {
+    byMonth.set(String(row.month), {
+      month: String(row.month),
+      billPeriod: typeof row.billPeriod === 'string' ? row.billPeriod : undefined,
+      bill: (Number(row.billAmountPence) || 0) > 0 ? Number(row.billAmountPence) : average,
+      payment: Number(row.paymentPence) || 0,
+    });
+  }
+
+  const changed: number[] = [];
+  for (let year = fromYear; year <= lastYear; year += 1) {
+    const block = provider?.years?.[String(year)];
+    if (!block || !Array.isArray(block.rows) || block.rows.length === 0) continue;
+    let touched = false;
+    for (const row of block.rows) {
+      const source = byMonth.get(String(row.month));
+      if (!source) continue;
+      if (source.billPeriod && row.billPeriod !== source.billPeriod) {
+        row.billPeriod = source.billPeriod;
+        touched = true;
+      }
+      if ((Number(row.billAmountPence) || 0) !== source.bill) {
+        row.billAmountPence = source.bill;
+        touched = true;
+      }
+      if ((Number(row.paymentPence) || 0) !== source.payment) {
+        row.paymentPence = source.payment;
+        touched = true;
+      }
+    }
+    if (!touched) continue;
+    block.totalPaymentPence = block.rows.reduce((sum: number, row: any) => sum + (Number(row.paymentPence) || 0), 0);
+    block.totalPaidPence = 0;
+    changed.push(year);
+  }
+
+  if (changed.length > 0) {
+    // The reference year's close is where the first repeated year opens.
+    carryForwardProviderYears(provider, spec, fromYear - 1, template);
+  }
+  return changed;
+}
+
 export function extendProvidersToPlanYear(
   dataset: { providers?: Record<string, any> },
   lastYear = PLAN_LAST_YEAR,

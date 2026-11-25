@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "fd4ca5b00af2",
+  "buildId": "b3791d7f5c9e",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -30,7 +30,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Ovo provider page shows the supply contract: plan, term, exit fee, future annual consumption and standing/unit rates for electricity and gas",
             "Ovo account details shows a card with the year's total bill, updating as each bill is entered",
             "Add a liquid glass theme: a dark backdrop with frosted, translucent panels and a glass round in the theme switcher",
-            "Ovo shows the year's total bill as an account detail card after the balance"
+            "Ovo shows the year's total bill as an account detail card after the balance",
+            "Ovo repeats the 2026 pattern through 2040: every later year has its month, bill period, payment, bill and chained balance filled in"
           ]
         }
       ]

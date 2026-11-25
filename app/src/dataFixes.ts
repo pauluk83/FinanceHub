@@ -3,7 +3,7 @@ import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
-import { alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear } from '../../core/providerPlans';
+import { alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear, repeatSheetMoney } from '../../core/providerPlans';
 import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
 
 const OVO_SPEC: LedgerSpec = {
@@ -344,6 +344,18 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     id: 'provider-years-to-2040',
     apply: (dataset) => {
       extendProvidersToPlanYear(dataset as { providers?: Record<string, any> });
+    },
+  },
+  {
+    // The generated Ovo years only carried the standing order, so 2027-2040
+    // showed a payment every month and a bill of nothing, which left the
+    // balance climbing as credit. The 2026 sheet is the pattern, so each
+    // month's bill, bill period and payment now repeats through 2040.
+    id: 'ovo-bills-replicated-to-2040',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[] } | undefined;
+      if (!ovo) return;
+      repeatSheetMoney(ovo, OVO_SPEC, Number(dataset.settings.targetYear) + 1);
     },
   },
   {
