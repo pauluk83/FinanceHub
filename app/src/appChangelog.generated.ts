@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "7d01b95ef68a",
+  "buildId": "3abf110925fa",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -38,7 +38,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Ovo gas gets its own supply contract: plan name, start and end dates and exit fee are per fuel, alongside its own consumption and rates",
             "Repair a saved budget whose Ovo years stopped at the imported blocks: the missing years to 2040 are generated and laid out with blank bills",
             "Settings App shows the build number the app is running, not just the version",
-            "Ovo year blocks that were saved without rows are laid out again on every load, so 2027 to 2040 open on their months and blank bills"
+            "Ovo year blocks that were saved without rows are laid out again on every load, so 2027 to 2040 open on their months and blank bills",
+            "Build ids ignore the line endings a checkout uses, so the Windows build and the CI build of the same commit report one id"
           ]
         }
       ]

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { APP_CHANGELOG } from '../app/src/appChangelog.generated.ts';
 import { buildId, parseChangelog } from '../scripts/app-changelog.mjs';
 import { addNote, prepareRelease, releaseVersion, sameDayTagNotice, versionTagProblem } from '../scripts/release.mjs';
@@ -29,6 +31,23 @@ test('the changelog parser keeps headings, dates and bullets', () => {
 
 test('the build id is deterministic for the same source', () => {
   assert.equal(buildId(), buildId());
+});
+
+test('the build id ignores the line endings a checkout happens to use', () => {
+  const root = mkdtempSync(join(tmpdir(), 'financehub-buildid-'));
+  try {
+    mkdirSync(join(root, 'app', 'src'), { recursive: true });
+    const pkgLf = '{\n  "version": "1.0.0"\n}\n';
+    const fileLf = 'line one\nline two\n';
+    writeFileSync(join(root, 'package.json'), pkgLf);
+    writeFileSync(join(root, 'app', 'src', 'main.ts'), fileLf);
+    const linux = buildId(root);
+    writeFileSync(join(root, 'package.json'), pkgLf.replace(/\n/g, '\r\n'));
+    writeFileSync(join(root, 'app', 'src', 'main.ts'), fileLf.replace(/\n/g, '\r\n'));
+    assert.equal(buildId(root), linux, 'a Windows checkout and a Linux build share one id');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('a release note appends to the current version without bumping it', () => {

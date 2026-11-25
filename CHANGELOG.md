@@ -32,6 +32,7 @@ and the build time.
 - Repair a saved budget whose Ovo years stopped at the imported blocks: the missing years to 2040 are generated and laid out with blank bills
 - Settings App shows the build number the app is running, not just the version
 - Ovo year blocks that were saved without rows are laid out again on every load, so 2027 to 2040 open on their months and blank bills
+- Build ids ignore the line endings a checkout uses, so the Windows build and the CI build of the same commit report one id
 
 ## [2026.11.23] — 23 November 2026
 

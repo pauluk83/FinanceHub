@@ -8,7 +8,7 @@
  * build. Tests import the exported helpers.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,6 +41,7 @@ export function parseChangelog(text) {
 }
 
 function sourceFiles(dir) {
+  if (!existsSync(dir)) return [];
   const found = [];
   for (const entry of readdirSync(dir).sort()) {
     const full = join(dir, entry);
@@ -63,7 +64,9 @@ export function buildId(root = ROOT) {
   for (const file of files) {
     hash.update(relative(root, file).split(sep).join('/'));
     hash.update('\0');
-    hash.update(readFileSync(file));
+    // Git checks out CRLF on Windows and LF elsewhere, so the bytes alone would
+    // give the same commit two ids. Hash the text with one line ending instead.
+    hash.update(readFileSync(file, 'utf8').replace(/\r\n/g, '\n'));
     hash.update('\0');
   }
   return hash.digest('hex').slice(0, 12);
