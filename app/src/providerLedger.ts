@@ -15,7 +15,7 @@ export type LedgerColumn = {
   key: string;
   label: string;
   money?: boolean;
-  edit?: 'text' | 'date' | 'money' | 'month';
+  edit?: 'text' | 'date' | 'money' | 'month' | 'check';
   options?: string[];
   /** Show a zero as an empty box, so a figure can be typed without clearing it. */
   blankZero?: boolean;

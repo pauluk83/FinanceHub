@@ -55,7 +55,8 @@ const RENT_CONFIG: LedgerConfig = {
     { key: 'description', label: 'Description', edit: 'text', options: ['Rent Charge', 'Payment', 'Rent Free Week', 'Adjustment'] },
     { key: 'amountPence', label: 'Amount', money: true, edit: 'money', blankZero: true },
     { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
-    { key: 'matched', label: 'Matched', edit: 'text', options: ['✓ Yes', 'No'] },
+    // A tick is matched, an empty box is not; the older "No" rows read as unticked.
+    { key: 'matched', label: 'Matched', edit: 'check' },
   ],
 };
 
@@ -140,7 +141,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
       // Blank until the bill is paid on its date, so an unpaid month shows the
       // contract's figure and the balance it leaves rather than a zero.
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZero: true },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZero: true },
     ],
   },
   virgin: {
@@ -154,7 +155,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
       // The contract ends in September 2028, so nothing is left to show after it.
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZero: true },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankFrom: '2028-10' },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZero: true, blankFrom: '2028-10' },
     ],
   },
   councilTax: {
@@ -394,6 +395,9 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
   );
 }
 
+/** A ticked box means matched; the workbook's older "No" rows read as unticked. */
+const isMatched = (value: unknown) => value === true || /^(✓\s*)?(yes|y|matched)$/i.test(String(value ?? '').trim());
+
 function CellInput({ value, onCommit, kind, label }: { value: string; onCommit: (value: string) => void; kind: 'text' | 'date' | 'money' | 'month'; label: string }) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
@@ -593,7 +597,14 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
       <div className="inline-form">
         {editable.map((column) => (
           <Field key={column.key} label={column.label}>
-            {column.options ? (
+            {column.edit === 'check' ? (
+              <input
+                type="checkbox"
+                aria-label={column.label}
+                checked={isMatched(draft[column.key])}
+                onChange={(e) => setDraft({ ...draft, [column.key]: e.target.checked ? '✓ Yes' : '' })}
+              />
+            ) : column.options ? (
               <select
                 className="input"
                 value={draft[column.key] ?? ''}
@@ -635,7 +646,14 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
               }
               return (
                 <td key={column.key} className={column.money ? 'num' : ''}>
-                  {column.options ? (
+                  {column.edit === 'check' ? (
+                    <input
+                      type="checkbox"
+                      aria-label={`${column.label} ${row.date || row.month || index + 1}`}
+                      checked={isMatched(value)}
+                      onChange={(e) => patch(index, column.key, e.target.checked ? '✓ Yes' : '')}
+                    />
+                  ) : column.options ? (
                     <select
                       className="table-input"
                       aria-label={`${column.label} ${row.month || row.date || index + 1}`}
@@ -685,6 +703,7 @@ function ArchivedLedger({ title, cfg, rows, year }: { title: string; cfg: Ledger
             {cfg.columns.map((column) => {
               const value = row[column.key];
               if (column.key === 'date') return <td key={column.key} className="muted nowrap">{dateUk(value)}</td>;
+              if (column.edit === 'check') return <td key={column.key}>{isMatched(value) ? '✓' : ''}</td>;
               if (column.money) {
                 return (
                   <td key={column.key} className={`num ${typeof value === 'number' && value < 0 ? 'amount neg' : ''}`}>
