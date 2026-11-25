@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "6308fb5be1c0",
+  "buildId": "a6a4d22babb7",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -20,7 +20,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Work out a holiday's days and nights from its dates, fill them into the form automatically and count them in Nights booked",
             "Count nights from a trip's dates even when its saved night count is blank, so Nights booked includes every trip",
             "Run the year selector to 2040 so trips and plans can be filed under future years",
-            "Repeat Water, Ovo, Park Xmas, Council Tax and Rent through 2040 from next year's figures, leaving O2, Virgin Media and Pure Cremation on their own contracts"
+            "Repeat Water, Ovo, Park Xmas, Council Tax and Rent through 2040 from next year's figures, leaving O2, Virgin Media and Pure Cremation on their own contracts",
+            "Plan PIP every 28 days and Universal Credit on the 27th through 2040, moving a 27th that falls on a weekend or bank holiday back to the last working day"
           ]
         }
       ]

@@ -16,6 +16,7 @@ import { providerRowsKey, rowsForYear } from './providerYears.ts';
 import { allRentEntries, rentLedgerThrough, rentPaymentPenceForMonth } from './rent.ts';
 import { waterPaymentPenceForMonth } from './water.ts';
 import { telcoBillPence } from './telco.ts';
+import { incomeFor, plannedPayments } from './incomePlan.ts';
 import type { Asset } from './assets.ts';
 import type { ImportRule } from './importRules.ts';
 import type { ImportBatch, StatementCheck } from './reconciliation.ts';
@@ -295,13 +296,6 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
   /** Primary-account rows that mirror another own bank account: an internal movement. */
   const internalTransferRows = findInternalTransferRows(ds.transactions, bankNames, primaryAccount);
 
-  /** Effective schedule amount for a target year (Settings K/L blocks resolve by year). */
-  function scheduleAmount(row: ScheduleRow, year: number): { date: string; amountPence: number } {
-    if (year === 2027) return row.year2027;
-    if (year === 2028) return row.year2028;
-    return row.year2026;
-  }
-
   /**
    * Settings!C11 logic: month-start, back one month if as-of day < 3.
    * Kept as a pure helper so devices with different clocks still agree.
@@ -550,19 +544,10 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
   }
 
   function monthlyIncome(year: number, month: number, includeInternal = false) {
-    const label = MONTHS[month - 1];
     const counted = (t: Tx) => includeInternal || !internalTransferRows.has(t.row);
-    // PIP uses SUMIF over the schedule, so a duplicated month (Dec 2026 has two
-    // payments) is additive; UC uses XLOOKUP, so it is single-valued.
-    const pip = ds.incomeSchedules.pip
-      .filter((r) => r.month === label)
-      .reduce((s, r) => {
-        const hit = scheduleAmount(r, year);
-        return hit.date && yearOf(hit.date) === year ? s + hit.amountPence : s;
-      }, 0);
-    const ucRow = ds.incomeSchedules.uc.find((r) => r.month === label);
-    const ucHit = ucRow ? scheduleAmount(ucRow, year) : { date: '', amountPence: 0 };
-    const uc = ucHit.date && yearOf(ucHit.date) === year ? ucHit.amountPence : 0;
+    // The schedule rows cover 2026-2028; after that the plan carries the 28-day
+    // PIP cycle and the adjusted 27th for UC, so a future month still balances.
+    const { pip, uc } = incomeFor(ds, year, month);
 
     const starlingIncome = ds.transactions
       .filter((t) => t.account === primaryAccount && t.type === 'Income' && inMonth(t, year, month) && t.budgetTreatment !== 'Transfer' && t.autoBill !== true && counted(t))
@@ -738,15 +723,9 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
   /** Scheduled PIP/UC income dated after the anchor, across every month in range (N12 schedin). */
   function scheduledIncomePostAnchor(anchor: string, through: string): number {
     let total = 0;
-    for (let year = yearOf(anchor); year <= yearOf(through); year++) {
-      for (let month = 1; month <= 12; month++) {
-        if (monthStart(year, month) > through) continue;
-        const label = MONTHS[month - 1];
-        for (const r of ds.incomeSchedules.pip.concat(ds.incomeSchedules.uc)) {
-          if (r.month !== label) continue;
-          const hit = scheduleAmount(r, year);
-          if (hit.date && hit.date > anchor && hit.date <= through) total += hit.amountPence;
-        }
+    for (const scheme of ['pip', 'uc'] as const) {
+      for (const hit of plannedPayments(ds, scheme, anchor, through)) {
+        if (hit.date > anchor) total += hit.amountPence;
       }
     }
     return total;
@@ -801,17 +780,9 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
       }
     }
 
-    for (const [kind, schedule] of [['PIP', ds.incomeSchedules.pip], ['UC', ds.incomeSchedules.uc]] as const) {
-      for (let year = yearOf(anchor); year <= yearOf(asOf); year++) {
-        for (let month = 1; month <= 12; month++) {
-          if (monthStart(year, month) > asOf) continue;
-          const label = MONTHS[month - 1];
-          for (const row of schedule) {
-            if (row.month !== label) continue;
-            const hit = scheduleAmount(row, year);
-            if (hit.date && hit.date > anchor) push(hit.date, hit.amountPence, `${kind} payment`, 'Income', --syntheticRow);
-          }
-        }
+    for (const [kind, scheme] of [['PIP', 'pip'], ['UC', 'uc']] as const) {
+      for (const hit of plannedPayments(ds, scheme, anchor, asOf)) {
+        if (hit.date > anchor) push(hit.date, hit.amountPence, `${kind} payment`, 'Income', --syntheticRow);
       }
     }
 

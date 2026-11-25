@@ -5,6 +5,7 @@
  * `scheduledBills` rows the Dashboard uses, so the totals cannot drift.
  */
 import type { Dataset, Engine } from './engine.ts';
+import { plannedPayments } from './incomePlan.ts';
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const pad = (value: number) => String(value).padStart(2, '0');
@@ -47,18 +48,15 @@ interface ScheduleHit {
 }
 
 function incomeDates(ds: Dataset, from: string, to: string, kinds?: string[]): ScheduleHit[] {
-  const rows: { row: any; kind: string }[] = [
-    ...(ds.incomeSchedules.pip ?? []).map((row: any) => ({ row, kind: 'PIP' })),
-    ...(ds.incomeSchedules.uc ?? []).map((row: any) => ({ row, kind: 'Universal Credit' })),
+  const schemes: { kind: string; scheme: 'pip' | 'uc' }[] = [
+    { kind: 'PIP', scheme: 'pip' },
+    { kind: 'Universal Credit', scheme: 'uc' },
   ];
   const hits: ScheduleHit[] = [];
-  for (const { row, kind } of rows) {
+  for (const { kind, scheme } of schemes) {
     if (kinds && !kinds.includes(kind)) continue;
-    for (const year of [2026, 2027, 2028]) {
-      const hit = year === 2027 ? row.year2027 : year === 2028 ? row.year2028 : row.year2026;
-      if (!hit?.date || Number(hit.date.slice(0, 4)) !== year) continue;
-      if (hit.date < from || hit.date > to) continue;
-      hits.push({ date: hit.date, amountPence: Number(hit.amountPence) || 0, kind });
+    for (const hit of plannedPayments(ds, scheme, from, to)) {
+      hits.push({ date: hit.date, amountPence: hit.amountPence, kind });
     }
   }
   return hits.sort((left, right) => left.date.localeCompare(right.date));

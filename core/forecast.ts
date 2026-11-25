@@ -6,7 +6,8 @@
  * Credit, debt payments and savings contributions. It adds no new money model,
  * never writes to the budget, and a what-if override lives in memory only.
  */
-import { MONTHS, monthEnd, type Dataset, type Engine, type ScheduleRow } from './engine.ts';
+import { MONTHS, monthEnd, type Dataset, type Engine } from './engine.ts';
+import { plannedPayments } from './incomePlan.ts';
 
 export interface ForecastOverride {
   /** Shift every future month's bills by this percentage, e.g. 10 for +10%. */
@@ -70,12 +71,6 @@ export interface ForecastResult {
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
-function scheduleHit(row: ScheduleRow, year: number): { date: string; amountPence: number } {
-  if (year === 2027) return row.year2027;
-  if (year === 2028) return row.year2028;
-  return row.year2026;
-}
-
 interface DatedAmount {
   name: string;
   date: string;
@@ -84,22 +79,12 @@ interface DatedAmount {
 
 /** PIP and Universal Credit only, with their real scheduled dates. */
 function scheduledIncomeRows(ds: Dataset, year: number, month: number): DatedAmount[] {
-  const label = MONTHS[month - 1];
-  const rows: DatedAmount[] = [];
-  for (const row of ds.incomeSchedules.pip ?? []) {
-    if (row.month !== label) continue;
-    const hit = scheduleHit(row, year);
-    if (!hit?.date || Number(hit.date.slice(0, 4)) !== year) continue;
-    rows.push({ name: 'PIP', date: hit.date, amountPence: hit.amountPence });
-  }
-  const uc = (ds.incomeSchedules.uc ?? []).find((row) => row.month === label);
-  if (uc) {
-    const hit = scheduleHit(uc, year);
-    if (hit?.date && Number(hit.date.slice(0, 4)) === year) {
-      rows.push({ name: 'Universal Credit', date: hit.date, amountPence: hit.amountPence });
-    }
-  }
-  return rows;
+  const from = `${year}-${String(month).padStart(2, '0')}-01`;
+  const to = `${year}-${String(month).padStart(2, '0')}-${monthEnd(year, month).slice(8, 10)}`;
+  return [
+    ...plannedPayments(ds, 'pip', from, to).map((hit) => ({ name: 'PIP', ...hit })),
+    ...plannedPayments(ds, 'uc', from, to).map((hit) => ({ name: 'Universal Credit', ...hit })),
+  ].sort((left, right) => left.date.localeCompare(right.date));
 }
 
 function monthLength(year: number, month: number): number {

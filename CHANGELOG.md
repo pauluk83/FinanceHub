@@ -14,6 +14,7 @@ and the build time.
 - Count nights from a trip's dates even when its saved night count is blank, so Nights booked includes every trip
 - Run the year selector to 2040 so trips and plans can be filed under future years
 - Repeat Water, Ovo, Park Xmas, Council Tax and Rent through 2040 from next year's figures, leaving O2, Virgin Media and Pure Cremation on their own contracts
+- Plan PIP every 28 days and Universal Credit on the 27th through 2040, moving a 27th that falls on a weekend or bank holiday back to the last working day
 
 ## [2026.11.23] — 23 November 2026
 

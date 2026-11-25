@@ -5,6 +5,7 @@ import { dateTimeUk, dateUk, gbp, MONTHS, MONTH_LONG, parseMoney, pct, todayIso 
 import { countdownLabel, daysUntil, incomeCountdownLabel } from '../../../core/countdowns';
 import type { ScheduleRow } from '../../../core/engine';
 import { groupHolidayTrips } from '../../../core/holidays';
+import { plannedPayments } from '../../../core/incomePlan';
 import { accountsNeedingReview } from '../../../core/accounts';
 import { duplicateGroups } from '../../../core/importDedupe';
 import { providerBalancesForYear } from '../../../core/providerSnapshot';
@@ -437,11 +438,8 @@ export function IncomeAndHolidayCards({ ds, engine, year, compact = false }: Pic
 function nextIncomeDates(ds: ViewProps['ds'], year: number, today: string) {
   const source = (key: 'pip' | 'uc', entry: ScheduleRow) =>
     year === 2027 ? entry.year2027 : year === 2028 ? entry.year2028 : entry.year2026;
-  const datesFor = (key: 'pip' | 'uc') => (ds.incomeSchedules[key] ?? [])
-    .map((row) => source(key, row))
-    .filter((entry) => entry?.date && Number(entry.date.slice(0, 4)) === year)
-    .map((entry) => entry.date)
-    .sort((a, b) => a.localeCompare(b));
+  const datesFor = (key: 'pip' | 'uc') => plannedPayments(ds, key, `${year}-01-01`, `${year}-12-31`)
+    .map((hit) => hit.date);
   return ([
     { key: 'pip', label: 'PIP' },
     { key: 'uc', label: 'Universal Credit (UC)' },
