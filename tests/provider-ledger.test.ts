@@ -5,6 +5,7 @@ import {
   baselineFor,
   billPeriodMonths,
   billingCadenceMonths,
+  billedTotalPence,
   billingMonthsFor,
   clearRowOrder,
   hasManualOrder,
@@ -252,4 +253,16 @@ test('reordering cannot escape the ledger', () => {
   assert.equal(reorderRows(rows, 0, -1), false);
   assert.equal(reorderRows(rows, 1, 1), false);
   assert.deepEqual(rows.map((row) => row.month), ['Jan', 'Feb']);
+});
+
+test('the yearly bill total adds every row that carries a bill', () => {
+  const rows = [
+    { month: 'Jan', billAmountPence: 11_256, refundPence: 0 },
+    { month: 'Feb', billAmountPence: 8_486 },
+    { month: 'Mar', billAmountPence: 0 },
+    { month: 'Apr', billAmountPence: 5_292, refundPence: 62_900 },
+  ];
+  assert.equal(billedTotalPence(rows), 25_034, 'a refund is not a bill');
+  assert.equal(billedTotalPence([]), 0);
+  assert.equal(billedTotalPence([{ month: 'May' }]), 0, 'a row with no bill adds nothing');
 });

@@ -227,6 +227,11 @@ export function recordBill(
   return true;
 }
 
+/** Total billed across a year's rows; a row without a bill adds nothing. */
+export function billedTotalPence(rows: any[]): number {
+  return rows.reduce((total, row) => total + (Number(row?.billAmountPence) || 0), 0);
+}
+
 /**
  * Energy used in a statement period. The bill is what the period used; a refund
  * is its own flow on the row (money paid back for credit), so it never inflates

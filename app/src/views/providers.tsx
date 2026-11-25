@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billingCadenceMonths, billingMonthsFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -1090,6 +1090,8 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       ? { src: providerLogoSrc(p, 'virgin-media-logo.png'), href: p.portalUrl || 'https://www.virginmedia.com/', label: 'Virgin Media', className: 'virgin-link' }
       : undefined;
 
+  const billedThisYear = billedTotalPence(displayRows);
+  const billsThisYear = displayRows.filter((row) => (Number(row.billAmountPence) || 0) > 0).length;
   const usagePoints: UsagePoint[] = provider === 'ovo'
     ? displayRows
       .filter((row) => typeof row.month === 'string' && row.month !== '')
@@ -1162,6 +1164,19 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           <div className="card"><div className="card-title">Provider</div><div className="kpi-value" style={{ fontSize: 18 }}>{p.accountName || contract?.accountName || p.address || title}</div><div className="card-sub">{subtitle}</div></div>
           <div className="card"><div className="card-title">Monthly payment</div><div className="kpi-value">{gbp(monthly)}</div><div className="card-sub">{p.plan || p.paymentPlan || '—'}</div></div>
           <div className="card"><div className="card-title">Latest balance</div><div className="kpi-value">{latest ? gbp(latest.balancePence) : '—'}</div><div className="card-sub">{latest?.date ? dateUk(latest.date) : latest?.month || '—'}</div></div>
+        </div>
+      )}
+      {provider === 'ovo' && (
+        <div className="kpi-grid">
+          <div className="card">
+            <div className="card-title">Total billed {year}</div>
+            <div className="kpi-value">{gbp(billedThisYear)}</div>
+            <div className="card-sub">
+              {billsThisYear === 0
+                ? 'No bills entered yet this year'
+                : `${billsThisYear} bill${billsThisYear === 1 ? '' : 's'} · updates as you enter each bill`}
+            </div>
+          </div>
         </div>
       )}
       {/* O2 and Virgin keep only the contract and ledger: their account fields and

@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "97ddfa4aac43",
+  "buildId": "f36e913901c9",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -27,7 +27,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels",
             "Pure Cremation ends with the December 2027 payoff: the bill and its plan stop after that year",
             "Stopping a bill from the live year keeps its history: it now stops from the chosen month instead of deleting the bill, so earlier months and earlier years still count the payments",
-            "Ovo provider page shows the supply contract: plan, term, exit fee, future annual consumption and standing/unit rates for electricity and gas"
+            "Ovo provider page shows the supply contract: plan, term, exit fee, future annual consumption and standing/unit rates for electricity and gas",
+            "Ovo provider page shows a yearly bill total card that follows every bill you enter"
           ]
         }
       ]
