@@ -18,8 +18,9 @@ import { carryForwardProviderYears } from '../core/providerCarry.ts';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const load = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'workbook.json'), 'utf8'));
 
-test('available years include the imported later-year blocks', () => {
-  assert.deepEqual(availableYears(load()), [2026, 2027, 2028]);
+test('available years include the imported later-year blocks and run to 2040', () => {
+  const toPlanYear = Array.from({ length: 2040 - 2026 + 1 }, (_, index) => 2026 + index);
+  assert.deepEqual(availableYears(load()), toPlanYear);
 
   const holidaysOnly = {
     ...load(),
@@ -29,7 +30,18 @@ test('available years include the imported later-year blocks', () => {
     providers: {},
     holidays: { 2027: [{ event: 'Mum 2027', start: '2027-04-17' }] },
   };
-  assert.deepEqual(availableYears(holidaysOnly), [2026, 2027], 'a holiday year can be selected without transactions');
+  assert.deepEqual(availableYears(holidaysOnly), toPlanYear, 'a holiday year can be selected without transactions');
+});
+
+test('the target year opens its own stretch of the year bar up to 2040', () => {
+  const later = {
+    ...load(),
+    settings: { ...load().settings, targetYear: 2030 },
+  };
+  const years = availableYears(later);
+  assert.equal(years[0], 2026, 'earlier history stays selectable');
+  assert.equal(years.at(-1), 2040);
+  assert.ok(years.includes(2030) && years.includes(2039) && years.includes(2040), 'every year from the target year is offered');
 });
 
 test('later-year bills read their own provider block', () => {

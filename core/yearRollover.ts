@@ -105,6 +105,12 @@ export function planYearRollover(ds: Dataset, year: number, options: YearRollove
   };
 }
 
+/**
+ * The year bar runs to 2040 so holidays and other plans can be entered years
+ * ahead, not only for the years that already hold imported data.
+ */
+export const LAST_PLAN_YEAR = 2040;
+
 /** Years the app can display: the target year plus imported blocks, locks and rows. */
 export function availableYears(ds: Dataset): number[] {
   const years = new Set<number>();
@@ -113,6 +119,9 @@ export function availableYears(ds: Dataset): number[] {
   };
   add(ds.settings.targetYear);
   add(Number(ds.settings.asOfDate?.slice(0, 4)));
+  // Every year from the target year to 2040 can be selected, whether or not it
+  // holds data yet, so a future trip or plan can be filed under its own year.
+  for (let year = Number(ds.settings.targetYear); year <= LAST_PLAN_YEAR; year += 1) add(year);
   for (const provider of Object.values(ds.providers ?? {})) {
     for (const key of Object.keys((provider as any)?.years ?? {})) add(Number(key));
   }
