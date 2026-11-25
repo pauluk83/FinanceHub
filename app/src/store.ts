@@ -6,7 +6,7 @@ import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
-import { fillPlanYears } from '../../core/providerPlans';
+import { dropYearsAfter, fillPlanYears, PURE_CREMATION_END_YEAR, recordLiveYear } from '../../core/providerPlans';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
@@ -249,6 +249,15 @@ export function seedState(): AppState {
  */
 function healPlanYears(state: AppState): AppState {
   fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
+  const cremation = (state.dataset as unknown as { providers?: Record<string, any> }).providers?.pureCremation;
+  if (cremation) {
+    // The sheet has no year of its own, so every year picked read the live rows.
+    // With the live year recorded, 2028 onwards reads its own block instead.
+    recordLiveYear(cremation, Number(state.dataset.settings.targetYear));
+    // Paid off at the end of 2027: later blocks are copies of a payment that no
+    // longer exists, so they go and those years open blank.
+    if (Number(cremation.paymentsRemaining) === 0) dropYearsAfter(cremation, PURE_CREMATION_END_YEAR);
+  }
   syncProviderPaymentsFromBills(state.dataset as unknown as Dataset);
   return state;
 }

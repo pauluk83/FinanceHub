@@ -7,7 +7,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, blankYearBills, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, PURE_CREMATION_END_YEAR, alignMonthsToTemplate, blankYearBills, dropYearsAfter, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears, recordLiveYear } from '../core/providerPlans.ts';
+import { rowsForYear } from '../core/providerYears.ts';
 import { buildEngine } from '../core/engine.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -250,4 +251,26 @@ test('credit and a refund are cleared from the future years', () => {
   // 2026 closes at 1000, then each month is the payment alone.
   assert.deepEqual(provider.years[2027].rows.map((entry: any) => entry.balancePence), [12_000, 23_000]);
   assert.deepEqual(provider.years[2028].rows.map((entry: any) => entry.balancePence), [34_000]);
+});
+
+test('a plan that ended in 2027 opens blank after it', () => {
+  const provider = {
+    paymentsRemaining: 0,
+    statement: [{ month: 'Jan', paymentPence: 10_000 }, { month: 'Dec', paymentPence: 10_676 }],
+    years: {
+      2027: { year: 2027, openingPence: 0, rows: [{ month: 'Jan', paymentPence: 10_666 }] },
+      2028: { year: 2028, openingPence: 0, rows: [{ month: 'Jan', paymentPence: 10_666 }] },
+      2033: { year: 2033, openingPence: 0, rows: [{ month: 'Jan', paymentPence: 10_666 }] },
+    },
+  } as any;
+
+  assert.equal(recordLiveYear(provider, 2026), true, 'the sheet records which year its live rows are');
+  assert.equal(provider.year, 2026);
+  assert.equal(rowsForYear(provider, 'statement', 2028)?.rows.length, 1, 'the copied 2028 block is still there before the drop');
+
+  assert.deepEqual(dropYearsAfter(provider, PURE_CREMATION_END_YEAR), [2028, 2033]);
+  assert.deepEqual(Object.keys(provider.years), ['2027'], 'only the last working year is kept');
+  assert.equal(rowsForYear(provider, 'statement', 2028), null, '2028 has no block, so the statement is blank');
+  assert.equal(rowsForYear(provider, 'statement', 2026)?.rows.length, 2, 'the live year still reads its own rows');
+  assert.equal(recordLiveYear(provider, 2027), false, 'a recorded year is not overwritten');
 });

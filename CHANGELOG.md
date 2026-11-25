@@ -39,6 +39,7 @@ and the build time.
 - Ovo follows the same rule as the other plans: an amount changed on the sheet or the Bills tab applies from that month onwards, and the separate bill-owned sync is gone
 - Virgin's statement leaves every £0.00 blank from October 2028, where the contract has ended
 - Virgin's balance is left blank from October 2028 as well, so the ended contract shows no running figure
+- Pure Cremation ends with the 2027 payoff: later year copies are removed and those years open blank instead of repeating the last statement
 
 ## [2026.11.23] — 23 November 2026
 

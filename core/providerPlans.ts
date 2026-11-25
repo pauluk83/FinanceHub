@@ -355,6 +355,38 @@ export function fillPlanYears(
   return filled;
 }
 
+/** The last year a paid-off plan runs. */
+export const PURE_CREMATION_END_YEAR = 2027;
+
+/**
+ * Record which year the live rows belong to, when the sheet never said.
+ *
+ * A sheet with no year reads its live rows for every year picked, so a plan
+ * that ended in 2027 kept showing its last statement in 2030. Recording the
+ * live year makes later years read their own block — and blank when there is
+ * none.
+ */
+export function recordLiveYear(provider: any, year: number): boolean {
+  if (!provider || !Number.isInteger(year)) return false;
+  if (provider.year !== undefined || provider.targetYear !== undefined) return false;
+  provider.year = year;
+  return true;
+}
+
+/** Remove the year blocks after a plan's last year; returns the years removed. */
+export function dropYearsAfter(provider: any, endYear: number): number[] {
+  const years = provider?.years;
+  if (!years || typeof years !== 'object') return [];
+  const dropped: number[] = [];
+  for (const key of Object.keys(years)) {
+    const year = Number(key);
+    if (!Number.isInteger(year) || year <= endYear) continue;
+    delete years[key];
+    dropped.push(year);
+  }
+  return dropped;
+}
+
 export function extendProvidersToPlanYear(
   dataset: { providers?: Record<string, any> },
   lastYear = PLAN_LAST_YEAR,
