@@ -1,11 +1,11 @@
 /**
  * Link a monthly provider plan to the bill that pays it.
  *
- * Ovo is handled the other way round in core/ovoLink.ts, where the bill owns the
- * payment. The plans here (Water, Park Xmas, Pure Cremation) carry their own
- * schedule — a skipped month, a ramp towards a payoff — so an edit is applied
- * from the month it was made and every later month follows it, while earlier
- * months and anything outside the edited range keep their shape.
+ * Every plan with a statement Payment column follows one rule: an amount changed
+ * on the sheet or on the Bills tab applies from the month it was changed and
+ * every later month follows it, while earlier months and the rest of the plan
+ * keep their shape. That covers Ovo's flat standing order as well as Water's
+ * skipped months and Park Xmas's ramp.
  *
  * Pure: no I/O, no clock reads, integer pence only.
  */
@@ -24,6 +24,7 @@ export interface PaymentPlan {
 
 /** Plans whose statement Payment column is the bill's amount, month by month. */
 export const PAYMENT_PLANS: Record<string, PaymentPlan> = {
+  ovo: { sheet: 'Ovo', spec: { rowsKey: 'statement', formula: 'cashflow', monthly: true } },
   water: { sheet: 'Water', spec: { rowsKey: 'statement', formula: 'cashflow', monthly: true } },
   parkXmas: { sheet: 'Park Xmas', spec: { rowsKey: 'statement', formula: 'savings', monthly: true } },
   pureCremation: { sheet: 'Pure Cremation', spec: { rowsKey: 'statement', formula: 'cashflow', monthly: true } },
@@ -94,7 +95,7 @@ function setPaymentFrom(provider: any, spec: LedgerSpec, year: number, month: nu
  *
  * The statement rows are set from that month, and the bill records the same
  * figure as a dated change, so the Bills tab's month grid and its Bill changes
- * table show what the plan shows.
+ * table show what the plan shows. Nothing before that month moves.
  */
 export function applyProviderPayment(dataset: Dataset, key: string, year: number, month: number, amountPence: number): boolean {
   const plan = PAYMENT_PLANS[key];

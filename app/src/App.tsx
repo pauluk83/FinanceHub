@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { buildEngine } from '../../core/engine';
 import { availableYears } from '../../core/yearRollover';
 import { syncBillTransactions } from '../../core/billTransactions';
-import { syncOvoProviderPayments } from '../../core/ovoLink';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
 import type { Dataset, MonthLock } from '../../core/engine';
 import {
@@ -532,9 +531,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       const dataset = structuredClone(prev.dataset);
       mutator(dataset);
       syncBillTransactions(dataset);
-      // The Ovo statement's payment is the Ovo bill, so a change on either screen
+      // A plan's payment and its bill are one amount, so a change on either screen
       // is reflected on the other before the change is recorded or saved.
-      syncOvoProviderPayments(dataset);
       syncProviderPaymentsFromBills(dataset);
       // Record the before/after of each changed record at the single mutation
       // boundary. Generated bill rows are excluded by diffRecords.

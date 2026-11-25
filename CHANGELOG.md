@@ -36,6 +36,7 @@ and the build time.
 - Ovo's credit and refund columns are cleared from 2027 onwards, so a future statement shows the payment alone until a real one arrives
 - The Ovo Payment column is linked to the Ovo bill: a bill change or override on the Bills tab cascades into the statement for that month onwards, and a payment typed on the statement becomes the same bill change
 - Water, Park Xmas and Pure Cremation payments follow their bills: an amount changed on either screen applies from that month onward, with earlier months and the rest of the plan kept
+- Ovo follows the same rule as the other plans: an amount changed on the sheet or the Bills tab applies from that month onwards, and the separate bill-owned sync is gone
 
 ## [2026.11.23] — 23 November 2026
 
