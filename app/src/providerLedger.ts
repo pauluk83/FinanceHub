@@ -23,12 +23,6 @@ export type LedgerColumn = {
   blankZeroFrom?: string;
   /** Blank the cell from this month (YYYY-MM) onwards whatever it holds. */
   blankFrom?: string;
-  /**
-   * From this month number onwards, keep money cells empty until the year has a
-   * payment again: a plan that was paid off prints no balance for months that
-   * have not been filled in, and starts showing figures at the first payment.
-   */
-  blankUntilPaidFrom?: number;
   /** Show the value as plain text, and nothing at all where it is empty. */
   readOnlyBlank?: boolean;
 };
@@ -97,6 +91,8 @@ export function blankCell(
 export type LedgerConfig = LedgerSpec & {
   /** Mark each month as paid once the as-of date reaches it (a savings plan). */
   markPaidByDate?: boolean;
+  /** Keep months nobody has paid into empty, carried figures included. */
+  quietUntilPaid?: boolean;
   columns: LedgerColumn[];
   note: string;
   defaults: Record<string, string>;

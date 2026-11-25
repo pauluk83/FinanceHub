@@ -96,17 +96,17 @@ export const CONFIG: Record<string, LedgerConfig> = {
     monthly: true,
     note: 'Savings plan; balance falls as payments are made and total paid accumulates.',
     markPaidByDate: true,
+    quietUntilPaid: true,
     defaults: { month: 'Jan', paymentPence: '50.00', status: 'Owed' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       // The plan is paid off each August from 2027, so the rest of that year and
       // every later year opens blank until a new plan's figures are typed.
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-09', blankUntilPaidFrom: 9 },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2027-09', blankUntilPaidFrom: 9 },
-      { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money', blankZeroFrom: '2027-09', blankUntilPaidFrom: 9 },
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-09' },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2027-09' },
+      { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money', blankZeroFrom: '2027-09' },
       // Marked by the as-of date, so a month that has not arrived says nothing.
       { key: 'status', label: 'Status', readOnlyBlank: true },
-      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   pureCremation: {
@@ -114,14 +114,16 @@ export const CONFIG: Record<string, LedgerConfig> = {
     formula: 'savings',
     monthly: true,
     note: 'Starts in August 2026; earlier months are zero. Balance falls as payments are made.',
-    defaults: { month: 'Aug', paymentPence: '106.66', status: 'Owed', paid: '' },
+    markPaidByDate: true,
+    quietUntilPaid: true,
+    defaults: { month: 'Aug', paymentPence: '106.66', status: 'Owed' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
       { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money' },
-      { key: 'status', label: 'Status', edit: 'text' },
-      { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
+      // Marked by the as-of date, so a month that has not arrived says nothing.
+      { key: 'status', label: 'Status', readOnlyBlank: true },
     ],
   },
   o2: {
@@ -414,7 +416,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
   const effectiveRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
   const displayRows = cfg.markPaidByDate ? markPaidRows(effectiveRows, year, ds.settings.asOfDate) : effectiveRows;
   // A plan that was paid off prints nothing for months nobody has filled in yet.
-  const quietRows = cfg.columns.some((column) => column.blankUntilPaidFrom !== undefined) ? quietPlanRows(displayRows) : [];
+  const quietRows = cfg.quietUntilPaid ? quietPlanRows(displayRows) : [];
   const editable = cfg.columns.filter((c) => c.edit);
   const manualOrder = hasManualOrder(rows);
   const liveYear = Number(p?.year ?? ds.settings.targetYear);
@@ -605,7 +607,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
         {displayRows.map((row, index) => {
           const shown = (column: LedgerColumn, value: unknown) => {
             if (!column.money) return false;
-            if (column.blankUntilPaidFrom !== undefined && quietRows[index] === true) return true;
+            if (cfg.quietUntilPaid && quietRows[index] === true) return true;
             return blankCell(column, value, year, monthOf(row));
           };
           return (

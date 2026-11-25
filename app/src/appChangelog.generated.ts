@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "1e30e505687d",
+  "buildId": "a6f24a146005",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -50,7 +50,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Park Xmas is paid off each August: every year from 2027 keeps its own opening balance line after August, the months after it open blank, and typing a new opening balance and payment fills the year in until it is paid off again",
             "Park Xmas keeps the months after August blank until a payment is entered, so 2027 and later no longer carry the old balance down the page",
             "A Park Xmas year nobody has paid into reads completely blank, carried balance included, so 2028 no longer repeats the old figure",
-            "Park Xmas marks each month paid once its date arrives, and leaves the Status and Paid columns empty for months that have not been paid yet"
+            "Park Xmas marks each month paid once its date arrives, and leaves the Status and Paid columns empty for months that have not been paid yet",
+            "Pure Cremation drops its Paid column and marks each month paid on its date; its early months before the plan starts read blank"
           ]
         }
       ]
