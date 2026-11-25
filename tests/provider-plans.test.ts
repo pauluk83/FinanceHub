@@ -229,3 +229,25 @@ test('a year block saved with no rows is laid out again on the next load', () =>
   assert.deepEqual(provider.years[2028].rows.map((entry: any) => entry.balancePence), [47_000, 58_000, 69_000]);
   assert.deepEqual(fillPlanYears({ providers: { ovo: provider }, settings: { targetYear: 2026 } }, 2028).ovo, [], 'a second load changes nothing');
 });
+
+test('credit and a refund are cleared from the future years', () => {
+  const row = (month: string, bill: number, credit: number, refund: number, payment: number, balance: number) => ({
+    month, billPeriod: '17 - 16', billAmountPence: bill, creditPence: credit, refundPence: refund, paymentPence: payment, balancePence: balance,
+  });
+  const provider = {
+    statement: [row('Jan', 5_000, 0, 0, 11_000, 1_000)],
+    years: {
+      2027: { openingPence: 1_000, rows: [row('Jan', 0, 5_000, 2_000, 11_000, 0), row('Feb', 0, 5_000, 0, 11_000, 0)] },
+      2028: { openingPence: 0, rows: [row('Jan', 0, 5_000, 0, 11_000, 0)] },
+    },
+  } as any;
+  const spec = { rowsKey: 'statement', formula: 'cashflow', monthly: true } as const;
+
+  assert.deepEqual(blankYearBills(provider, spec, 2027, 2028), [2027, 2028]);
+  assert.deepEqual(provider.years[2027].rows.map((entry: any) => entry.creditPence), [0, 0], 'no credit before a statement');
+  assert.deepEqual(provider.years[2027].rows.map((entry: any) => entry.refundPence), [0, 0], 'no refund before a statement');
+  assert.deepEqual(provider.years[2028].rows.map((entry: any) => entry.creditPence), [0]);
+  // 2026 closes at 1000, then each month is the payment alone.
+  assert.deepEqual(provider.years[2027].rows.map((entry: any) => entry.balancePence), [12_000, 23_000]);
+  assert.deepEqual(provider.years[2028].rows.map((entry: any) => entry.balancePence), [34_000]);
+});

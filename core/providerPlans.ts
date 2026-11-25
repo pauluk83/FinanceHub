@@ -215,14 +215,23 @@ export function blankYearBills(
     if (!block || !Array.isArray(block.rows) || block.rows.length === 0) continue;
     let touched = false;
     for (const row of block.rows) {
+      if ((Number(row.billAmountPence) || 0) !== 0) {
+        row.billAmountPence = 0;
+        touched = true;
+      }
+      // Credit and a refund both come from a statement that has not arrived.
+      if ((Number(row.creditPence) || 0) !== 0) {
+        row.creditPence = 0;
+        touched = true;
+      }
+      if ((Number(row.refundPence) || 0) !== 0) {
+        row.refundPence = 0;
+        touched = true;
+      }
       const source = byMonth.get(String(row.month));
       if (!source) continue;
       if (source.billPeriod && row.billPeriod !== source.billPeriod) {
         row.billPeriod = source.billPeriod;
-        touched = true;
-      }
-      if ((Number(row.billAmountPence) || 0) !== 0) {
-        row.billAmountPence = 0;
         touched = true;
       }
       if ((Number(row.paymentPence) || 0) !== source.payment) {

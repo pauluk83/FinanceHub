@@ -382,6 +382,18 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // A credit or a refund is a statement the provider has actually issued. The
+    // imported 2027/2028 blocks carried both forward into every later year, which
+    // made the balance look settled before a statement existed, so the columns
+    // are cleared from the first future year and the balances re-chain.
+    id: 'ovo-no-credit-or-refund-from-2027',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[] } | undefined;
+      if (!ovo) return;
+      blankYearBills(ovo, OVO_SPEC, Number(dataset.settings.targetYear) + 1);
+    },
+  },
+  {
     id: 'changelog-2026-11-07',
     apply: (dataset) => {
       const entries = [
