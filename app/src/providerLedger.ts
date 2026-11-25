@@ -19,17 +19,25 @@ export type LedgerColumn = {
   blankZero?: boolean;
   /** Blank a zero only from this month (YYYY-MM) onwards, e.g. after a contract ends. */
   blankZeroFrom?: string;
+  /** Blank the cell from this month (YYYY-MM) onwards whatever it holds. */
+  blankFrom?: string;
 };
 
-/** True when a zero should read as an empty cell: always, or from a given month. */
-export function blankZeroCell(
-  column: { blankZero?: boolean; blankZeroFrom?: string },
+/**
+ * True when a cell should read empty: a column that blanks zeros (always, or
+ * from a month), or one blanked from a month whatever the figure is.
+ */
+export function blankCell(
+  column: { blankZero?: boolean; blankZeroFrom?: string; blankFrom?: string },
+  value: unknown,
   year: number,
   month?: number,
 ): boolean {
+  const at = `${year}-${String(month ?? 1).padStart(2, '0')}`;
+  if (column.blankFrom && Number.isInteger(year) && at >= column.blankFrom) return true;
+  if (Number(value)) return false;
   if (column.blankZero === true) return true;
-  if (!column.blankZeroFrom || !Number.isInteger(year)) return false;
-  return `${year}-${String(month ?? 1).padStart(2, '0')}` >= column.blankZeroFrom;
+  return Boolean(column.blankZeroFrom) && Number.isInteger(year) && at >= (column.blankZeroFrom as string);
 }
 
 /** A sheet's rules plus the column labels, note and add-form defaults the UI needs. */

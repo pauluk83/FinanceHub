@@ -7,7 +7,7 @@ import {
   billingCadenceMonths,
   billedTotalPence,
   billingMonthsFor,
-  blankZeroCell,
+  blankCell,
   clearRowOrder,
   hasManualOrder,
   recalculate,
@@ -270,10 +270,19 @@ test('the yearly bill total adds every row that carries a bill', () => {
 
 test('a zero is blanked only from the month a column says', () => {
   const column = { blankZeroFrom: '2028-10' };
-  assert.equal(blankZeroCell(column, 2028, 9), false, 'September 2028 still shows its figure');
-  assert.equal(blankZeroCell(column, 2028, 10), true, 'October 2028 onwards reads blank');
-  assert.equal(blankZeroCell(column, 2040, 1), true);
-  assert.equal(blankZeroCell(column, 2026, 12), false, 'earlier years are untouched');
-  assert.equal(blankZeroCell({ blankZero: true }, 2026, 1), true, 'an always-blank column ignores the month');
-  assert.equal(blankZeroCell({}, 2028, 10), false, 'a plain column keeps £0.00');
+  assert.equal(blankCell(column, 0, 2028, 9), false, 'September 2028 still shows its figure');
+  assert.equal(blankCell(column, 0, 2028, 10), true, 'October 2028 onwards reads blank');
+  assert.equal(blankCell(column, 0, 2040, 1), true);
+  assert.equal(blankCell(column, 0, 2026, 12), false, 'earlier years are untouched');
+  assert.equal(blankCell({ blankZero: true }, 0, 2026, 1), true, 'an always-blank column ignores the month');
+  assert.equal(blankCell({}, 0, 2028, 10), false, 'a plain column keeps £0.00');
+  assert.equal(blankCell(column, 4_400, 2028, 10), false, 'a real figure is never hidden by a zero rule');
+});
+
+test('a column blanked from a month hides whatever it holds', () => {
+  const column = { blankFrom: '2028-10' };
+  assert.equal(blankCell(column, -85_477, 2028, 9), false, 'September still shows the balance');
+  assert.equal(blankCell(column, -85_477, 2028, 10), true, 'October is blank even with a balance');
+  assert.equal(blankCell(column, 0, 2040, 6), true);
+  assert.equal(blankCell(column, -85_477, 2026, 10), false, 'earlier years keep their balance');
 });

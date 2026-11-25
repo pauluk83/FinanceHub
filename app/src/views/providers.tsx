@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankZeroCell, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -145,7 +145,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
       // The contract ends in September 2028, so nothing is left to show after it.
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZeroFrom: '2028-10' },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2028-10' },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2028-10' },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankFrom: '2028-10' },
       { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
     ],
   },
@@ -619,7 +619,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
                     <CellInput
                       label={`${column.label} ${row.month || row.date || index + 1}`}
                       kind={column.edit}
-                      value={column.money && !Number(value) && blankZeroCell(column, year, monthOf(row)) ? '' : column.money ? penceInput(value) : String(value ?? '')}
+                      value={column.money && blankCell(column, value, year, monthOf(row)) ? '' : column.money ? penceInput(value) : String(value ?? '')}
                       onCommit={(next) => patch(index, column.key, next)}
                     />
                   )}
