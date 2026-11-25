@@ -13,6 +13,7 @@ and the build time.
 - Work out a holiday's days and nights from its dates, fill them into the form automatically and count them in Nights booked
 - Count nights from a trip's dates even when its saved night count is blank, so Nights booked includes every trip
 - Run the year selector to 2040 so trips and plans can be filed under future years
+- Repeat Water, Ovo, Park Xmas, Council Tax and Rent through 2040 from next year's figures, leaving O2, Virgin Media and Pure Cremation on their own contracts
 
 ## [2026.11.23] — 23 November 2026
 

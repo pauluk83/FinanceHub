@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "4344ef27d810",
+  "buildId": "6308fb5be1c0",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -19,7 +19,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Take a holiday trip total from its cost lines when a line such as flights and hotel itemises the booking, so the Kn Matas trip shows 776 + 34.82 + 42 = £852.82 and December stays £700.54",
             "Work out a holiday's days and nights from its dates, fill them into the form automatically and count them in Nights booked",
             "Count nights from a trip's dates even when its saved night count is blank, so Nights booked includes every trip",
-            "Run the year selector to 2040 so trips and plans can be filed under future years"
+            "Run the year selector to 2040 so trips and plans can be filed under future years",
+            "Repeat Water, Ovo, Park Xmas, Council Tax and Rent through 2040 from next year's figures, leaving O2, Virgin Media and Pure Cremation on their own contracts"
           ]
         }
       ]

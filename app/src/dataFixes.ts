@@ -3,6 +3,7 @@ import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
+import { extendProvidersToPlanYear } from '../../core/providerPlans';
 import { baselineFor, recordBill, type LedgerSpec } from '../../core/providerLedger';
 
 const OVO_SPEC: LedgerSpec = {
@@ -276,6 +277,16 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
           budgetTreatment: '',
         });
       }
+    },
+  },
+  {
+    // The provider sheets stopped at their imported 2027/2028 blocks. Water,
+    // Ovo, Park Xmas, Council Tax and Rent now repeat their newest year through
+    // 2040, chained from year to year, so future trips and bills have somewhere
+    // to land. O2, Virgin Media and Pure Cremation keep their own contracts.
+    id: 'provider-years-to-2040',
+    apply: (dataset) => {
+      extendProvidersToPlanYear(dataset as { providers?: Record<string, any> });
     },
   },
   {
