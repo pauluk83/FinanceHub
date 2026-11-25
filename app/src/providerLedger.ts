@@ -7,6 +7,8 @@
 
 import type { LedgerSpec } from '../../core/providerLedger.ts';
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export * from '../../core/providerLedger.ts';
 
 export type LedgerColumn = {
@@ -27,6 +29,8 @@ export type LedgerColumn = {
    * have not been filled in, and starts showing figures at the first payment.
    */
   blankUntilPaidFrom?: number;
+  /** Show the value as plain text, and nothing at all where it is empty. */
+  readOnlyBlank?: boolean;
 };
 
 /**
@@ -53,6 +57,26 @@ export function quietPlanRows(rows: any[]): boolean[] {
 }
 
 /**
+ * Mark the months that have arrived as paid, and leave later months blank.
+ *
+ * A savings plan's month counts as paid once the as-of date reaches it and it
+ * carries a payment, so the Status and Paid columns only ever list what has
+ * actually been paid rather than announcing every future month.
+ */
+export function markPaidRows(rows: any[], year: number, asOfDate: unknown): any[] {
+  const cutoff = String(asOfDate ?? '').slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(cutoff) || !Number.isInteger(year)) return rows;
+  return rows.map((row) => {
+    if (row?.opening === true) return row;
+    const month = MONTH_NAMES.indexOf(String(row?.month ?? '')) + 1;
+    if (month < 1) return row;
+    const arrived = `${year}-${String(month).padStart(2, '0')}` <= cutoff;
+    const paid = arrived && Number(row?.paymentPence ?? 0) !== 0;
+    return { ...row, status: paid ? 'Paid' : '', paid: paid ? '✓ Yes' : '' };
+  });
+}
+
+/**
  * True when a cell should read empty: a column that blanks zeros (always, or
  * from a month), or one blanked from a month whatever the figure is.
  */
@@ -71,6 +95,8 @@ export function blankCell(
 
 /** A sheet's rules plus the column labels, note and add-form defaults the UI needs. */
 export type LedgerConfig = LedgerSpec & {
+  /** Mark each month as paid once the as-of date reaches it (a savings plan). */
+  markPaidByDate?: boolean;
   columns: LedgerColumn[];
   note: string;
   defaults: Record<string, string>;

@@ -8,6 +8,7 @@ import {
   billedTotalPence,
   billingMonthsFor,
   blankCell,
+  markPaidRows,
   monthRank,
   quietPlanRows,
   clearRowOrder,
@@ -340,4 +341,32 @@ test('a later year shows its figures once a payment is entered', () => {
     ...['Sep', 'Oct', 'Nov', 'Dec'].map((month) => planRow(month)),
   ];
   assert.deepEqual(quietPlanRows(rows), [...Array(8).fill(false), true, true, true, true, true]);
+});
+
+const monthsOf = (year: number, payments: Record<string, number> = {}) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  .map((month) => planRow(month, payments[month] ?? 5_000));
+
+test('months are marked paid once the as-of date reaches them', () => {
+  const marked = markPaidRows(monthsOf(2026), 2026, '2026-11-25');
+  assert.deepEqual(marked.slice(0, 11).map((row: any) => row.status), Array(11).fill('Paid'));
+  assert.deepEqual(marked.slice(0, 11).map((row: any) => row.paid), Array(11).fill('✓ Yes'));
+  assert.equal(marked[11].status, '', 'December has not arrived yet');
+  assert.equal(marked[11].paid, '');
+});
+
+test('a year that has not started says nothing at all', () => {
+  const marked = markPaidRows(monthsOf(2027), 2027, '2026-11-25');
+  assert.deepEqual(marked.map((row: any) => row.status), Array(12).fill(''));
+  assert.deepEqual(marked.map((row: any) => row.paid), Array(12).fill(''));
+});
+
+test('later months fill in as their dates arrive', () => {
+  const marked = markPaidRows(monthsOf(2027), 2027, '2027-03-15');
+  assert.deepEqual(marked.map((row: any) => row.status), ['Paid', 'Paid', 'Paid', ...Array(9).fill('')]);
+});
+
+test('a month with no payment is not called paid', () => {
+  const marked = markPaidRows(monthsOf(2027, { Jan: 0 }), 2027, '2027-03-15');
+  assert.equal(marked[0].status, '', 'nothing was paid in January');
+  assert.equal(marked[1].status, 'Paid');
 });
