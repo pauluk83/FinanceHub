@@ -33,6 +33,32 @@ function amountOf(holiday: HolidayShape): number | null {
   return holiday.totalPence / 100;
 }
 
+/** Midnight UTC for a stored YYYY-MM-DD date, or null when it is unusable. */
+function dayOf(value?: string): number | null {
+  const date = typeof value === 'string' ? value.trim() : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const time = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(time) ? time : null;
+}
+
+/**
+ * How many days the trip covers, counting the arrival and the leaving day: a
+ * stay from 22 to 29 December is 8 days. Null when the dates are missing or the
+ * end is before the start.
+ */
+export function daysBetween(start?: string, end?: string): number | null {
+  const from = dayOf(start);
+  const to = dayOf(end || start);
+  if (from === null || to === null || to < from) return null;
+  return Math.round((to - from) / 86400000) + 1;
+}
+
+/** Nights are the days less the arrival day, so 22 to 29 December is 7 nights. */
+export function nightsBetween(start?: string, end?: string): number | null {
+  const days = daysBetween(start, end);
+  return days === null ? null : days - 1;
+}
+
 export interface HolidayTrip<T> {
   key: string;
   start: string;
@@ -51,7 +77,7 @@ function rangeOf(holiday: HolidayShape): { start: string; end: string } {
 }
 
 function hasStay(holiday: HolidayShape): boolean {
-  return typeof holiday.nights === 'number' && holiday.nights > 0;
+  return typeof holiday.nights === 'number' && holiday.nights >= 0;
 }
 
 /**
@@ -139,7 +165,13 @@ export function groupHolidayTrips<T>(
         && Math.abs(headlineAmount - extraAmount) <= 0.02;
       const tripAmount = extraAmount + (headlineAmount !== null && !itemised && !coveredByLines ? headlineAmount : 0);
       const totalPence = priced.length === 0 ? null : Math.round(tripAmount * 100);
-      const nights = read(headline).nights;
+      // Nights follow the dates, so a trip shows what its start and end really
+      // cover; a stored figure is only used when the dates cannot be read.
+      const storedNights = read(headline).nights;
+      const nights = group.headline
+        ? nightsBetween(group.start, group.end)
+          ?? (typeof storedNights === 'number' && storedNights >= 0 ? storedNights : null)
+        : null;
       return {
         key: group.key,
         start: group.start,
@@ -148,7 +180,7 @@ export function groupHolidayTrips<T>(
         extras,
         rows: group.rows,
         totalPence,
-        nights: typeof nights === 'number' && nights > 0 ? nights : null,
+        nights,
       };
     });
 }

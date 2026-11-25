@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { groupHolidayTrips, rekeyHolidaysByStartYear } from '../core/holidays.ts';
+import { daysBetween, groupHolidayTrips, nightsBetween, rekeyHolidaysByStartYear } from '../core/holidays.ts';
 
 type Row = {
   event?: string;
@@ -59,6 +59,23 @@ test('a booking total that excludes its cost lines still adds them', () => {
   ], (row) => row);
 
   assert.equal(trip.totalPence, 32500);
+});
+
+test('days and nights are worked out from the dates', () => {
+  assert.equal(daysBetween('2026-12-22', '2026-12-29'), 8, 'both the arrival and the leaving day count');
+  assert.equal(nightsBetween('2026-12-22', '2026-12-29'), 7);
+  assert.equal(nightsBetween('2026-12-22', '2026-12-22'), 0, 'a same-day trip has no nights');
+  assert.equal(daysBetween('2026-12-22', ''), 1, 'a start with no end is one day');
+  assert.equal(nightsBetween('2026-12-29', '2026-12-22'), null, 'an end before the start is refused');
+  assert.equal(nightsBetween('', ''), null);
+});
+
+test('a trip shows the nights its dates cover, not a stale stored figure', () => {
+  const [trip] = groupHolidayTrips([
+    { event: 'Kn Matas', start: '2027-04-17', end: '2027-04-24', nights: 3 },
+  ], (row) => row);
+
+  assert.equal(trip.nights, 7, '17 to 24 April is 7 nights');
 });
 
 test('the 2027 insurance line ends with the Kn Matas trip and joins it', () => {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, gbp, parseMoney } from '../format';
-import { groupHolidayTrips } from '../../../core/holidays';
+import { daysBetween, groupHolidayTrips, nightsBetween } from '../../../core/holidays';
 
 type Holiday = {
   event?: string;
@@ -26,7 +26,6 @@ type HolidayDraft = {
   event: string;
   start: string;
   end: string;
-  nights: string;
   ref: string;
   paid: string;
   total: string;
@@ -39,7 +38,6 @@ function emptyDraft(): HolidayDraft {
     event: '',
     start: '',
     end: '',
-    nights: '',
     ref: '',
     paid: '✓ Paid',
     total: '',
@@ -53,7 +51,6 @@ function draftFor(holiday: Holiday): HolidayDraft {
     event: holiday.event ?? '',
     start: holiday.start ?? '',
     end: holiday.end ?? '',
-    nights: holiday.nights === '-' ? '' : String(holiday.nights ?? ''),
     ref: holiday.ref ?? '',
     paid: holiday.paid ?? '',
     total: holiday.totalPence === null || holiday.totalPence === undefined ? '' : (holiday.totalPence / 100).toFixed(2),
@@ -112,6 +109,9 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
   const asOf = ds.settings.asOfDate;
   const trips = groupHolidayTrips(rows, (row) => row.holiday);
   const formOpen = adding || Boolean(editing);
+  // The form's own count as the dates change: 22 to 29 December is 8 days, 7 nights.
+  const draftDays = draft.start ? daysBetween(draft.start, draft.end || draft.start) : null;
+  const draftNights = draft.start ? nightsBetween(draft.start, draft.end || draft.start) : null;
   const upcoming = trips.filter((trip) => trip.start && trip.start >= asOf);
   const query = search.trim().toLowerCase();
   const visibleTrips = query
@@ -127,7 +127,8 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
       return rows.join(' ').toLowerCase().includes(query);
     })
     : trips;
-  const totalNights = rows.reduce((sum, row) => sum + (typeof row.holiday.nights === 'number' ? row.holiday.nights : 0), 0);
+  // Nights come from the dates, so a trip added with just a start and end date counts here.
+  const totalNights = trips.reduce((sum, trip) => sum + (trip.nights ?? 0), 0);
   // Trip totals, not every row: a trip whose total already covers its cost lines is counted once.
   const totalSpend = trips.reduce((sum, trip) => sum + (trip.totalPence ?? 0), 0);
 
@@ -198,8 +199,8 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
     const year = Number(draft.start.slice(0, 4));
     if (!Number.isFinite(year) || year < 2000 || year > 2100) return notify('Choose a start date with a valid year');
 
-    const nightsText = draft.nights.trim();
-    const nights = nightsText && /^\d+(\.\d+)?$/.test(nightsText) ? Number(nightsText) : nightsText;
+    // The nights are the dates, not a separate figure to type.
+    const nights = nightsBetween(draft.start, draft.end || draft.start) ?? 0;
     const totalText = draft.total.trim();
     const existing = editing?.holiday;
     const next: Holiday = {
@@ -300,7 +301,20 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
             <Field label="Holiday name"><input className="input" placeholder="e.g. Unity - Mum" value={draft.event} onChange={(e) => setDraft({ ...draft, event: e.target.value })} /></Field>
             <Field label="Start date"><input className="input" type="date" value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} /></Field>
             <Field label="End date"><input className="input" type="date" value={draft.end} onChange={(e) => setDraft({ ...draft, end: e.target.value })} /></Field>
-            <Field label="Nights" hint="Leave blank if not applicable"><input className="input" inputMode="numeric" value={draft.nights} onChange={(e) => setDraft({ ...draft, nights: e.target.value })} /></Field>
+            <Field
+              label="Days and nights"
+              hint={draftDays === null
+                ? 'Choose the dates and this fills itself in'
+                : `${draftDays} day${draftDays === 1 ? '' : 's'} away · ${draftNights} night${draftNights === 1 ? '' : 's'}`}
+            >
+              <input
+                className="input"
+                value={draftNights === null ? '' : `${draftDays} day${draftDays === 1 ? '' : 's'} · ${draftNights} night${draftNights === 1 ? '' : 's'}`}
+                placeholder="Set the start and end dates"
+                readOnly
+                aria-readonly="true"
+              />
+            </Field>
             <Field label="Payment">
               <select className="select" value={draft.paid} onChange={(e) => setDraft({ ...draft, paid: e.target.value })}>
                 <option value="✓ Paid">Paid</option>
@@ -341,6 +355,7 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
         )}
         {visibleTrips.map((trip) => {
           const showCostLines = openTrips.has(trip.key);
+          const tripDays = daysBetween(trip.start, trip.end);
           const visibleRows = showCostLines ? [trip.headline, ...trip.extras] : [trip.headline];
           return visibleRows.map((row, position) => {
             const extra = position > 0;
@@ -378,7 +393,14 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
                     </>
                   )}
                 </td>
-                <td className="num">{nightsLabel(row.holiday)}</td>
+                <td className="num">
+                  {extra ? nightsLabel(row.holiday) : (
+                    <>
+                      {trip.nights === null ? <span className="muted">—</span> : `${trip.nights} night${trip.nights === 1 ? '' : 's'}`}
+                      {tripDays !== null && <div className="muted small">{tripDays} day{tripDays === 1 ? '' : 's'}</div>}
+                    </>
+                  )}
+                </td>
                 <td>{paidBadge(row.holiday.paid)}</td>
                 <td className="num">{extra ? totalLabel(row.holiday) : headlineTotal}</td>
                 <td className="muted small">{row.holiday.ref || '—'}</td>
