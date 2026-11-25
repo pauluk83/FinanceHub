@@ -50,6 +50,7 @@ and the build time.
 - O2 is an active bill again from November 2026, so its payments reach the plan and the O2 sheet
 - Virgin and O2 open blank for the months before the contract started, January to September and January to August
 - Virgin and O2 keep their full contract: the bill and running balance show every month, while the payment stays blank until the bill is paid on its date
+- Water's Bill column reads blank in the months no bill arrives, so only the half-yearly bills show
 
 ## [2026.11.23] — 23 November 2026
 

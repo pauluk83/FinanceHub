@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "187abff3bff9",
+  "buildId": "a5cdb4ee68b9",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -56,7 +56,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "A linked bill now fills the provider's payment with the amount actually paid, taken from the payments logged against that bill",
             "O2 is an active bill again from November 2026, so its payments reach the plan and the O2 sheet",
             "Virgin and O2 open blank for the months before the contract started, January to September and January to August",
-            "Virgin and O2 keep their full contract: the bill and running balance show every month, while the payment stays blank until the bill is paid on its date"
+            "Virgin and O2 keep their full contract: the bill and running balance show every month, while the payment stays blank until the bill is paid on its date",
+            "Water's Bill column reads blank in the months no bill arrives, so only the half-yearly bills show"
           ]
         }
       ]

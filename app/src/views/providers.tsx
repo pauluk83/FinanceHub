@@ -69,7 +69,9 @@ export const CONFIG: Record<string, LedgerConfig> = {
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       { key: 'billPeriod', label: 'Bill period', edit: 'text' },
-      { key: 'billAmountPence', label: 'Bill', money: true, edit: 'money' },
+      // Bills arrive half-yearly, so a month without one reads empty: type the
+      // figure on the month the bill lands.
+      { key: 'billAmountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
     ],
