@@ -9,6 +9,7 @@ import {
   billingMonthsFor,
   blankCell,
   monthRank,
+  quietPlanRows,
   clearRowOrder,
   hasManualOrder,
   recalculate,
@@ -292,4 +293,51 @@ test('an opening balance for a new plan sorts after August', () => {
   assert.ok(monthRank('2027 Opening Balance') > monthRank('Aug'), 'the line follows August');
   assert.ok(monthRank('2027 Opening Balance') < monthRank('Sep'), 'and leads September');
   assert.equal(monthRank('Opening Balance'), -1, 'a sheet-wide opening line still comes first');
+});
+
+const planRow = (month: string, paymentPence = 0, balancePence = 0, opening = false, balanceOverridePence?: number) => ({
+  month, paymentPence, balancePence, totalPaidPence: 0, opening, ...(balanceOverridePence === undefined ? {} : { balanceOverridePence }),
+});
+const paidYear = () => [
+  ...['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((month) => planRow(month, 5_000)),
+  planRow('2027 Opening Balance', 0, 0, true),
+  ...['Sep', 'Oct', 'Nov', 'Dec'].map((month) => planRow(month)),
+];
+
+test('a paid-off year keeps the months after August empty', () => {
+  assert.deepEqual(quietPlanRows(paidYear()), [...Array(8).fill(false), true, true, true, true, true]);
+});
+
+test('a typed opening balance shows on its own line but not down the empty months', () => {
+  const rows = paidYear();
+  rows[8].balanceOverridePence = 50_000;
+  rows[8].balancePence = 50_000;
+  assert.deepEqual(quietPlanRows(rows), [...Array(8).fill(false), false, true, true, true, true]);
+});
+
+test('the months fill in from the first payment after the opening balance', () => {
+  const rows = paidYear();
+  rows[8].balanceOverridePence = 50_000;
+  rows[8].balancePence = 50_000;
+  rows[10].paymentPence = 10_500;
+  assert.deepEqual(quietPlanRows(rows).slice(9), [true, false, false, false]);
+});
+
+test('a later year with nothing paid into it is empty, carried balance and all', () => {
+  const rows = [
+    ...['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((month) => planRow(month, 0, 10_500)),
+    planRow('2028 Opening Balance', 0, 10_500, true),
+    ...['Sep', 'Oct', 'Nov', 'Dec'].map((month) => planRow(month, 0, 10_500)),
+  ];
+  assert.deepEqual(quietPlanRows(rows), Array(13).fill(true), 'nothing is printed until a payment is entered');
+});
+
+test('a later year shows its figures once a payment is entered', () => {
+  const rows = [
+    planRow('Jan', 10_500, 39_500),
+    ...['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((month) => planRow(month, 0, 39_500)),
+    planRow('2028 Opening Balance', 0, 39_500, true),
+    ...['Sep', 'Oct', 'Nov', 'Dec'].map((month) => planRow(month)),
+  ];
+  assert.deepEqual(quietPlanRows(rows), [...Array(8).fill(false), true, true, true, true, true]);
 });

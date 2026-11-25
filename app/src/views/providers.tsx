@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, quietPlanRows, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -410,12 +410,8 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
   const rows = edit?.rows ?? [];
   const openingPence = edit?.openingPence ?? p?.ledgerOpeningPence;
   const displayRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence);
-  const restartMonth = cfg.columns.find((column) => column.blankUntilPaidFrom !== undefined)?.blankUntilPaidFrom;
-  // The first payment after the summer payoff. Until there is one, the months
-  // after the opening balance stay empty instead of printing the carried figure.
-  const firstPaidAfterRestart = restartMonth === undefined
-    ? -1
-    : displayRows.findIndex((row) => (monthOf(row) ?? 0) >= restartMonth && Number(row.paymentPence ?? 0) !== 0);
+  // A plan that was paid off prints nothing for months nobody has filled in yet.
+  const quietRows = cfg.columns.some((column) => column.blankUntilPaidFrom !== undefined) ? quietPlanRows(displayRows) : [];
   const editable = cfg.columns.filter((c) => c.edit);
   const manualOrder = hasManualOrder(rows);
   const liveYear = Number(p?.year ?? ds.settings.targetYear);
@@ -605,13 +601,9 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
       <Table head={[...cfg.columns.map((c) => c.label), '']} className="ledger-table-start" wrapRef={tableWrapRef}>
         {displayRows.map((row, index) => {
           const shown = (column: LedgerColumn, value: unknown) => {
-            const month = monthOf(row);
             if (!column.money) return false;
-            if (column.blankUntilPaidFrom !== undefined && row.opening !== true) {
-              const after = (month ?? 0) >= column.blankUntilPaidFrom;
-              if (after && (firstPaidAfterRestart < 0 || index < firstPaidAfterRestart)) return true;
-            }
-            return blankCell(column, value, year, month);
+            if (column.blankUntilPaidFrom !== undefined && quietRows[index] === true) return true;
+            return blankCell(column, value, year, monthOf(row));
           };
           return (
           <tr key={`${row.month ?? row.date ?? 'row'}-${index}`}>

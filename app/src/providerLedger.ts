@@ -30,6 +30,29 @@ export type LedgerColumn = {
 };
 
 /**
+ * Which rows of a plan that pays off mid-year stay empty.
+ *
+ * A year nobody has filled in yet prints no money at all, and after an opening
+ * balance line the months stay empty until a payment follows it — otherwise a
+ * carried figure would print down a year that has not been paid into. The
+ * opening line shows a figure only when one has been typed into it.
+ */
+export function quietPlanRows(rows: any[]): boolean[] {
+  const paid = (row: any) => Number(row?.paymentPence ?? 0) !== 0;
+  const firstPayment = rows.findIndex((row) => row?.opening !== true && paid(row));
+  const lastOpening = rows.reduce((last, row, index) => (row?.opening === true ? index : last), -1);
+  const firstAfterOpening = lastOpening < 0 ? -1 : rows.findIndex((row, index) => index > lastOpening && paid(row));
+  return rows.map((row, index) => {
+    // An opening line only prints a figure the owner has typed into it; a
+    // carried balance waits until a payment brings the new plan into being.
+    if (row?.opening === true) return !Number.isFinite(row?.balanceOverridePence);
+    if (firstPayment < 0 || index < firstPayment) return true;
+    if (lastOpening < 0 || index <= lastOpening) return false;
+    return firstAfterOpening < 0 || index < firstAfterOpening;
+  });
+}
+
+/**
  * True when a cell should read empty: a column that blanks zeros (always, or
  * from a month), or one blanked from a month whatever the figure is.
  */
