@@ -131,6 +131,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
     formula: 'telco',
     monthly: true,
     note: 'Contract amounts by month. Balance = previous + payment − bill.',
+    quietUntilPaid: true,
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
@@ -144,6 +145,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
     formula: 'telco',
     monthly: true,
     note: 'Contract amounts by month; £32.99 from Oct 2026. Balance = previous + payment − bill.',
+    quietUntilPaid: true,
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },

@@ -48,6 +48,7 @@ and the build time.
 - Virgin and O2 drop the Paid column, leaving their ledgers to the bill, payment and balance figures
 - A linked bill now fills the provider's payment with the amount actually paid, taken from the payments logged against that bill
 - O2 is an active bill again from November 2026, so its payments reach the plan and the O2 sheet
+- Virgin and O2 open blank for the months before the contract started, January to September and January to August
 
 ## [2026.11.23] — 23 November 2026
 
