@@ -162,7 +162,7 @@ export function Holidays({ ds, year, update, notify }: ViewProps) {
       event: label,
       start: costFor.start,
       end: costFor.end,
-      nights: '',
+      nights: '-',
       paid: costDraft.paid,
       totalPence: amount ? parseMoney(amount) : null,
       ref: costDraft.ref.trim(),

@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "6a4624ea67f2",
+  "buildId": "54397c503d43",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -17,7 +17,8 @@ export const APP_CHANGELOG: AppChangelog = {
           "items": [
             "Fix holiday trip totals: a trip whose stored total already covers its cost lines (the December Hesperia trip) is no longer counted twice",
             "Take a holiday trip total from its cost lines when a line such as flights and hotel itemises the booking, so the Kn Matas trip shows 776 + 34.82 + 42 = £852.82 and December stays £700.54",
-            "Work out a holiday's days and nights from its dates, fill them into the form automatically and count them in Nights booked"
+            "Work out a holiday's days and nights from its dates, fill them into the form automatically and count them in Nights booked",
+            "Count nights from a trip's dates even when its saved night count is blank, so Nights booked includes every trip"
           ]
         }
       ]

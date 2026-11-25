@@ -81,6 +81,17 @@ function hasStay(holiday: HolidayShape): boolean {
 }
 
 /**
+ * A dated row with no night count at all: a trip saved before the dates worked
+ * the nights out, or a row that came back from a store that drops the field.
+ * Cost lines say so with "-", so a blank count is the trip itself.
+ */
+function isBlankNights(holiday: HolidayShape): boolean {
+  if (typeof holiday.nights === 'number') return false;
+  const text = holiday.nights === undefined || holiday.nights === null ? '' : String(holiday.nights).trim();
+  return text === '' && typeof holiday.start === 'string' && holiday.start !== '';
+}
+
+/**
  * Older data stored a row under whatever year it was entered, so a 2027 trip
  * could sit in the 2026 bucket. Re-key every row by the year of its start date
  * (keeping its own year only when the start is missing).
@@ -120,7 +131,10 @@ export function groupHolidayTrips<T>(
   rows.forEach((row, index) => {
     const holiday = read(row);
     const { start, end } = rangeOf(holiday);
-    const stay = hasStay(holiday);
+    // A blank night count anchors the trip only when it opens those dates; a
+    // later row on the same dates is one of its cost lines.
+    const stay = hasStay(holiday)
+      || (isBlankNights(holiday) && !groups.some((candidate) => candidate.start === start && candidate.end === end));
     let group: (typeof groups)[number] | undefined;
 
     if (stay) {

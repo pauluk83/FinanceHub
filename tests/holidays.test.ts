@@ -70,6 +70,20 @@ test('days and nights are worked out from the dates', () => {
   assert.equal(nightsBetween('', ''), null);
 });
 
+test('a trip saved with no night count still uses its dates and counts', () => {
+  const trips = groupHolidayTrips([
+    { event: 'New trip', start: '2027-08-02', end: '2027-08-09', nights: '' },
+    { event: 'car parking', start: '2027-08-02', end: '2027-08-09', nights: '-' },
+    { event: 'Old trip', start: '2027-09-06', end: '2027-09-10', nights: null },
+  ], (row) => row);
+
+  assert.equal(trips.length, 2, 'the parking line folds into its trip instead of becoming one');
+  assert.equal(trips[0].headline.event, 'New trip');
+  assert.equal(trips[0].nights, 7, '2 to 9 August is 7 nights even with a blank count');
+  assert.equal(trips[0].extras.length, 1);
+  assert.equal(trips[1].nights, 4, '6 to 10 September is 4 nights');
+});
+
 test('a trip shows the nights its dates cover, not a stale stored figure', () => {
   const [trip] = groupHolidayTrips([
     { event: 'Kn Matas', start: '2027-04-17', end: '2027-04-24', nights: 3 },
