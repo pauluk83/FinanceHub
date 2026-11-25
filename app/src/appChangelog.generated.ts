@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "d3b69630bfa3",
+  "buildId": "2fbab729c33b",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -53,7 +53,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Park Xmas marks each month paid once its date arrives, and leaves the Status and Paid columns empty for months that have not been paid yet",
             "Pure Cremation drops its Paid column and marks each month paid on its date; its early months before the plan starts read blank",
             "Virgin and O2 drop the Paid column, leaving their ledgers to the bill, payment and balance figures",
-            "A linked bill now fills the provider's payment with the amount actually paid, taken from the payments logged against that bill"
+            "A linked bill now fills the provider's payment with the amount actually paid, taken from the payments logged against that bill",
+            "O2 is an active bill again from November 2026, so its payments reach the plan and the O2 sheet"
           ]
         }
       ]

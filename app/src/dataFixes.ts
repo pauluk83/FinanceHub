@@ -570,6 +570,18 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // O2 was left switched off when its old rows were retired, so the live bill
+    // never reached the plan or the O2 sheet. It is a running bill again from
+    // November 2026; the months it has already paid stay visible.
+    id: 'o2-active-2026-11',
+    apply: (dataset) => {
+      const o2 = (dataset.bills ?? []).find((bill) => /^o2$/i.test(String(bill.name ?? '').trim()));
+      if (!o2) return;
+      o2.active = true;
+      o2.effectiveFrom = '';
+    },
+  },
+  {
     id: 'changelog-2026-11-07-descriptions',
     apply: (dataset) => {
       const entry = ((dataset.changelog ?? []) as any[]).find((existing: any) => existing.signature === 'financehub-2026-11-07-dan-account');
