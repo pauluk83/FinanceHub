@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ViewProps } from '../types';
 import { createTapGuard } from '../mutationGuard';
 import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
-import { dateUk, dateTimeUk, download, gbp, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
+import { dateUk, dateTimeUk, download, gbp, gbpBlank, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
@@ -854,9 +854,9 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
             return (
               <tr key={a.name} className={a.name === selected ? 'selected' : ''} onClick={() => setSelected(a.name)} style={{ cursor: 'pointer' }}>
                 <td><EditableName value={a.name} onCommit={(next) => renameAccount(a.name, next)} ariaLabel={`Account name ${a.name}`} /></td>
-                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Opening ${a.name}`} value={(a.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.accounts[index].openingPence = parseMoney(e.target.value); })} /></td>
-                <td className="num"><strong>{gbp(a.balancePence)}</strong></td>
-                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Target ${a.name}`} value={(a.targetPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.accounts[index].targetPence = parseMoney(e.target.value); })} /></td>
+                <td className="num"><MoneyCell pence={a.openingPence} ariaLabel={`Opening ${a.name}`} onCommit={(pence) => update((d) => { d.accounts[index].openingPence = pence; })} /></td>
+                <td className="num"><strong>{gbpBlank(a.balancePence)}</strong></td>
+                <td className="num"><MoneyCell pence={a.targetPence} ariaLabel={`Target ${a.name}`} onCommit={(pence) => update((d) => { d.accounts[index].targetPence = pence; })} /></td>
                 <td style={{ width: 150 }}><Bar value={a.targetPence === 0 ? 0 : a.balancePence / a.targetPence} /></td>
                 <td><input type="checkbox" aria-label={`${a.name} active`} checked={a.active} onChange={(e) => update((d) => { d.accounts[index].active = e.target.checked; })} /></td>
                 <td><button className="btn ghost sm" onClick={(event) => { event.stopPropagation(); removeAccount(a.name); }}>Remove</button></td>
@@ -981,11 +981,11 @@ export function People({ ds, engine, year, month, update, notify, userId, worksp
             <tr key={p.shortName}>
               <td><EditableName value={p.shortName} onCommit={(next) => renamePerson(p.shortName, next)} ariaLabel={`Short name ${p.shortName}`} /></td>
               <td><EditableName value={p.fullName} onCommit={(next) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.fullName = next; })} ariaLabel={`Full name ${p.fullName}`} /></td>
-              <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Opening ${p.shortName}`} value={(p.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.openingPence = parseMoney(e.target.value); })} /></td>
-              <td className="num">{gbp(lent)}</td>
-              <td className="num">{gbp(repaid)}</td>
+              <td className="num"><MoneyCell pence={p.openingPence} ariaLabel={`Opening ${p.shortName}`} onCommit={(pence) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.openingPence = pence; })} /></td>
+              <td className="num">{gbpBlank(lent)}</td>
+              <td className="num">{gbpBlank(repaid)}</td>
               <td className="num">
-                <strong>{gbp(owed?.balancePence ?? p.openingPence + lent - repaid)}</strong>
+                <strong>{gbpBlank(owed?.balancePence ?? p.openingPence + lent - repaid)}</strong>
                 {owed?.trackOwed === false && <div className="muted small">No amount owed</div>}
               </td>
               <td><input type="checkbox" aria-label={`${p.shortName} active`} checked={p.active} onChange={(e) => update((d) => { d.people.find((x) => x.shortName === p.shortName)!.active = e.target.checked; })} /></td>
@@ -1004,6 +1004,23 @@ export function People({ ds, engine, year, month, update, notify, userId, worksp
     </Section>
     <PeopleAccessSection ds={ds} userId={userId} notify={notify} workspace={workspace} />
     </>
+  );
+}
+
+/** A money cell in a table: a zero reads blank, and typing keeps the raw text. */
+function MoneyCell({ pence, onCommit, ariaLabel }: { pence: number; onCommit: (pence: number) => void; ariaLabel: string }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (pence === 0 ? '' : (pence / 100).toFixed(2));
+  return (
+    <input
+      className="table-input"
+      inputMode="decimal"
+      aria-label={ariaLabel}
+      value={shown}
+      onFocus={() => setDraft(pence === 0 ? '' : (pence / 100).toFixed(2))}
+      onChange={(e) => { setDraft(e.target.value); onCommit(parseMoney(e.target.value)); }}
+      onBlur={() => setDraft(null)}
+    />
   );
 }
 

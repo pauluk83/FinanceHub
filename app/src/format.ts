@@ -7,6 +7,10 @@ export const gbp = (pence: number | null | undefined, opts: { sign?: boolean } =
   return `${prefix}£${money.format(n)}`;
 };
 
+/** A displayed amount that leaves a zero as an empty cell rather than £0.00. */
+export const gbpBlank = (pence: number | null | undefined, opts: { sign?: boolean } = {}) =>
+  pence === 0 ? '' : gbp(pence, opts);
+
 export const pct = (value: number | null | undefined, digits = 1) => {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
   return `${(value * 100).toFixed(digits)}%`;

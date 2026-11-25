@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "1f92b2218ada",
+  "buildId": "8f8b86523267",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -60,7 +60,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Water's Bill column reads blank in the months no bill arrives, so only the half-yearly bills show",
             "Rent, Council Tax, Ovo, Virgin and O2 leave an empty money cell blank instead of printing £0.00",
             "Rent's Matched column is a tick box, and Virgin's and O2's opening zero balances read blank",
-            "Rent's charge letter link points at the Dropbox copy of the 26-27 letter"
+            "Rent's charge letter link points at the Dropbox copy of the 26-27 letter",
+            "Accounts and People leave a zero balance, owed or opening blank instead of £0.00"
           ]
         }
       ]

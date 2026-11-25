@@ -54,6 +54,7 @@ and the build time.
 - Rent, Council Tax, Ovo, Virgin and O2 leave an empty money cell blank instead of printing £0.00
 - Rent's Matched column is a tick box, and Virgin's and O2's opening zero balances read blank
 - Rent's charge letter link points at the Dropbox copy of the 26-27 letter
+- Accounts and People leave a zero balance, owed or opening blank instead of £0.00
 
 ## [2026.11.23] — 23 November 2026
 
