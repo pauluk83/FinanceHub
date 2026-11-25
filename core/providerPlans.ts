@@ -9,6 +9,7 @@
  *
  * Pure: no I/O, no clock reads, integer pence only.
  */
+import type { Dataset } from './engine.ts';
 import type { LedgerSpec } from './providerLedger.ts';
 import { carryForwardProviderYears } from './providerCarry.ts';
 
@@ -127,6 +128,33 @@ export function extendProviderYears(provider: any, spec: LedgerSpec, lastYear = 
 }
 
 /** Extend every plan provider on the dataset; excluded sheets are never touched. */
+/**
+ * Pure Cremation is paid off in December 2027, so the plan stops there.
+ *
+ * The bill is removed with an ordinary dated bill change from 2028 onwards, so
+ * the Bills page hides it for that year and later, the engine stops scheduling
+ * it, and Bill changes can bring it back if the plan is ever reopened.
+ */
+export function endPureCremationPlan(dataset: Dataset) {
+  const provider = dataset.providers?.pureCremation as { paymentsRemaining?: number } | undefined;
+  if (provider) provider.paymentsRemaining = 0;
+  const bill = (dataset.bills ?? []).find((entry) => /pure\s*cremation/i.test(entry.name));
+  if (!bill) return;
+  const changes = dataset.billChanges ?? [];
+  if (changes.some((change) => change.bill === bill.name && change.skip === true && !change.appliesTo)) return;
+  dataset.billChanges = [...changes, {
+    bill: bill.name,
+    appliesFrom: '2028-01-01',
+    appliesTo: '',
+    amountOverridePence: null,
+    dueDateOverride: '',
+    dueDayOverride: null,
+    changeType: 'Plan paid off',
+    note: 'Paid off in December 2027',
+    skip: true,
+  }];
+}
+
 /**
  * Re-align a later block's month and bill period to the sheet it repeats.
  *

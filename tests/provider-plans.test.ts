@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, extendProvidersToPlanYear } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear } from '../core/providerPlans.ts';
 import { buildEngine } from '../core/engine.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -123,4 +123,26 @@ test('a later block is re-aligned to the sheet it repeats, labels only', () => {
   assert.deepEqual(block.map((row) => row.billAmountPence), [4_000, 0]);
   assert.equal(alignMonthsToTemplate(block, template), false, 'a second pass changes nothing');
   assert.equal(alignMonthsToTemplate([{ month: 'Jan' }], template), false, 'a short block is left alone');
+});
+
+test('the Pure Cremation plan ends with the December 2027 payoff', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const ds = JSON.parse(fs.readFileSync(path.join(root, 'data', 'workbook.json'), 'utf8'));
+  endPureCremationPlan(ds);
+  const engine = buildEngine(ds);
+  const billed = (year: number) => engine.scheduledBills(year, 6).some((bill) => /pure cremation/i.test(bill.name));
+
+  assert.equal(billed(2026), true, 'the live year still pays it');
+  assert.equal(billed(2027), true, 'the payoff year still pays it to December');
+  assert.equal(billed(2028), false, 'nothing bills after the plan is cleared');
+  assert.equal(billed(2040), false);
+  assert.equal(ds.providers.pureCremation.paymentsRemaining, 0, 'no payments remain');
+
+  const changes = ds.billChanges.filter((change: any) => /pure cremation/i.test(change.bill));
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].appliesFrom, '2028-01-01');
+  assert.equal(changes[0].skip, true);
+
+  endPureCremationPlan(ds);
+  assert.equal(ds.billChanges.filter((change: any) => /pure cremation/i.test(change.bill)).length, 1, 'a second pass adds nothing');
 });

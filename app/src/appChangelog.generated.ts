@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "25af994db7b9",
+  "buildId": "acf14e7fdabd",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -26,7 +26,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Ovo statement gains a Refund column: balance = previous + payment + credit - bill - refund, September 2026 reads a 52.92 bill with the 629 refund as its own line",
             "Income schedule drops the 2026/2027/2028 tabs; the year bar already picks the schedule year",
             "Income shows a later year's planned PIP and UC payments instead of falling back to the 2026 schedule",
-            "Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels"
+            "Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels",
+            "Pure Cremation ends with the December 2027 payoff: the bill and its plan stop after that year"
           ]
         }
       ]

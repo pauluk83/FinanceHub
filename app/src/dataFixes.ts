@@ -3,7 +3,7 @@ import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
-import { alignMonthsToTemplate, extendProvidersToPlanYear } from '../../core/providerPlans';
+import { alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear } from '../../core/providerPlans';
 import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
 
 const OVO_SPEC: LedgerSpec = {
@@ -78,6 +78,12 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
         alignMonthsToTemplate(block.rows.filter((row) => row?.month !== 'Opening Balance'), template);
       }
     },
+  },
+  {
+    // Pure Cremation is a fixed-term plan: the December 2027 payment clears the
+    // balance, so nothing bills, carries forward or plans after that year.
+    id: 'pure-cremation-ends-2027',
+    apply: (dataset) => { endPureCremationPlan(dataset); },
   },
   {
     id: 'starling-dan-2026-11-06',
