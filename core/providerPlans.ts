@@ -181,17 +181,17 @@ export function alignMonthsToTemplate(rows: any[], template: any[]): boolean {
 }
 
 /**
- * Repeat a sheet's monthly money into every later year.
+ * Lay out every later year from the reference sheet, with the bill left blank.
  *
- * The generated years only carried the standing order, so a future block showed
- * payments but never a bill. Each month's bill, bill period and payment is
- * copied from the reference sheet into the years after it, and a month the sheet
- * has not billed yet takes the average of the months it has, so no month is left
- * blank. Balances are then chained from the reference year's close.
+ * The generated years only carried the standing order, and a repeated bill
+ * would be a guess at a statement that has not arrived. So each month from
+ * `fromYear` onwards keeps the worksheet's month, bill period and payment, has
+ * its bill cleared to nothing for the owner to type in, and chains its balance
+ * from the reference year's close.
  *
  * Pure: no I/O, no clock reads, integer pence only.
  */
-export function repeatSheetMoney(
+export function blankYearBills(
   provider: any,
   spec: LedgerSpec,
   fromYear: number,
@@ -201,16 +201,10 @@ export function repeatSheetMoney(
   const rows = template.filter((row) => row && row.month && row.month !== 'Opening Balance');
   if (rows.length === 0) return [];
 
-  const billed = rows.map((row) => Number(row.billAmountPence) || 0).filter((pence) => pence > 0);
-  const average = billed.length > 0
-    ? Math.round(billed.reduce((sum, pence) => sum + pence, 0) / billed.length)
-    : 0;
-  const byMonth = new Map<string, { month: string; billPeriod?: string; bill: number; payment: number }>();
+  const byMonth = new Map<string, { billPeriod?: string; payment: number }>();
   for (const row of rows) {
     byMonth.set(String(row.month), {
-      month: String(row.month),
       billPeriod: typeof row.billPeriod === 'string' ? row.billPeriod : undefined,
-      bill: (Number(row.billAmountPence) || 0) > 0 ? Number(row.billAmountPence) : average,
       payment: Number(row.paymentPence) || 0,
     });
   }
@@ -227,8 +221,8 @@ export function repeatSheetMoney(
         row.billPeriod = source.billPeriod;
         touched = true;
       }
-      if ((Number(row.billAmountPence) || 0) !== source.bill) {
-        row.billAmountPence = source.bill;
+      if ((Number(row.billAmountPence) || 0) !== 0) {
+        row.billAmountPence = 0;
         touched = true;
       }
       if ((Number(row.paymentPence) || 0) !== source.payment) {
@@ -243,7 +237,7 @@ export function repeatSheetMoney(
   }
 
   if (changed.length > 0) {
-    // The reference year's close is where the first repeated year opens.
+    // The reference year's close is where the first blank year opens.
     carryForwardProviderYears(provider, spec, fromYear - 1, template);
   }
   return changed;

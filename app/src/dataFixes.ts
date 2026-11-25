@@ -3,7 +3,7 @@ import type { AppState } from './store';
 import { withoutAppFeatureNotes, withoutAutomaticBudgetChanges, withoutLegacyAppUpdateNotes } from './budgetChangelog';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
-import { alignMonthsToTemplate, endPureCremationPlan, extendProvidersToPlanYear, repeatSheetMoney } from '../../core/providerPlans';
+import { alignMonthsToTemplate, blankYearBills, endPureCremationPlan, extendProvidersToPlanYear } from '../../core/providerPlans';
 import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
 
 const OVO_SPEC: LedgerSpec = {
@@ -347,15 +347,25 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
-    // The generated Ovo years only carried the standing order, so 2027-2040
-    // showed a payment every month and a bill of nothing, which left the
-    // balance climbing as credit. The 2026 sheet is the pattern, so each
-    // month's bill, bill period and payment now repeats through 2040.
+    // Every Ovo year from 2027 to 2040 gets its month, bill period and payment
+    // from the 2026 sheet, with the bill left at zero so each statement can be
+    // typed in as it arrives.
     id: 'ovo-bills-replicated-to-2040',
     apply: (dataset) => {
       const ovo = dataset.providers?.ovo as { statement?: any[] } | undefined;
       if (!ovo) return;
-      repeatSheetMoney(ovo, OVO_SPEC, Number(dataset.settings.targetYear) + 1);
+      blankYearBills(ovo, OVO_SPEC, Number(dataset.settings.targetYear) + 1);
+    },
+  },
+  {
+    // The bills were briefly copied into 2027-2040 from 2026. They are guesses at
+    // statements that do not exist yet, so the first fix's guesswork is cleared
+    // here for any dataset that already ran it.
+    id: 'ovo-blank-bills-from-2027',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { statement?: any[] } | undefined;
+      if (!ovo) return;
+      blankYearBills(ovo, OVO_SPEC, Number(dataset.settings.targetYear) + 1);
     },
   },
   {

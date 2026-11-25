@@ -25,6 +25,7 @@ and the build time.
 - Add a liquid glass theme: a dark backdrop with frosted, translucent panels and a glass round in the theme switcher
 - Ovo shows the year's total bill as an account detail card after the balance
 - Ovo repeats the 2026 pattern through 2040: every later year has its month, bill period, payment, bill and chained balance filled in
+- Ovo years from 2027 to 2040 are laid out with the payment and balance in place and every bill left at 0 for you to type in
 
 ## [2026.11.23] — 23 November 2026
 
