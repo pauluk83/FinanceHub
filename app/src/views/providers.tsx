@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankZeroCell, clearRowOrder, hasManualOrder, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -142,9 +142,10 @@ export const CONFIG: Record<string, LedgerConfig> = {
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
-      { key: 'amountPence', label: 'Bill', money: true, edit: 'money' },
-      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
-      { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
+      // The contract ends in September 2028, so nothing is left to show after it.
+      { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZeroFrom: '2028-10' },
+      { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2028-10' },
+      { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2028-10' },
       { key: 'paid', label: 'Paid', edit: 'text', options: ['✓ Yes', 'No'] },
     ],
   },
@@ -190,6 +191,14 @@ function nearestDateRowIndex(rows: any[], asOfDate: string) {
 }
 
 /** Show a scheduled payment only when the provider has no actual payment for that month. */
+/** The month a row covers: the monthly label, or a dated row's month. */
+function monthOf(row: any): number | undefined {
+  const index = MONTHS.indexOf(String(row?.month ?? '')) + 1;
+  if (index > 0) return index;
+  const fromDate = Number(String(row?.date ?? '').slice(5, 7));
+  return Number.isInteger(fromDate) && fromDate > 0 ? fromDate : undefined;
+}
+
 function effectiveRowsFor(cfg: LedgerConfig, rows: any[], autoPayments?: Record<string, AutoPayment>, openingPence?: number) {
   if (!cfg.monthly) return rows;
   const hasOpening = rows.some((row) => row.opening === true);
@@ -610,7 +619,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
                     <CellInput
                       label={`${column.label} ${row.month || row.date || index + 1}`}
                       kind={column.edit}
-                      value={column.money ? (column.blankZero && !Number(value) ? '' : penceInput(value)) : String(value ?? '')}
+                      value={column.money && !Number(value) && blankZeroCell(column, year, monthOf(row)) ? '' : column.money ? penceInput(value) : String(value ?? '')}
                       onCommit={(next) => patch(index, column.key, next)}
                     />
                   )}

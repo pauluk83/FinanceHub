@@ -7,6 +7,7 @@ import {
   billingCadenceMonths,
   billedTotalPence,
   billingMonthsFor,
+  blankZeroCell,
   clearRowOrder,
   hasManualOrder,
   recalculate,
@@ -265,4 +266,14 @@ test('the yearly bill total adds every row that carries a bill', () => {
   assert.equal(billedTotalPence(rows), 25_034, 'a refund is not a bill');
   assert.equal(billedTotalPence([]), 0);
   assert.equal(billedTotalPence([{ month: 'May' }]), 0, 'a row with no bill adds nothing');
+});
+
+test('a zero is blanked only from the month a column says', () => {
+  const column = { blankZeroFrom: '2028-10' };
+  assert.equal(blankZeroCell(column, 2028, 9), false, 'September 2028 still shows its figure');
+  assert.equal(blankZeroCell(column, 2028, 10), true, 'October 2028 onwards reads blank');
+  assert.equal(blankZeroCell(column, 2040, 1), true);
+  assert.equal(blankZeroCell(column, 2026, 12), false, 'earlier years are untouched');
+  assert.equal(blankZeroCell({ blankZero: true }, 2026, 1), true, 'an always-blank column ignores the month');
+  assert.equal(blankZeroCell({}, 2028, 10), false, 'a plain column keeps £0.00');
 });
