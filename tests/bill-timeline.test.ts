@@ -107,3 +107,25 @@ test('a bill removed from a year stays removed for later years but not earlier o
   assert.equal(has(2030), false, 'the removal year drops it');
   assert.equal(has(2035), false, 'later years stay clear of it');
 });
+
+test('a bill stopped mid-year keeps every month before the stop', () => {
+  const ds = dataset();
+  ds.bills = [{
+    name: 'Broadband', amountPence: 3000, dueDay: 5, linkedSheet: '', frequency: 'Monthly',
+    latestBalancePence: 0, latestPaymentPence: 0, sortOrder: 1, active: true,
+    effectiveFrom: '2025-01-01', paymentMethod: 'Direct Debit', baseAmountPence: 3000, baseDueDay: 5,
+  }];
+  ds.billChanges = [{
+    bill: 'Broadband', appliesFrom: '2026-08-01', appliesTo: '', amountOverridePence: null,
+    dueDateOverride: '', dueDayOverride: null, changeType: 'Stopped', note: '', skip: true,
+  }];
+  const engine = buildEngine(ds);
+  const billed = (year: number, month: number) => engine.scheduledBills(year, month).some((bill) => bill.name === 'Broadband');
+
+  assert.equal(billed(2025, 9), true, 'a year before the stop is untouched');
+  assert.equal(billed(2026, 7), true, 'the month before the stop still pays it');
+  assert.equal(billed(2026, 8), false, 'the stop month is the first without it');
+  assert.equal(billed(2026, 12), false);
+  assert.equal(billed(2027, 1), false);
+  assert.equal(ds.bills.length, 1, 'the definition stays, so history can still be read');
+});

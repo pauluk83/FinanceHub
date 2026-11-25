@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "acf14e7fdabd",
+  "buildId": "1824a13a79d0",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -27,7 +27,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Income schedule drops the 2026/2027/2028 tabs; the year bar already picks the schedule year",
             "Income shows a later year's planned PIP and UC payments instead of falling back to the 2026 schedule",
             "Re-align every later Ovo block to the 2026 month and bill period pattern so future years stop showing the wrong labels",
-            "Pure Cremation ends with the December 2027 payoff: the bill and its plan stop after that year"
+            "Pure Cremation ends with the December 2027 payoff: the bill and its plan stop after that year",
+            "Stopping a bill from the live year keeps its history: it now stops from the chosen month instead of deleting the bill, so earlier months and earlier years still count the payments"
           ]
         }
       ]

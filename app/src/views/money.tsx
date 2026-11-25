@@ -1166,12 +1166,35 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
     notify(`${oldName} renamed to ${newName}`);
   };
 
-  const removeBill = (name: string) => {
-    const changes = ds.billChanges.filter((c) => c.bill === name).length;
-    if (!confirm(`Remove ${name}${changes ? ` and its ${changes} bill change${changes === 1 ? '' : 's'}` : ''}?`)) return;
-    update((d) => { d.bills = d.bills.filter((b) => b.name !== name); d.billChanges = d.billChanges.filter((c) => c.bill !== name); });
-    notify(`${name} removed`);
-  };
+  /**
+   * Stopping a bill keeps the definition, so every month before the stop — this
+   * year's history and every year before it — still reads exactly as it did.
+   * The stop is a dated bill change, so Bill changes can undo it.
+   */
+  const stopBillFrom = (name: string) => update((d) => {
+    const from = `${year}-${String(month).padStart(2, '0')}-01`;
+    const stop = d.billChanges.find((c) => c.bill === name && c.skip === true && !c.appliesTo);
+    if (stop) {
+      stop.appliesFrom = from;
+      stop.note = `Stopped from ${MONTH_LONG[month - 1]} ${year}`;
+      return;
+    }
+    d.billChanges.push({
+      bill: name,
+      appliesFrom: from,
+      appliesTo: '',
+      amountOverridePence: null,
+      dueDateOverride: '',
+      dueDayOverride: null,
+      changeType: 'Stopped',
+      note: `Stopped from ${MONTH_LONG[month - 1]} ${year}`,
+      skip: true,
+    });
+  });
+  /** A stop that begins inside the year being shown, so the row can say so. */
+  const stopInYear = (name: string) => ds.billChanges.find((c) => (
+    c.bill === name && c.skip === true && !c.appliesTo && c.appliesFrom > `${year}-01-01` && c.appliesFrom.startsWith(`${year}-`)
+  ));
 
   const addChange = () => {
     if (!change.bill) return notify('Choose a bill');
@@ -1363,13 +1386,25 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                     checked={yearChange(b.name)?.skip !== true}
                     onChange={(e) => setPlan(b.name, { skip: !e.target.checked })}
                   />
-                : <input type="checkbox" checked={b.active} onChange={(e) => update((d) => { d.bills[i].active = e.target.checked; })} />}</td>
+                : <>
+                    <input type="checkbox" checked={b.active} onChange={(e) => update((d) => { d.bills[i].active = e.target.checked; })} />
+                    {stopInYear(b.name) && (
+                      <span className="muted small" style={{ display: 'block' }}>
+                        Stops {MONTH_LONG[Number(stopInYear(b.name)!.appliesFrom.slice(5, 7)) - 1]}
+                      </span>
+                    )}
+                  </>}</td>
               <td><button className="btn ghost sm" onClick={() => {
-                if (!planning) return removeBill(b.name);
-                if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
-                removeFromYear(b.name);
-                notify(`${b.name} removed from ${year} and later years`);
-              }}>{planning ? `Remove from ${year}` : 'Remove'}</button></td>
+                if (planning) {
+                  if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
+                  removeFromYear(b.name);
+                  notify(`${b.name} removed from ${year} and later years`);
+                  return;
+                }
+                if (!confirm(`Stop ${b.name} from ${MONTH_LONG[month - 1]} ${year}? Earlier months and earlier years keep their payments.`)) return;
+                stopBillFrom(b.name);
+                notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
+              }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button></td>
             </tr>
             )
           ))}
