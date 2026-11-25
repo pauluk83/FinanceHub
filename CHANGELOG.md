@@ -23,6 +23,7 @@ and the build time.
 - Ovo provider page shows the supply contract: plan, term, exit fee, future annual consumption and standing/unit rates for electricity and gas
 - Ovo account details shows a card with the year's total bill, updating as each bill is entered
 - Add a liquid glass theme: a dark backdrop with frosted, translucent panels and a glass round in the theme switcher
+- Ovo shows the year's total bill as an account detail card after the balance
 
 ## [2026.11.23] — 23 November 2026
 

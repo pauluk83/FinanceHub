@@ -1010,6 +1010,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   const latest = balanceAsOf(displayRows, statementYear, comparisonDate);
   const latestLabel = `Balance at ${dateUk(comparisonDate)}`;
   const monthly = p.monthlyPaymentPence ?? contract?.tiers?.[0]?.amountPence ?? displayRows[displayRows.length - 1]?.paymentPence ?? 0;
+  const billedThisYear = billedTotalPence(displayRows);
   const accountDetails = providerAccountDetails(provider, p);
   if (provider === 'water') {
     accountDetails.push([latestLabel, latest ? gbp(latest.balancePence) : undefined]);
@@ -1036,6 +1037,9 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
     accountDetails.push(
       ['Monthly payment', gbp(monthly)],
       [latestLabel, latest ? gbp(latest.balancePence) : undefined],
+      // The year's spend closes the account summary, so it reads like the other
+      // figures instead of sitting in a tile of its own above them.
+      [`Total billed ${year}`, gbp(billedThisYear)],
     );
   }
   const billing = providerBilling(p);
@@ -1090,8 +1094,6 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       ? { src: providerLogoSrc(p, 'virgin-media-logo.png'), href: p.portalUrl || 'https://www.virginmedia.com/', label: 'Virgin Media', className: 'virgin-link' }
       : undefined;
 
-  const billedThisYear = billedTotalPence(displayRows);
-  const billsThisYear = displayRows.filter((row) => (Number(row.billAmountPence) || 0) > 0).length;
   const usagePoints: UsagePoint[] = provider === 'ovo'
     ? displayRows
       .filter((row) => typeof row.month === 'string' && row.month !== '')
@@ -1169,21 +1171,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
       {/* O2 and Virgin keep only the contract and ledger: their account fields and
           vault logins are not used, so the two summary sections would be empty noise. */}
       {provider !== 'o2' && provider !== 'virgin' && (
-        <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined}>
-          {provider === 'ovo' && (
-            <div className="kpi-grid" style={{ padding: '14px 16px 0' }}>
-              <div className="card">
-                <div className="card-title">Total billed {year}</div>
-                <div className="kpi-value">{gbp(billedThisYear)}</div>
-                <div className="card-sub">
-                  {billsThisYear === 0
-                    ? 'No bills entered yet this year'
-                    : `${billsThisYear} bill${billsThisYear === 1 ? '' : 's'} · updates as you enter each bill`}
-                </div>
-              </div>
-            </div>
-          )}
-        </AccountDetails>
+        <AccountDetails details={accountDetails} renderDetail={renderProviderDetail} actions={accountActions} metricListClassName={provider === 'councilTax' ? 'council-tax-details' : undefined} />
       )}
       {provider !== 'pureCremation' && provider !== 'o2' && provider !== 'virgin' && (vaultSession ? (
         <AccessDetails
