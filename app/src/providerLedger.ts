@@ -15,6 +15,8 @@ export type LedgerColumn = {
   money?: boolean;
   edit?: 'text' | 'date' | 'money' | 'month';
   options?: string[];
+  /** Show a zero as an empty box, so a figure can be typed without clearing it. */
+  blankZero?: boolean;
 };
 
 /** A sheet's rules plus the column labels, note and add-form defaults the UI needs. */

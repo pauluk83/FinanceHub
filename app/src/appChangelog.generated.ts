@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.25",
-  "buildId": "f043c3fe4c1e",
+  "buildId": "bfc6a541a6c7",
   "builtAt": "2026-11-25",
   "releases": [
     {
@@ -32,7 +32,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Add a liquid glass theme: a dark backdrop with frosted, translucent panels and a glass round in the theme switcher",
             "Ovo shows the year's total bill as an account detail card after the balance",
             "Ovo repeats the 2026 pattern through 2040: every later year has its month, bill period, payment, bill and chained balance filled in",
-            "Ovo years from 2027 to 2040 are laid out with the payment and balance in place and every bill left at 0 for you to type in"
+            "Ovo years from 2027 to 2040 are laid out with the payment and balance in place and every bill left at 0 for you to type in",
+            "Ovo leaves every bill from 2027 to 2040 blank to type into, and the supply contract is editable in place with left-aligned columns"
           ]
         }
       ]

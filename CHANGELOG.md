@@ -26,6 +26,7 @@ and the build time.
 - Ovo shows the year's total bill as an account detail card after the balance
 - Ovo repeats the 2026 pattern through 2040: every later year has its month, bill period, payment, bill and chained balance filled in
 - Ovo years from 2027 to 2040 are laid out with the payment and balance in place and every bill left at 0 for you to type in
+- Ovo leaves every bill from 2027 to 2040 blank to type into, and the supply contract is editable in place with left-aligned columns
 
 ## [2026.11.23] — 23 November 2026
 

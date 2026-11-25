@@ -82,7 +82,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
     columns: [
       { key: 'month', label: 'Month', edit: 'month' },
       { key: 'billPeriod', label: 'Bill period', edit: 'text' },
-      { key: 'billAmountPence', label: 'Bill', money: true, edit: 'money' },
+      { key: 'billAmountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
       { key: 'creditPence', label: 'Credit', money: true, edit: 'money' },
       { key: 'refundPence', label: 'Refund', money: true, edit: 'money' },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
@@ -599,7 +599,7 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
                     <CellInput
                       label={`${column.label} ${row.month || row.date || index + 1}`}
                       kind={column.edit}
-                      value={column.money ? penceInput(value) : String(value ?? '')}
+                      value={column.money ? (column.blankZero && !Number(value) ? '' : penceInput(value)) : String(value ?? '')}
                       onCommit={(next) => patch(index, column.key, next)}
                     />
                   )}
@@ -911,31 +911,113 @@ type OvoSupply = {
   gas?: { annualKwh?: number; standingChargePence?: number; unitRatePence?: number };
 };
 
-const kwhText = (value?: number) => (typeof value === 'number' ? `${value.toLocaleString('en-GB')} kWh` : '—');
-const penceRateText = (value: number | undefined, unit: string) => (
-  typeof value === 'number' ? `${value.toFixed(2)}p ${unit}` : '—'
-);
+type OvoFuel = NonNullable<OvoSupply['electricity']>;
 
-/** The contract both fuels share, then the per-fuel consumption and rates. */
-function OvoSupplyContract({ supply }: { supply: OvoSupply }) {
+/** A contract cell that commits on Enter or blur, like the ledger cells do. */
+function SupplyInput({ value, onCommit, label, type = 'text', minWidth = 150 }: { value: string; onCommit: (value: string) => void; label: string; type?: 'text' | 'date'; minWidth?: number }) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const commit = (raw: string) => {
+    const next = raw.trim();
+    if (next !== value) onCommit(next);
+  };
+  return (
+    <input
+      className="table-input"
+      aria-label={label}
+      type={type}
+      inputMode={type === 'text' ? 'decimal' : undefined}
+      value={draft}
+      style={{ minWidth, textAlign: 'left' }}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={(event) => commit(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') { event.preventDefault(); commit(event.currentTarget.value); }
+        if (event.key === 'Escape') { setDraft(value); event.currentTarget.blur(); }
+      }}
+    />
+  );
+}
+
+const sizeText = (value?: number) => (typeof value === 'number' ? String(value) : '');
+const rateText = (value?: number) => (typeof value === 'number' ? value.toFixed(2) : '');
+const numberOrUndefined = (raw: string, decimals = 0) => {
+  const parsed = Number(raw.replace(/[^0-9.-]/g, ''));
+  if (!raw.trim() || !Number.isFinite(parsed)) return undefined;
+  return decimals === 0 ? Math.round(parsed) : Math.round(parsed * 10 ** decimals) / 10 ** decimals;
+};
+
+/**
+ * The contract both fuels share, then the per-fuel consumption and rates.
+ * Every figure is editable in place, so a renewal can be recorded without a
+ * rebuild; the section header reads back what the table now holds.
+ */
+function OvoSupplyContract({ supply, onChange }: { supply: OvoSupply; onChange: (mutate: (supply: OvoSupply) => void) => void }) {
   const plan = supply.planName || '—';
   const start = supply.startDate ? dateUk(supply.startDate) : '—';
   const end = supply.endDate ? dateUk(supply.endDate) : '—';
   const exitFee = typeof supply.exitFeePence === 'number' ? `${gbp(supply.exitFeePence)} subject to T&Cs` : '—';
+  const fuel = (key: 'electricity' | 'gas'): OvoFuel => supply[key] ?? {};
+  const setFuel = (key: 'electricity' | 'gas', field: keyof OvoFuel, raw: string, decimals: number) => {
+    onChange((next) => {
+      next[key] = { ...(next[key] ?? {}), [field]: numberOrUndefined(raw, decimals) };
+    });
+  };
+  const fuelCell = (key: 'electricity' | 'gas', field: keyof OvoFuel, decimals: number, unit: string) => (
+    <td>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <SupplyInput
+          label={`${key} ${field === 'annualKwh' ? 'annual consumption' : field === 'standingChargePence' ? 'standing charge' : 'unit rate'}`}
+          value={decimals === 0 ? sizeText(fuel(key).annualKwh as number | undefined) : rateText(fuel(key)[field] as number | undefined)}
+          onCommit={(raw) => setFuel(key, field, raw, decimals)}
+          minWidth={110}
+        />
+        <span className="muted small">{unit}</span>
+      </span>
+    </td>
+  );
   return (
     <Section
       title="Supply contract"
-      sub={`${plan} for both fuels, ${start} to ${end}. Exit fee ${exitFee}.`}
+      sub={`${plan} for both fuels, ${start} to ${end}. Exit fee ${exitFee}. Edit any figure in place.`}
       actions={<Badge tone="blue">Fixed to {end}</Badge>}
     >
-      <Table head={['', 'Electricity', 'Gas']} numHead={[1, 2]}>
-        <tr><td><strong>Plan name</strong></td><td>{plan}</td><td>{plan}</td></tr>
-        <tr><td><strong>Contract start date</strong></td><td>{start}</td><td>{start}</td></tr>
-        <tr><td><strong>Contract end date</strong></td><td>{end}</td><td>{end}</td></tr>
-        <tr><td><strong>Exit fee</strong></td><td>{exitFee}</td><td>{exitFee}</td></tr>
-        <tr><td><strong>Future annual consumption</strong></td><td>{kwhText(supply.electricity?.annualKwh)}</td><td>{kwhText(supply.gas?.annualKwh)}</td></tr>
-        <tr><td><strong>Standing charge</strong></td><td>{penceRateText(supply.electricity?.standingChargePence, 'per day')}</td><td>{penceRateText(supply.gas?.standingChargePence, 'per day')}</td></tr>
-        <tr><td><strong>Unit rate</strong></td><td>{penceRateText(supply.electricity?.unitRatePence, 'per kWh')}</td><td>{penceRateText(supply.gas?.unitRatePence, 'per kWh')}</td></tr>
+      <Table head={['', 'Electricity', 'Gas']}>
+        <tr>
+          <td><strong>Plan name</strong></td>
+          <td colSpan={2}>
+            <SupplyInput label="Supply plan name" value={supply.planName ?? ''} minWidth={260}
+              onCommit={(next) => onChange((s) => { s.planName = next; })} />
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Contract start date</strong></td>
+          <td colSpan={2}>
+            <SupplyInput label="Contract start date" type="date" minWidth={150} value={supply.startDate ?? ''}
+              onCommit={(next) => onChange((s) => { s.startDate = next; })} />
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Contract end date</strong></td>
+          <td colSpan={2}>
+            <SupplyInput label="Contract end date" type="date" minWidth={150} value={supply.endDate ?? ''}
+              onCommit={(next) => onChange((s) => { s.endDate = next; })} />
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Exit fee</strong></td>
+          <td colSpan={2}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <SupplyInput label="Exit fee" minWidth={110}
+                value={typeof supply.exitFeePence === 'number' ? (supply.exitFeePence / 100).toFixed(2) : ''}
+                onCommit={(next) => onChange((s) => { s.exitFeePence = next ? parseMoney(next) : undefined; })} />
+              <span className="muted small">subject to T&amp;Cs</span>
+            </span>
+          </td>
+        </tr>
+        <tr><td><strong>Future annual consumption</strong></td>{fuelCell('electricity', 'annualKwh', 0, 'kWh')}{fuelCell('gas', 'annualKwh', 0, 'kWh')}</tr>
+        <tr><td><strong>Standing charge</strong></td>{fuelCell('electricity', 'standingChargePence', 2, 'p per day')}{fuelCell('gas', 'standingChargePence', 2, 'p per day')}</tr>
+        <tr><td><strong>Unit rate</strong></td>{fuelCell('electricity', 'unitRatePence', 2, 'p per kWh')}{fuelCell('gas', 'unitRatePence', 2, 'p per kWh')}</tr>
       </Table>
     </Section>
   );
@@ -1187,7 +1269,17 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
         <VaultLocked go={go} actions={accessActions} />
       ))}
       <ContractDetails title={title} contract={contractView} logo={contractLogo} monthly={monthly} latest={latest} latestLabel={latestLabel} showAccount={provider !== 'o2' && provider !== 'virgin'} />
-      {provider === 'ovo' && p.supply && <OvoSupplyContract supply={p.supply as OvoSupply} />}
+      {provider === 'ovo' && p.supply && (
+        <OvoSupplyContract
+          supply={p.supply as OvoSupply}
+          onChange={(mutate) => update((d) => {
+            const ovo = (d.providers as Record<string, { supply?: OvoSupply }>).ovo;
+            if (!ovo) return;
+            ovo.supply = ovo.supply ?? {};
+            mutate(ovo.supply);
+          })}
+        />
+      )}
       {provider === 'ovo' && usagePoints.length > 0 && (
         <Section
           title="Usage vs balance"
