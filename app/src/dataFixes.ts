@@ -86,6 +86,23 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     apply: (dataset) => { endPureCremationPlan(dataset); },
   },
   {
+    // The supply contract Ovo runs on both fuels, so the provider page answers
+    // the consumption and rate questions without the PDF bill to hand.
+    id: 'ovo-supply-contract-2026',
+    apply: (dataset) => {
+      const ovo = dataset.providers?.ovo as { supply?: unknown } | undefined;
+      if (!ovo || ovo.supply) return;
+      ovo.supply = {
+        planName: '1 Year Fixed Loyalty',
+        startDate: '2026-10-02',
+        endDate: '2027-10-01',
+        exitFeePence: 5_000,
+        electricity: { annualKwh: 1_031, standingChargePence: 55.18, unitRatePence: 26.98 },
+        gas: { annualKwh: 4_860, standingChargePence: 25.00, unitRatePence: 8.64 },
+      };
+    },
+  },
+  {
     id: 'starling-dan-2026-11-06',
     apply: (dataset) => {
       const exists = dataset.transactions.some((t) =>

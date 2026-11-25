@@ -901,6 +901,46 @@ function ContractDetails({ title, contract, logo, monthly, latest, latestLabel =
   );
 }
 
+/** The supply contract Ovo runs for electricity and gas (both fuels share it). */
+type OvoSupply = {
+  planName?: string;
+  startDate?: string;
+  endDate?: string;
+  exitFeePence?: number;
+  electricity?: { annualKwh?: number; standingChargePence?: number; unitRatePence?: number };
+  gas?: { annualKwh?: number; standingChargePence?: number; unitRatePence?: number };
+};
+
+const kwhText = (value?: number) => (typeof value === 'number' ? `${value.toLocaleString('en-GB')} kWh` : '—');
+const penceRateText = (value: number | undefined, unit: string) => (
+  typeof value === 'number' ? `${value.toFixed(2)}p ${unit}` : '—'
+);
+
+/** The contract both fuels share, then the per-fuel consumption and rates. */
+function OvoSupplyContract({ supply }: { supply: OvoSupply }) {
+  const plan = supply.planName || '—';
+  const start = supply.startDate ? dateUk(supply.startDate) : '—';
+  const end = supply.endDate ? dateUk(supply.endDate) : '—';
+  const exitFee = typeof supply.exitFeePence === 'number' ? `${gbp(supply.exitFeePence)} subject to T&Cs` : '—';
+  return (
+    <Section
+      title="Supply contract"
+      sub={`${plan} for both fuels, ${start} to ${end}. Exit fee ${exitFee}.`}
+      actions={<Badge tone="blue">Fixed to {end}</Badge>}
+    >
+      <Table head={['', 'Electricity', 'Gas']} numHead={[1, 2]}>
+        <tr><td><strong>Plan name</strong></td><td>{plan}</td><td>{plan}</td></tr>
+        <tr><td><strong>Contract start date</strong></td><td>{start}</td><td>{start}</td></tr>
+        <tr><td><strong>Contract end date</strong></td><td>{end}</td><td>{end}</td></tr>
+        <tr><td><strong>Exit fee</strong></td><td>{exitFee}</td><td>{exitFee}</td></tr>
+        <tr><td><strong>Future annual consumption</strong></td><td>{kwhText(supply.electricity?.annualKwh)}</td><td>{kwhText(supply.gas?.annualKwh)}</td></tr>
+        <tr><td><strong>Standing charge</strong></td><td>{penceRateText(supply.electricity?.standingChargePence, 'per day')}</td><td>{penceRateText(supply.gas?.standingChargePence, 'per day')}</td></tr>
+        <tr><td><strong>Unit rate</strong></td><td>{penceRateText(supply.electricity?.unitRatePence, 'per kWh')}</td><td>{penceRateText(supply.gas?.unitRatePence, 'per kWh')}</td></tr>
+      </Table>
+    </Section>
+  );
+}
+
 function providerAccountDetails(provider: string, p: any): [string, string | undefined][] {
   switch (provider) {
     case 'water':
@@ -1143,6 +1183,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
         <VaultLocked go={go} actions={accessActions} />
       ))}
       <ContractDetails title={title} contract={contractView} logo={contractLogo} monthly={monthly} latest={latest} latestLabel={latestLabel} showAccount={provider !== 'o2' && provider !== 'virgin'} />
+      {provider === 'ovo' && p.supply && <OvoSupplyContract supply={p.supply as OvoSupply} />}
       {provider === 'ovo' && usagePoints.length > 0 && (
         <Section
           title="Usage vs balance"
