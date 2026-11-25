@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { billPriceHistory, billPriceSummary, expiryList, expiryReminders, normaliseExpiry } from '../core/billTimeline.ts';
-import type { Dataset } from '../core/engine.ts';
+import { buildEngine, type Dataset } from '../core/engine.ts';
 import { baseDataset } from './support/dataset.ts';
 
 function dataset(): Dataset {
@@ -87,4 +87,23 @@ test('normaliseExpiry rejects impossible dates and clamps the lead time', () => 
   const expiry = normaliseExpiry({ id: 'x', label: ' Insurance ', date: '2026-12-01', kind: 'insurance', leadDays: 999 });
   assert.equal(expiry?.label, 'Insurance');
   assert.equal(expiry?.leadDays, 365);
+});
+
+test('a bill removed from a year stays removed for later years but not earlier ones', () => {
+  const ds = dataset();
+  ds.bills = [{
+    name: 'Broadband', amountPence: 3000, dueDay: 5, linkedSheet: '', frequency: 'Monthly',
+    latestBalancePence: 0, latestPaymentPence: 0, sortOrder: 1, active: true,
+    effectiveFrom: '2026-01-01', paymentMethod: 'Direct Debit', baseAmountPence: 3000, baseDueDay: 5,
+  }];
+  ds.billChanges = [{
+    bill: 'Broadband', appliesFrom: '2030-01-01', appliesTo: '', amountOverridePence: null,
+    dueDateOverride: '', dueDayOverride: null, changeType: 'Removed', note: '', skip: true,
+  }];
+  const engine = buildEngine(ds);
+  const has = (year: number) => engine.scheduledBills(year, 1).some((bill) => bill.name === 'Broadband');
+
+  assert.equal(has(2029), true, 'the year before the removal still pays it');
+  assert.equal(has(2030), false, 'the removal year drops it');
+  assert.equal(has(2035), false, 'later years stay clear of it');
 });

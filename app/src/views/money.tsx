@@ -1035,6 +1035,38 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
     return undefined;
   };
   const yearChange = (name: string) => planChangeFor(ds.billChanges, name);
+  /**
+   * A bill removed from this year stays removed for every later year, so the
+   * skip is open-ended: any skip that has started by the end of this year holds.
+   */
+  const skipChangeFor = (changes: typeof ds.billChanges, name: string) => {
+    for (let index = changes.length - 1; index >= 0; index -= 1) {
+      const change = changes[index];
+      if (change.bill !== name || change.skip !== true) continue;
+      if (change.appliesFrom && change.appliesFrom > planEnd) continue;
+      if (change.appliesTo && change.appliesTo < planStart) continue;
+      return change;
+    }
+    return undefined;
+  };
+  const removeFromYear = (name: string) => update((d) => {
+    const yearPlan = planChangeFor(d.billChanges, name);
+    if (yearPlan) {
+      Object.assign(yearPlan, { skip: true, appliesTo: '', changeType: 'Removed', note: `Removed from ${year} and later years` });
+      return;
+    }
+    d.billChanges.push({
+      bill: name,
+      appliesFrom: planStart,
+      appliesTo: '',
+      amountOverridePence: null,
+      dueDateOverride: '',
+      dueDayOverride: null,
+      changeType: 'Removed',
+      note: `Removed from ${year} and later years`,
+      skip: true,
+    });
+  });
   const setPlan = (name: string, patch: { amountOverridePence?: number | null; dueDayOverride?: number | null; skip?: boolean }) => update((d) => {
     let change = planChangeFor(d.billChanges, name);
     if (!change) {
@@ -1270,6 +1302,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
       >
         <Table head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
           {ds.bills.map((b, i) => (
+            planning && skipChangeFor(ds.billChanges, b.name) ? null : (
             <tr key={b.name || i}>
               <td><EditableName value={b.name} onCommit={(next) => renameBill(b.name, next)} ariaLabel={`Bill name ${b.name}`} /></td>
               <td className="num">
@@ -1333,17 +1366,18 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                 : <input type="checkbox" checked={b.active} onChange={(e) => update((d) => { d.bills[i].active = e.target.checked; })} />}</td>
               <td><button className="btn ghost sm" onClick={() => {
                 if (!planning) return removeBill(b.name);
-                if (!confirm(`Remove ${b.name} from ${year}? Earlier years stay untouched.`)) return;
-                setPlan(b.name, { skip: true });
-                notify(`${b.name} removed from ${year}`);
+                if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
+                removeFromYear(b.name);
+                notify(`${b.name} removed from ${year} and later years`);
               }}>{planning ? `Remove from ${year}` : 'Remove'}</button></td>
             </tr>
+            )
           ))}
         </Table>
         {planning && (
           <div style={{ padding: '0 16px 16px' }}>
             <div className="notice info">
-              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}.
+              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}. Removing a bill takes it out of {year} and every later year; delete that removal in Bill changes to bring it back.
             </div>
           </div>
         )}
