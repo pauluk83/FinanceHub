@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Cards blank their zero figures, and the Account, Card and People tables left-align their columns
+- Bills, and the bill plan and link sheets tables, left-align their column names over the values
 
 ## [2026.11.25] — 25 November 2026
 

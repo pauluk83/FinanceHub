@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.26",
-  "buildId": "07b573c3ddda",
+  "buildId": "e36d6b76f0e6",
   "builtAt": "2026-11-26",
   "releases": [
     {
@@ -15,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Cards blank their zero figures, and the Account, Card and People tables left-align their columns"
+            "Cards blank their zero figures, and the Account, Card and People tables left-align their columns",
+            "Bills, and the bill plan and link sheets tables, left-align their column names over the values"
           ]
         }
       ]

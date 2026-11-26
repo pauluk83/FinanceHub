@@ -1357,7 +1357,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
           ? `Amount, due day and removal apply to ${year} only. Method, account and linked sheet stay shared.`
           : "Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available. Link sheets below are optional labels that group bills."}
       >
-        <Table head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
+        <Table className="ledger-table-start" head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
           {ds.bills.map((b, i) => (
             planning && skipChangeFor(ds.billChanges, b.name) ? null : (
             <tr key={b.name || i}>
@@ -1521,7 +1521,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
       </Section>
 
       <Section title={planning ? `Bill changes for ${year}` : 'Bill changes'} sub="Latest matching override wins; same From/To month is a one-off. A dated change is the way to alter one month without rewriting the bill's base amount.">
-        <Table head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Type', 'Note', '']} numHead={[3]}>
+        <Table className="ledger-table-start" head={['Bill', 'From', 'To', 'Amount', 'Due override', 'Type', 'Note', '']} numHead={[3]}>
           {ds.billChanges.filter((c) => !planning || ((!c.appliesFrom || c.appliesFrom <= planEnd) && (!c.appliesTo || c.appliesTo >= planStart))).map((c, i) => (
             <tr key={`${c.bill}-${c.appliesFrom}-${c.appliesTo}-${i}`}>
               <td>{c.bill}</td>
