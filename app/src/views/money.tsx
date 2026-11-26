@@ -1418,7 +1418,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
               </td>
               <td>{planning
                 ? <span className="muted">{b.effectiveFrom ? dateUk(b.effectiveFrom) : '—'}</span>
-                : <input className="table-input date" type="date" value={b.effectiveFrom || ''} onChange={(e) => update((d) => { d.bills[i].effectiveFrom = e.target.value; })} />}</td>
+                                 : <input className={`table-input date${b.effectiveFrom ? '' : ' date-empty'}`} type="date" value={b.effectiveFrom || ''} onChange={(e) => update((d) => { d.bills[i].effectiveFrom = e.target.value; })} />}</td>
               <td>{planning
                 ? <input
                     type="checkbox"

@@ -11,6 +11,7 @@ and the build time.
 - Cards blank their zero figures, and the Account, Card and People tables left-align their columns
 - Bills, and the bill plan and link sheets tables, left-align their column names over the values
 - Overview's bill lists, Forecast, Savings and Debts left-align their column names over the values
+- An empty Effective from date shows nothing instead of the dd/mm/yyyy hint
 
 ## [2026.11.25] — 25 November 2026
 

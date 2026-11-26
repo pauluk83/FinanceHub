@@ -383,6 +383,8 @@ th.num { text-align: right; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ledger-table-start th, .ledger-table-start .num { text-align: left; }
 .ledger-table-start .table-input { text-align: left; }
+/* A date field with no value shows nothing rather than its dd/mm/yyyy hint. */
+.table-input.date-empty:not(:focus)::-webkit-datetime-edit { color: transparent; }
 .amount.neg { color: var(--danger); }
 .amount.pos { color: var(--accent); }
 .muted { color: var(--muted); }
