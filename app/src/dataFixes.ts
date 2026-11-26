@@ -5,6 +5,7 @@ import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
 import { alignMonthsToTemplate, blankYearBills, endPureCremationPlan, extendProvidersToPlanYear } from '../../core/providerPlans';
 import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
+import { suggestForTransaction } from '../../core/importRules';
 
 const OVO_SPEC: LedgerSpec = {
   rowsKey: 'statement',
@@ -609,6 +610,45 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
       const rent = dataset.providers?.rent as { chargeLetterUrl?: string } | undefined;
       if (!rent) return;
       rent.chargeLetterUrl = 'https://www.dropbox.com/scl/fi/720x2ikfwgzj58ymmwd91/Rent-Charge-Letter-26-27.pdf?rlkey=p8sl1rilpqbw42zzca7psy4o7&st=cnd5xwzu&dl=0';
+    },
+  },
+  {
+    // The supermarket rule sat ahead of the petrol one, so "TESCO PFS" (the
+    // filling station) was caught as groceries. The pump now runs first; every
+    // other rule and its priority is left alone.
+    id: 'tesco-pfs-before-tesco-2026-11-26',
+    apply: (dataset) => {
+      const rules = dataset.importRules ?? [];
+      const contains = (rule: (typeof rules)[number]) => (rule.field === 'description' && rule.operator === 'contains'
+        ? String(rule.pattern ?? '').trim().toLowerCase()
+        : '');
+      const petrol = rules.find((rule) => contains(rule) === 'tesco pfs');
+      const supermarket = rules.find((rule) => contains(rule) === 'tesco');
+      if (!petrol) return;
+      const supermarketPriority = Number(supermarket?.priority) || 10;
+      if (Number(petrol.priority) <= supermarketPriority) return;
+      petrol.priority = Math.max(0, supermarketPriority - 5);
+    },
+  },
+  {
+    // The rules already described the merchants, but rows added by hand were
+    // saved with a blank category. Fill only the blanks, using the same
+    // first-match-wins suggestion the entry form and the review grid use, so a
+    // backfilled row reads exactly like a new one. Existing categories, tags and
+    // every amount stay untouched.
+    id: 'category-backfill-from-rules-2026-11-26',
+    apply: (dataset) => {
+      const rules = dataset.importRules ?? [];
+      if (rules.length === 0) return;
+      for (const tx of dataset.transactions ?? []) {
+        if (String(tx.category ?? '').trim()) continue;
+        const suggestion = suggestForTransaction(rules, {
+          description: tx.comments,
+          account: tx.account,
+          amountPence: tx.amountPence,
+        });
+        if (suggestion.category) tx.category = suggestion.category;
+      }
     },
   },
   {

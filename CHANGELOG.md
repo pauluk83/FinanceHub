@@ -19,6 +19,7 @@ and the build time.
 - Add Loan transaction category
 - Categorise the existing loan rows as Loan
 - Manual entries take their category from the import rules
+- Backfill transaction categories from the rules and run the petrol rule first
 
 ## [2026.11.25] — 25 November 2026
 

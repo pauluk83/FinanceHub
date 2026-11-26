@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.26",
-  "buildId": "0d466f52c132",
+  "buildId": "5ccc44f2f826",
   "builtAt": "2026-11-26",
   "releases": [
     {
@@ -25,7 +25,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "The tour traps Tab inside its card, and Settings gains a language selector on top of the translation layer",
             "Add Loan transaction category",
             "Categorise the existing loan rows as Loan",
-            "Manual entries take their category from the import rules"
+            "Manual entries take their category from the import rules",
+            "Backfill transaction categories from the rules and run the petrol rule first"
           ]
         }
       ]
