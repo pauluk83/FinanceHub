@@ -27,6 +27,7 @@ test('tags accept comma or semicolon text, de-duplicate and cap the list', () =>
 test('options keep the standard categories and add the labels already in use', () => {
   const categories = categoryOptions([{ category: 'Garden' }, { category: 'Food' }, { category: '' }] as any[]);
   assert.ok(categories.includes('Bills'));
+  assert.ok(categories.includes('Loan'));
   assert.ok(categories.includes('Garden'));
   assert.equal(categories.filter((value) => value === 'Food').length, 1);
   assert.deepEqual(tagOptions([{ tags: ['weekly', 'tesco'] }, { tags: ['Tesco', 'fuel'] }] as any[]), ['fuel', 'tesco', 'weekly']);

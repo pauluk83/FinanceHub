@@ -16,6 +16,7 @@ export const STANDARD_CATEGORIES = [
   'Health',
   'Family',
   'Debt',
+  'Loan',
   'Savings',
   'Entertainment',
   'Income',
