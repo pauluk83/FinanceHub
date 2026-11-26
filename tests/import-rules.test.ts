@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  mergeSuggestion,
   normaliseMerchant,
   ruleMatches,
   rulePatternProblem,
@@ -58,6 +59,27 @@ test('no rule means no suggestion, so nothing is written implicitly', () => {
   assert.equal(suggestion.rule, null);
   assert.equal(suggestion.category, '');
   assert.deepEqual(suggestion.tags, []);
+});
+
+test('a rule fills a blank entry form and leaves a typed category alone', () => {
+  const suggestion = suggestForTransaction([rule({ pattern: 'Tesco', category: 'Food', tags: ['weekly'] })], {
+    description: 'Tesco 3245',
+  });
+  const blank = mergeSuggestion({ category: '', tags: '' }, suggestion);
+  assert.equal(blank.category, 'Food');
+  assert.equal(blank.tags, 'weekly');
+  assert.equal(blank.autoCategory, 'Food');
+
+  const typed = mergeSuggestion({ category: 'Shopping', tags: 'gift' }, suggestion);
+  assert.equal(typed.category, 'Shopping');
+  assert.equal(typed.tags, 'gift');
+  assert.equal(typed.autoCategory, '');
+  assert.equal(typed.autoTags, '');
+
+  // A value an earlier rule supplied is replaceable; a typed one is not.
+  const reRun = mergeSuggestion({ category: 'Food', tags: 'weekly' }, suggestion, { category: 'Food', tags: 'weekly' });
+  assert.equal(reRun.category, 'Food');
+  assert.equal(reRun.autoCategory, 'Food');
 });
 
 test('amount rules compare the absolute value and ignore invalid patterns', () => {

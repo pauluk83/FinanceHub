@@ -7,7 +7,7 @@
  * balance or a total, so treatment stays a manual decision on the row.
  */
 import type { Tx } from './engine.ts';
-import { normaliseCategory, normaliseTags } from './categories.ts';
+import { normaliseCategory, normaliseTags, tagsText } from './categories.ts';
 
 export type RuleField = 'description' | 'account' | 'amount';
 export type RuleOperator = 'contains' | 'equals' | 'startsWith' | 'regex' | 'greaterThan' | 'lessThan';
@@ -166,6 +166,28 @@ export function suggestForTransaction(rules: readonly ImportRule[], subject: Rul
     };
   }
   return { rule: null, category: '', tags: [], targetAccount: undefined };
+}
+
+/**
+ * Fold a rule hit into the manual entry form. A category or tag list the person
+typed is kept; only a blank field, or one an earlier rule filled (tracked in
+`auto`), takes the new suggestion.
+ */
+export function mergeSuggestion(
+  current: { category: string; tags: string },
+  suggestion: RuleSuggestion,
+  auto: { category: string; tags: string } = { category: '', tags: '' },
+): { category: string; tags: string; autoCategory: string; autoTags: string } {
+  const categoryTyped = current.category.trim() !== '' && current.category !== auto.category;
+  const tagsTyped = current.tags.trim() !== '' && current.tags !== auto.tags;
+  const category = categoryTyped ? current.category : suggestion.category;
+  const tags = tagsTyped ? current.tags : tagsText(suggestion.tags);
+  return {
+    category,
+    tags,
+    autoCategory: categoryTyped ? '' : category,
+    autoTags: tagsTyped ? '' : tags,
+  };
 }
 
 export interface RuleTestResult {

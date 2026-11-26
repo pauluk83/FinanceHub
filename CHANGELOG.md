@@ -18,6 +18,7 @@ and the build time.
 - The tour traps Tab inside its card, and Settings gains a language selector on top of the translation layer
 - Add Loan transaction category
 - Categorise the existing loan rows as Loan
+- Manual entries take their category from the import rules
 
 ## [2026.11.25] — 25 November 2026
 

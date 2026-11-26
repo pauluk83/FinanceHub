@@ -11,6 +11,7 @@ import { applyProviderPayment, PAYMENT_PLANS } from '../../../core/providerBillL
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
+import { mergeSuggestion, ruleFieldText, suggestForTransaction } from '../../../core/importRules';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
 import { bulkEditTransactions } from '../../../core/cleanup';
@@ -68,6 +69,8 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
   const [historyRow, setHistoryRow] = useState<number | null>(null);
   const [showTrash, setShowTrash] = useState(false);
   const [loanPrefilled, setLoanPrefilled] = useState(false);
+  const [autoFill, setAutoFill] = useState({ category: '', tags: '' });
+  const [ruleHint, setRuleHint] = useState('');
   const [form, setForm] = useState({
     date: todayIso(),
     account: ds.settings.primaryAccount || ds.accounts[0]?.name || '',
@@ -259,6 +262,34 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
       advanceAsOfToLatestTransaction(d, todayIso());
     });
 
+  /**
+   * Manual entry runs through the same import rules as the review grid, so a
+   * Tesco description arrives with Food already chosen. Nothing typed by hand
+   * is replaced: only a blank field, or one the rules filled, takes the hit.
+   */
+  const fillFromRules = (next: typeof form, allowRules = editing === null) => {
+    if (!allowRules) { setForm(next); return; }
+    const suggestion = suggestForTransaction(ds.importRules ?? [], {
+      description: next.comments,
+      account: next.account,
+      amountPence: Math.abs(parseMoney(next.amount)) || undefined,
+    });
+    const merged = mergeSuggestion(next, suggestion, autoFill);
+    setForm({ ...next, category: merged.category, tags: merged.tags });
+    setAutoFill({ category: merged.autoCategory, tags: merged.autoTags });
+    setRuleHint(suggestion.rule && (merged.autoCategory || merged.autoTags)
+      ? `Filled from the rule “${ruleFieldText(suggestion.rule)}”`
+      : '');
+  };
+
+  // A saved entry starts clean so the next description is judged on its own
+  // merits instead of inheriting the last category.
+  const resetFormAfterSave = () => {
+    setForm({ ...form, amount: '', comments: '', category: '', tags: '' });
+    setAutoFill({ category: '', tags: '' });
+    setRuleHint('');
+  };
+
   const submit = () => {
     const amount = Math.abs(parseMoney(form.amount));
     if (!form.date || amount === 0) { notify('Enter a date and a non-zero amount'); return; }
@@ -316,7 +347,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           d.transactions = [...d.transactions.filter((t) => !drop.has(t.row)), legs[0], legs[1]];
         });
         setEditing(null);
-        setForm({ ...form, amount: '', comments: '' });
+        resetFormAfterSave();
         setAdding(false);
         notify(`Card payment updated — ${gbp(amount)} from ${form.to} to ${form.account}`);
         return;
@@ -344,7 +375,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
           d.transactions = [...d.transactions.filter((t) => !drop.has(t.row)), legs[0], legs[1]];
         });
         setEditing(null);
-        setForm({ ...form, amount: '', comments: '' });
+        resetFormAfterSave();
         setAdding(false);
         notify(`Transfer updated — ${gbp(amount)} from ${form.account} to ${form.to}`);
         return;
@@ -377,7 +408,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         }
       });
       setEditing(null);
-      setForm({ ...form, amount: '', comments: '' });
+      resetFormAfterSave();
       setAdding(false);
       notify('Transaction updated');
       return;
@@ -396,7 +427,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         for (const leg of legs) { leg.category = category; leg.tags = formTags; }
         d.transactions.push(...legs);
       });
-      setForm({ ...form, amount: '', comments: '' });
+      resetFormAfterSave();
       setAdding(false);
       notify(`Card payment recorded — ${gbp(amount)} from ${form.to} to ${form.account}`);
       return;
@@ -415,7 +446,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         for (const leg of legs) { leg.category = category; leg.tags = formTags; }
         d.transactions.push(...legs);
       });
-      setForm({ ...form, amount: '', comments: '' });
+      resetFormAfterSave();
       setAdding(false);
       notify(`Transfer recorded — ${gbp(amount)} from ${form.account} to ${form.to}`);
       return;
@@ -435,7 +466,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
         tags: formTags,
       });
     });
-    setForm({ ...form, amount: '', comments: '' });
+    resetFormAfterSave();
     setAdding(false);
     notify('Transaction added — dashboard and monthly view updated');
   };
@@ -545,11 +576,14 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
             onClick={() => {
               if (!adding) {
                 const prefill = kindOf(form.account) === 'person' && !form.comments.trim();
-                setForm((f) => ({ ...f, comments: prefill ? 'Loan' : f.comments }));
                 setLoanPrefilled(prefill);
+                setEditing(null);
+                setAdding(true);
+                fillFromRules({ ...form, comments: prefill ? 'Loan' : form.comments }, true);
+              } else {
+                setEditing(null);
+                setAdding(false);
               }
-              setEditing(null);
-              setAdding((a) => !a);
             }}
           >{adding ? 'Close' : 'Add transaction'}</button>
         </div>}
@@ -620,14 +654,14 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
                   const person = kindOf(next) === 'person';
                   const prefill = editing === null && person && !form.comments.trim();
                   const clearAuto = editing === null && !person && loanPrefilled && form.comments === 'Loan';
-                  setForm((f) => ({
-                    ...f,
-                    account: next,
-                    to: f.to === next ? bankAccounts.find((a) => a !== next) ?? '' : f.to,
-                    comments: prefill ? 'Loan' : clearAuto ? '' : f.comments,
-                  }));
                   if (prefill) setLoanPrefilled(true);
                   if (clearAuto) setLoanPrefilled(false);
+                  fillFromRules({
+                    ...form,
+                    account: next,
+                    to: form.to === next ? bankAccounts.find((a) => a !== next) ?? '' : form.to,
+                    comments: prefill ? 'Loan' : clearAuto ? '' : form.comments,
+                  });
                 }}
               >
                 {formAccounts.map((a) => (
@@ -654,13 +688,13 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
               </select>
             </Field>
             <Field label="Amount (£)"><input className="input" inputMode="decimal" placeholder="0.00" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
-            <Field label="Comments"><input className="input" value={form.comments} onChange={(e) => { setLoanPrefilled(false); setForm({ ...form, comments: e.target.value }); }} /></Field>
-            <Field label="Category">
-              <input className="input" list="transaction-categories" placeholder="e.g. Food" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+            <Field label="Comments" hint="Import rules set the category from this"><input className="input" value={form.comments} onChange={(e) => { setLoanPrefilled(false); fillFromRules({ ...form, comments: e.target.value }); }} /></Field>
+            <Field label="Category" hint={ruleHint || undefined}>
+              <input className="input" list="transaction-categories" placeholder="e.g. Food" value={form.category} onChange={(e) => { setAutoFill({ ...autoFill, category: '' }); setRuleHint(''); setForm({ ...form, category: e.target.value }); }} />
               <datalist id="transaction-categories">{categories.map((entry) => <option key={entry} value={entry} />)}</datalist>
             </Field>
             <Field label="Tags" hint="Comma-separated; up to 8">
-              <input className="input" placeholder="weekly, tesco" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+              <input className="input" placeholder="weekly, tesco" value={form.tags} onChange={(e) => { setAutoFill({ ...autoFill, tags: '' }); setRuleHint(''); setForm({ ...form, tags: e.target.value }); }} />
             </Field>
             {form.type === 'Card payment' && (
               <div className="notice info" style={{ flexBasis: '100%' }}>
