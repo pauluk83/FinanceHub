@@ -13,6 +13,7 @@ and the build time.
 - Overview's bill lists, Forecast, Savings and Debts left-align their column names over the values
 - An empty Effective from date shows nothing instead of the dd/mm/yyyy hint
 - Bills shows a blank linked sheet instead of None, and inactive bills drop to the bottom of the list
+- A bill can be deleted outright from a future year's plan, so the new year's list can start clean
 
 ## [2026.11.25] — 25 November 2026
 

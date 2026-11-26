@@ -1122,6 +1122,16 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
       d.billChanges = d.billChanges.filter((entry) => entry !== change);
     }
   });
+  /** Delete a bill outright so a new year's plan can start from a clean list. */
+  const deleteBill = (name: string) => {
+    if (!confirm(`Delete ${name} completely? It is removed from every year and its bill changes go with it. Payments already recorded in the ledgers stay.`)) return;
+    update((d) => {
+      d.bills = d.bills.filter((bill) => bill.name !== name);
+      d.billChanges = d.billChanges.filter((change) => change.bill !== name);
+    });
+    setChange((current) => (current.bill === name ? { ...current, bill: '' } : current));
+    notify(`${name} deleted`);
+  };
   const planAmount = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.amountOverridePence ?? engine.billAmount(bill, year, 1);
   const planDueDay = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.dueDayOverride ?? bill.dueDay;
 
@@ -1437,7 +1447,8 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                       </span>
                     )}
                   </>}</td>
-              <td><button className="btn ghost sm" onClick={() => {
+              <td>
+              <button className="btn ghost sm" onClick={() => {
                 if (planning) {
                   if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
                   removeFromYear(b.name);
@@ -1447,7 +1458,11 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                 if (!confirm(`Stop ${b.name} from ${MONTH_LONG[month - 1]} ${year}? Earlier months and earlier years keep their payments.`)) return;
                 stopBillFrom(b.name);
                 notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
-              }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button></td>
+              }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button>
+              {planning && (
+                <button className="btn ghost sm" style={{ marginLeft: 6 }} onClick={() => deleteBill(b.name)}>Delete</button>
+              )}
+              </td>
             </tr>
             )
           ))}
@@ -1455,7 +1470,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
         {planning && (
           <div style={{ padding: '0 16px 16px' }}>
             <div className="notice info">
-              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}. Removing a bill takes it out of {year} and every later year; delete that removal in Bill changes to bring it back.
+              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}. Removing a bill takes it out of {year} and every later year; delete that removal in Bill changes to bring it back. Delete removes the bill from every year so you can start the year's list afresh.
             </div>
           </div>
         )}
