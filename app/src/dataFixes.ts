@@ -5,13 +5,32 @@ import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { carryForwardProviderYears } from '../../core/providerCarry';
 import { alignMonthsToTemplate, blankYearBills, endPureCremationPlan, extendProvidersToPlanYear } from '../../core/providerPlans';
 import { baselineFor, recalculate, recordBill, type LedgerSpec } from '../../core/providerLedger';
-import { suggestForTransaction } from '../../core/importRules';
+import { newRuleId, suggestForTransaction } from '../../core/importRules';
 
 const OVO_SPEC: LedgerSpec = {
   rowsKey: 'statement',
   formula: 'cashflow',
   monthly: true,
 };
+
+/**
+ * Fill a blank category from the first matching import rule, exactly as the
+ * manual entry form and the review grid do. Existing categories and every
+ * amount stay untouched, so running it twice changes nothing.
+ */
+function fillBlankCategories(dataset: Dataset) {
+  const rules = dataset.importRules ?? [];
+  if (rules.length === 0) return;
+  for (const tx of dataset.transactions ?? []) {
+    if (String(tx.category ?? '').trim()) continue;
+    const suggestion = suggestForTransaction(rules, {
+      description: tx.comments,
+      account: tx.account,
+      amountPence: tx.amountPence,
+    });
+    if (suggestion.category) tx.category = suggestion.category;
+  }
+}
 
 const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
   {
@@ -631,25 +650,46 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
-    // The rules already described the merchants, but rows added by hand were
-    // saved with a blank category. Fill only the blanks, using the same
-    // first-match-wins suggestion the entry form and the review grid use, so a
-    // backfilled row reads exactly like a new one. Existing categories, tags and
-    // every amount stay untouched.
-    id: 'category-backfill-from-rules-2026-11-26',
+    // Five merchants with an unambiguous name had no rule of their own, so their
+    // rows stayed blank. The rules append after every existing pattern, so a more
+    // specific rule (TESCO PFS, ASDA SUPERSTORE) still wins, and the blanks
+    // already on the log are filled as the rules go in.
+    id: 'merchant-rules-food-petrol-2026-11-26',
     apply: (dataset) => {
-      const rules = dataset.importRules ?? [];
-      if (rules.length === 0) return;
-      for (const tx of dataset.transactions ?? []) {
-        if (String(tx.category ?? '').trim()) continue;
-        const suggestion = suggestForTransaction(rules, {
-          description: tx.comments,
-          account: tx.account,
-          amountPence: tx.amountPence,
+      const rules = (dataset.importRules ??= []);
+      let priority = Math.max(0, ...rules.map((rule) => Number(rule.priority) || 0));
+      for (const entry of [
+        { pattern: 'ALDI', category: 'Food' },
+        { pattern: 'MORRISONS', category: 'Food' },
+        { pattern: 'SAINSBURY', category: 'Food' },
+        { pattern: 'LIDL', category: 'Food' },
+        { pattern: 'PETROL', category: 'Transport' },
+      ]) {
+        const exists = rules.some((rule) => rule.field === 'description'
+          && String(rule.pattern ?? '').trim().toLowerCase() === entry.pattern.toLowerCase());
+        if (exists) continue;
+        priority += 10;
+        rules.push({
+          id: newRuleId(rules),
+          field: 'description',
+          operator: 'contains',
+          pattern: entry.pattern,
+          priority,
+          category: entry.category,
+          tags: [],
+          enabled: true,
         });
-        if (suggestion.category) tx.category = suggestion.category;
       }
+      fillBlankCategories(dataset);
     },
+  },
+  {
+    // Rows added by hand were saved with a blank category. Fill only the blanks,
+    // using the same first-match-wins suggestion the entry form and the review
+    // grid use, so a backfilled row reads exactly like a new one. Existing
+    // categories, tags and every amount stay untouched.
+    id: 'category-backfill-from-rules-2026-11-26',
+    apply: (dataset) => fillBlankCategories(dataset),
   },
   {
     // Steve and Dan's loans were recorded before a Loan category existed, so the

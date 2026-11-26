@@ -20,6 +20,7 @@ and the build time.
 - Categorise the existing loan rows as Loan
 - Manual entries take their category from the import rules
 - Backfill transaction categories from the rules and run the petrol rule first
+- Add Aldi, Morrisons, Sainsbury's, Lidl and Petrol import rules
 
 ## [2026.11.25] — 25 November 2026
 
