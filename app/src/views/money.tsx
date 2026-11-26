@@ -848,7 +848,7 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
   return (
     <>
       <Section title="Bank accounts" sub={`Balances as of ${dateUk(asOf)}. Edit a name in place (Enter saves, Esc cancels); removing an account moves its transactions to the main account.`}>
-        <Table head={['Account', 'Opening', 'Balance', 'Target', 'Progress', 'Active', '']} numHead={[1, 2, 3]}>
+        <Table className="ledger-table-start" head={['Account', 'Opening', 'Balance', 'Target', 'Progress', 'Active', '']} numHead={[1, 2, 3]}>
           {balances.map((a) => {
             const index = ds.accounts.findIndex((entry) => entry.name === a.name);
             return (
@@ -906,17 +906,17 @@ export function Cards({ ds, engine, year, month, update, notify }: ViewProps) {
         <div className="card"><div className="card-title">Available</div><div className="kpi-value pos">{gbp(totalLimit - totalBalance)}</div></div>
       </div>
       <Section title="Credit cards" sub="Balance = opening + charges − refunds/payments">
-        <Table head={['Card', 'Opening', 'Balance', 'Limit', 'Available', 'Used', 'Active', '']} numHead={[1, 2, 3, 4, 5]}>
+        <Table className="ledger-table-start" head={['Card', 'Opening', 'Balance', 'Limit', 'Available', 'Used', 'Active', '']} numHead={[1, 2, 3, 4, 5]}>
           {cards.map((c) => {
             const index = ds.cards.findIndex((entry) => entry.name === c.name);
             return (
               <tr key={c.name}>
                 <td><strong>{c.name}</strong></td>
-                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Opening ${c.name}`} value={(c.openingPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.cards[index].openingPence = parseMoney(e.target.value); })} /></td>
-                <td className="num"><strong>{gbp(c.balancePence)}</strong></td>
-                <td className="num"><input className="table-input" inputMode="decimal" aria-label={`Limit ${c.name}`} value={(c.limitPence / 100).toFixed(2)} onChange={(e) => update((d) => { d.cards[index].limitPence = parseMoney(e.target.value); })} /></td>
-                <td className="num">{gbp(c.availablePence)}</td>
-                <td className="num">{pct(c.utilisation)}</td>
+                <td className="num"><MoneyCell pence={c.openingPence} ariaLabel={`Opening ${c.name}`} onCommit={(pence) => update((d) => { d.cards[index].openingPence = pence; })} /></td>
+                <td className="num"><strong>{gbpBlank(c.balancePence)}</strong></td>
+                <td className="num"><MoneyCell pence={c.limitPence} ariaLabel={`Limit ${c.name}`} onCommit={(pence) => update((d) => { d.cards[index].limitPence = pence; })} /></td>
+                <td className="num">{gbpBlank(c.availablePence)}</td>
+                <td className="num">{c.utilisation === 0 ? '' : pct(c.utilisation)}</td>
                 <td><input type="checkbox" aria-label={`${c.name} active`} checked={c.active} onChange={(e) => update((d) => { d.cards[index].active = e.target.checked; })} /></td>
                 <td><button className="btn ghost sm" onClick={() => removeCard(c.name)}>Remove</button></td>
               </tr>
@@ -972,7 +972,7 @@ export function People({ ds, engine, year, month, update, notify, userId, worksp
   return (
     <>
     <Section title="People accounts" sub="Owed = opening + lent − repaid. Edit names in place; removing someone keeps their ledger rows but stops counting them as owed.">
-      <Table head={['Person', 'Full name', 'Opening', 'Lent', 'Repaid', 'Owed', 'Active', '']} numHead={[2, 3, 4, 5]}>
+      <Table className="ledger-table-start" head={['Person', 'Full name', 'Opening', 'Lent', 'Repaid', 'Owed', 'Active', '']} numHead={[2, 3, 4, 5]}>
         {ds.people.map((p) => {
           const owed = people.find((entry) => entry.shortName === p.shortName);
           const lent = ds.transactions.filter((t) => t.account === p.shortName && t.type === 'Expense').reduce((s, t) => s + t.amountPence, 0);

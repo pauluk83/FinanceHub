@@ -1,6 +1,6 @@
 {
   "name": "financehub",
-  "version": "2026.11.25",
+  "version": "2026.11.26",
   "description": "FinanceHub — personal finance app with workbook parity",
   "main": "electron/main.cjs",
   "repository": {

@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.25",
-  "buildId": "8f8b86523267",
-  "builtAt": "2026-11-25",
+  "version": "2026.11.26",
+  "buildId": "07b573c3ddda",
+  "builtAt": "2026-11-26",
   "releases": [
+    {
+      "version": "2026.11.26",
+      "date": "26 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Cards blank their zero figures, and the Account, Card and People tables left-align their columns"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.25",
       "date": "25 November 2026",

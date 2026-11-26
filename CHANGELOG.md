@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.26] — 26 November 2026
+
+### Changed
+- Cards blank their zero figures, and the Account, Card and People tables left-align their columns
+
 ## [2026.11.25] — 25 November 2026
 
 ### Changed
