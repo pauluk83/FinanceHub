@@ -90,7 +90,7 @@ export function Savings({ ds, update, notify }: ViewProps) {
         <div className="metric"><span>Accounts</span><strong>{accounts.length}</strong></div>
       </div>
 
-      <Table head={['Account', 'Details', 'Balance', 'Target', 'Monthly', '']}>
+      <Table className="ledger-table-start" head={['Account', 'Details', 'Balance', 'Target', 'Monthly', '']}>
         {accounts.map((account) => {
           const progress = account.targetPence ? Math.min(1, account.balancePence / account.targetPence) : null;
           return (

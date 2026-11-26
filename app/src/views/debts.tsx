@@ -87,7 +87,7 @@ export function Debts({ ds, update, notify }: ViewProps) {
         <div className="metric"><span>Agreements</span><strong>{debts.length}</strong></div>
       </div>
 
-      <Table head={['Debt', 'Agreement', 'Balance', 'Monthly', 'Due', '']}>
+      <Table className="ledger-table-start" head={['Debt', 'Agreement', 'Balance', 'Monthly', 'Due', '']}>
         {debts.map((debt) => (
           <tr key={debt.id}>
             <td>

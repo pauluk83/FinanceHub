@@ -50,7 +50,7 @@ export function Forecast({ ds, engine }: ViewProps) {
             )}
           </div>
         </div>
-        <Table head={['Month', 'Opening', 'Income', 'Bills', 'Debt', 'To savings', 'One-off', 'Closing cash', 'Savings held', 'Position', ...(scenario ? ['What-if position'] : [])]} numHead={[1, 2, 3, 4, 5, 6, 7, 8, 9]}>
+        <Table className="ledger-table-start" head={['Month', 'Opening', 'Income', 'Bills', 'Debt', 'To savings', 'One-off', 'Closing cash', 'Savings held', 'Position', ...(scenario ? ['What-if position'] : [])]} numHead={[1, 2, 3, 4, 5, 6, 7, 8, 9]}>
           {baseline.months.map((entry, index) => {
             const alt = scenario?.months[index];
             return (

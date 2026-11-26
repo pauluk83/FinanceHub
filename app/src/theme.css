@@ -381,7 +381,7 @@ tbody tr:hover td { background: color-mix(in srgb, var(--panel-2) 70%, transpare
 /* Numeric headers follow their cells so titles sit over the figures. */
 th.num { text-align: right; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.ledger-table-start th, .ledger-table-start td.num { text-align: left; }
+.ledger-table-start th, .ledger-table-start .num { text-align: left; }
 .ledger-table-start .table-input { text-align: left; }
 .amount.neg { color: var(--danger); }
 .amount.pos { color: var(--accent); }

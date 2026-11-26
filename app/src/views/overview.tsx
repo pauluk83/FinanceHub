@@ -331,7 +331,7 @@ export function Dashboard({ ds, engine, year, month, setMonth, go, isLocal, last
           sub={`Resolved for ${MONTH_LONG[month - 1]} — paid automatically on the due date`}
           actions={<><ExplainButton label="Explain bills" onClick={() => setExplanation(explainMonth(ds, engine, year, month, 'bills'))} /><button className="btn ghost sm" onClick={() => go('bills')}>View bills</button></>}
         >
-          <Table head={['Bill', 'Due', 'Countdown', 'Method', 'Amount', '']} numHead={[4]}>
+          <Table className="ledger-table-start" head={['Bill', 'Due', 'Countdown', 'Method', 'Amount', '']} numHead={[4]}>
             {d.bills.map((b) => {
               const days = daysUntil(b.dueDate, today);
               const tone = b.paid ? 'green' : days < 0 ? 'red' : days <= 7 ? 'amber' : 'neutral';
@@ -746,7 +746,7 @@ export function Monthly({ ds, engine, year, month, setMonth, go }: ViewProps) {
       )}
 
       <Section title="Scheduled bills" sub="Due dates honour one-off Bill Changes; a bill whose payment is already in the transaction log says Paid from log and is counted once.">
-        <Table head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
+        <Table className="ledger-table-start" head={['Bill', 'Due', 'Method', 'Paid from', 'Linked sheet', 'Amount', 'Status']} numHead={[5]}>
           {(s.breakdown.bills.length ? s.breakdown.bills : engine.scheduledBills(year, month)).map((b) => (
             <tr key={b.name}>
               <td><strong>{b.name}</strong></td>
