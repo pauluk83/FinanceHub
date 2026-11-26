@@ -95,10 +95,12 @@
   --text: #0f172a;
   --muted: #5b6b82;
   --faint: #94a3b8;
-  --accent: #0f9d58;
-  --accent-soft: rgba(15, 157, 88, 0.12);
-  --accent-2: #0284c7;
-  --accent-2-soft: rgba(2, 132, 199, 0.12);
+  /* Darker than the dark theme's greens and blues so both still clear 4.5:1
+     against a white panel when they are used for text. */
+  --accent: #0b7a44;
+  --accent-soft: rgba(11, 122, 68, 0.12);
+  --accent-2: #0369a1;
+  --accent-2-soft: rgba(3, 105, 161, 0.12);
   --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.1);
   --warn: #b45309;
@@ -385,6 +387,53 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ledger-table-start .table-input { text-align: left; }
 /* A date field with no value shows nothing rather than its dd/mm/yyyy hint. */
 .table-input.date-empty:not(:focus)::-webkit-datetime-edit { color: transparent; }
+
+/* Keyboard users get a visible target on every control, and the first Tab stop
+   jumps the nav instead of walking every menu item. */
+.btn:focus-visible, .tab:focus-visible, .card-link:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -56px;
+  z-index: 200;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  text-decoration: none;
+  transition: top 120ms ease;
+}
+.skip-link:focus { top: 12px; }
+main.content:focus { outline: none; }
+
+/* First-run tour */
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(3, 7, 14, 0.55);
+  backdrop-filter: blur(2px);
+}
+.tour-card {
+  width: min(520px, 100%);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 18px 20px 16px;
+  box-shadow: var(--shadow);
+}
+.tour-card:focus { outline: none; }
+.tour-step { font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.tour-title { margin: 6px 0 8px; font-size: 1.05rem; }
+.tour-body { margin: 0 0 14px; color: var(--text); line-height: 1.55; }
+.tour-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tour-spacer { flex: 1; }
 .amount.neg { color: var(--danger); }
 .amount.pos { color: var(--accent); }
 .muted { color: var(--muted); }

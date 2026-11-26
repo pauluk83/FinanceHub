@@ -140,8 +140,9 @@ test('transaction log renders category and tag labels with both filters', async 
   assert.match(html, /aria-label="Tag filter"/);
   assert.match(html, /<span class="badge blue">Food<\/span>/);
   assert.match(html, /weekly, Tesco/);
-  assert.match(html, /<th>Category<\/th>/);
-  assert.match(html, /<th>Tags<\/th>/);
+  // Headers carry scope="col" for screen readers, so match the label itself.
+  assert.match(html, /<th[^>]*>Category<\/th>/);
+  assert.match(html, /<th[^>]*>Tags<\/th>/);
 });
 
 test('the income page follows the year chosen in the app bar', async () => {
@@ -435,7 +436,7 @@ test('accounts, cards, people and bills edit their own records on their own page
   const panel = billsSection.slice(0, billsSection.indexOf('</section>'));
   assert.match(panel, /Add link sheet/, 'link sheets stay inside the bills panel');
   assert.match(panel, /Rename link sheet/, 'a sheet can be renamed from the bills panel');
-  assert.doesNotMatch(bills, /<th>Link sheet<\/th>/, 'no separate link sheet table');
+  assert.doesNotMatch(bills, /<th[^>]*>Link sheet<\/th>/, 'no separate link sheet table');
   assert.doesNotMatch(bills, /Possible subscriptions|Expiry list|Price history/, 'bills keeps only bills, bill changes and link sheets');
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });

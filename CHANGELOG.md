@@ -14,6 +14,7 @@ and the build time.
 - An empty Effective from date shows nothing instead of the dd/mm/yyyy hint
 - Bills shows a blank linked sheet instead of None, and inactive bills drop to the bottom of the list
 - A bill can be deleted outright from a future year's plan, so the new year's list can start clean
+- Follow-system theme, a first-run tour, a translation layer, and accessibility fixes: skip link, scoped table headers, focus rings and a light-theme contrast fix
 
 ## [2026.11.25] — 25 November 2026
 

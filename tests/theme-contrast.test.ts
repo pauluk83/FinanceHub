@@ -62,3 +62,30 @@ test('borders are visible against black and the panels', () => {
   check('line on panels', vars.line, vars.panel, 3);
   check('strong line', vars['line-strong'], vars.bg, 4.5);
 });
+
+/**
+ * The light theme's text colours have to clear 4.5:1 against its white panels,
+ * and the dark theme's against its panels too. The green and blue accents are
+ * used for amounts and links, so they count as text rather than decoration.
+ */
+function paletteFor(name: string): Record<string, string> {
+  const start = css.indexOf(`:root[data-theme='${name}']`);
+  assert.ok(start >= 0, `theme.css has a ${name} theme block`);
+  const open = css.indexOf('{', start);
+  const body = css.slice(open + 1, css.indexOf('}', open));
+  return Object.fromEntries(
+    [...body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(([, key, value]) => [key, value.trim()]),
+  );
+}
+
+for (const theme of ['dark', 'light']) {
+  test(`the ${theme} theme keeps text legible on its panels`, () => {
+    const vars = paletteFor(theme);
+    check(`${theme} text`, vars.text, vars.panel, 4.5);
+    check(`${theme} muted text`, vars.muted, vars.panel, 4.5);
+    check(`${theme} accent on panels`, vars.accent, vars.panel, 4.5);
+    check(`${theme} second accent on panels`, vars['accent-2'], vars.panel, 4.5);
+    check(`${theme} danger on panels`, vars.danger, vars.panel, 4.5);
+    check(`${theme} warn on panels`, vars.warn, vars.panel, 4.5);
+  });
+}

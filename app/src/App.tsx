@@ -72,6 +72,7 @@ import { BlockedStatePage } from './views/recovery';
 import { HOSTED_WEB } from './runtime';
 import { clearHostedCache } from './store';
 import { DEMO_USER_ID, demoState } from './demo';
+import { FirstRunTour } from './tour';
 import type { EncryptedVault, UnlockedVault } from './vault';
 import { readAppLock, writeAppLock } from './appLockStore';
 import { shouldAutoLock, type AppLockConfig } from './appLock';
@@ -317,6 +318,16 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   // history and imported later years can be inspected without rolling over.
   const [activeYear, setActiveYear] = useState(() => state.dataset.settings.targetYear);
   const [toast, setToast] = useState<string | null>(null);
+  // The first-run tour shows once per workspace; the done flag is device-local
+  // like the theme, because it says nothing about the budget.
+  const tourKey = `financehub.tour.v1.${demo ? 'demo' : user.id}`;
+  const [tourOpen, setTourOpen] = useState(() => {
+    try { return window.localStorage.getItem(tourKey) !== 'done'; } catch { return false; }
+  });
+  const closeTour = () => {
+    setTourOpen(false);
+    try { window.localStorage.setItem(tourKey, 'done'); } catch { /* a blocked store just shows the tour again next time */ }
+  };
   const [feedbackTab, setFeedbackTab] = useState<'send' | 'inbox' | null>(null);
   const [feedbackItems, setFeedbackItems] = useState<PortalFeedback[]>(() => readFeedbackForOwner(user.id));
   const [palette, setPalette] = useState(false);
@@ -364,9 +375,23 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
     if (!yearOptions.includes(activeYear)) setActiveYear(state.dataset.settings.targetYear);
   }, [yearOptions, activeYear, state.dataset.settings.targetYear]);
 
+  // "Follow system" resolves against the operating system's light/dark choice
+  // and keeps listening, so a theme flip at sunset reaches the app as well.
+  const [systemTheme, setSystemTheme] = useState<Theme>(() => (
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  ));
   useEffect(() => {
-    document.documentElement.dataset.theme = state.theme;
-  }, [state.theme]);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const media = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = (event: MediaQueryListEvent) => setSystemTheme(event.matches ? 'light' : 'dark');
+    setSystemTheme(media.matches ? 'light' : 'dark');
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+  const resolvedTheme: Theme = state.theme === 'system' ? systemTheme : state.theme;
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme;
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const refresh = () => setFeedbackItems(readFeedbackForOwner(user.id));
@@ -802,6 +827,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       </aside>
 
       <div className="main">
+        <a className="skip-link" href="#main">Skip to main content</a>
         <header className="topbar">
           <div className="topbar-left">
             <h1 className="view-title">{current.label}</h1>
@@ -886,7 +912,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
           </div>
         </header>
 
-        <main className="content">
+        <main className="content" id="main" tabIndex={-1}>
           {demo && (
             <div className="notice info demo-banner" role="status">
               <span><strong>Demo workspace.</strong> Sample data only — nothing is saved to your account.</span>
@@ -1002,13 +1028,14 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
         />
       )}
 
+      {tourOpen && <FirstRunTour onDone={closeTour} onOpenSample={demo ? undefined : onOpenDemo} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }
 
-const nextTheme = (theme: Theme): Theme => theme === 'dark' ? 'glass' : theme === 'glass' ? 'light' : theme === 'light' ? 'contrast' : 'dark';
-const THEME_LABELS: Record<Theme, string> = { dark: '🌙 Dark', glass: '🫧 Liquid glass', light: '☀ Light', contrast: '◐ Contrast' };
+const nextTheme = (theme: Theme): Theme => theme === 'dark' ? 'glass' : theme === 'glass' ? 'light' : theme === 'light' ? 'contrast' : theme === 'contrast' ? 'system' : 'dark';
+const THEME_LABELS: Record<Theme, string> = { dark: '🌙 Dark', glass: '🫧 Liquid glass', light: '☀ Light', contrast: '◐ Contrast', system: '🖥 System' };
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);

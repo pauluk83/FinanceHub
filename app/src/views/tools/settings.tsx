@@ -361,6 +361,7 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
           <button className={`tab ${theme === 'glass' ? 'active' : ''}`} onClick={() => setTheme('glass')}>🫧 Liquid glass</button>
           <button className={`tab ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
           <button className={`tab ${theme === 'contrast' ? 'active' : ''}`} onClick={() => setTheme('contrast')}>◐ Contrast</button>
+          <button className={`tab ${theme === 'system' ? 'active' : ''}`} onClick={() => setTheme('system')}>🖥 Follow system</button>
         </div>
       </Section>
 

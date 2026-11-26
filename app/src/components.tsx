@@ -64,7 +64,7 @@ export function Table(props: { head: ReactNode[]; children: ReactNode; className
         <thead>
           <tr>
             {props.head.map((h, i) => (
-              <th key={i} className={numHead.includes(i) ? 'num' : undefined}>{h}</th>
+              <th key={i} scope="col" className={numHead.includes(i) ? 'num' : undefined}>{h}</th>
             ))}
           </tr>
         </thead>
