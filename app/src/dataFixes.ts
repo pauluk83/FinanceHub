@@ -612,6 +612,20 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // Steve and Dan's loans were recorded before a Loan category existed, so the
+    // only record of intent is "Loan" typed into the comments. Those rows take
+    // the category and keep the comment as written; anything already categorised
+    // is left alone.
+    id: 'loan-category-2026-11-26',
+    apply: (dataset) => {
+      for (const tx of dataset.transactions ?? []) {
+        if (!/^loan$/i.test(String(tx.comments ?? '').trim())) continue;
+        if (tx.category && tx.category !== 'Loan') continue;
+        tx.category = 'Loan';
+      }
+    },
+  },
+  {
     id: 'changelog-2026-11-07-descriptions',
     apply: (dataset) => {
       const entry = ((dataset.changelog ?? []) as any[]).find((existing: any) => existing.signature === 'financehub-2026-11-07-dan-account');

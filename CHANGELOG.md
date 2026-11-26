@@ -17,6 +17,7 @@ and the build time.
 - Follow-system theme, a first-run tour, a translation layer, and accessibility fixes: skip link, scoped table headers, focus rings and a light-theme contrast fix
 - The tour traps Tab inside its card, and Settings gains a language selector on top of the translation layer
 - Add Loan transaction category
+- Categorise the existing loan rows as Loan
 
 ## [2026.11.25] — 25 November 2026
 

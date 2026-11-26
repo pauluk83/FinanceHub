@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.26",
-  "buildId": "52ee11fec80c",
+  "buildId": "692d7868fc1d",
   "builtAt": "2026-11-26",
   "releases": [
     {
@@ -23,7 +23,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "A bill can be deleted outright from a future year's plan, so the new year's list can start clean",
             "Follow-system theme, a first-run tour, a translation layer, and accessibility fixes: skip link, scoped table headers, focus rings and a light-theme contrast fix",
             "The tour traps Tab inside its card, and Settings gains a language selector on top of the translation layer",
-            "Add Loan transaction category"
+            "Add Loan transaction category",
+            "Categorise the existing loan rows as Loan"
           ]
         }
       ]
