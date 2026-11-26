@@ -1358,7 +1358,10 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
           : "Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available. Link sheets below are optional labels that group bills."}
       >
         <Table className="ledger-table-start" head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
-          {ds.bills.map((b, i) => (
+          {/* A bill switched off is kept but sits at the bottom of the list. */}
+          {ds.bills.map((b, i) => ({ b, i }))
+            .sort((x, y) => (x.b.active === false ? 1 : 0) - (y.b.active === false ? 1 : 0))
+            .map(({ b, i }) => (
             planning && skipChangeFor(ds.billChanges, b.name) ? null : (
             <tr key={b.name || i}>
               <td><EditableName value={b.name} onCommit={(next) => renameBill(b.name, next)} ariaLabel={`Bill name ${b.name}`} /></td>
@@ -1412,7 +1415,7 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
               </td>
               <td>
                 <select className="select" value={b.linkedSheet || ''} onChange={(e) => update((d) => { d.bills[i].linkedSheet = e.target.value; })}>
-                  <option value="">None</option>
+                  <option value=""></option>
                   {sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}
                 </select>
               </td>

@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.26",
-  "buildId": "c54687fbdf84",
+  "buildId": "87a7034acaf4",
   "builtAt": "2026-11-26",
   "releases": [
     {
@@ -18,7 +18,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Cards blank their zero figures, and the Account, Card and People tables left-align their columns",
             "Bills, and the bill plan and link sheets tables, left-align their column names over the values",
             "Overview's bill lists, Forecast, Savings and Debts left-align their column names over the values",
-            "An empty Effective from date shows nothing instead of the dd/mm/yyyy hint"
+            "An empty Effective from date shows nothing instead of the dd/mm/yyyy hint",
+            "Bills shows a blank linked sheet instead of None, and inactive bills drop to the bottom of the list"
           ]
         }
       ]
