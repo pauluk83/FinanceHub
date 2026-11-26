@@ -23,6 +23,8 @@ import {
 } from '../../../core/backupDiff';
 import { stripLegacySecrets } from '../vault';
 import {
+  MAX_AUTOMATIC_RESTORE_POINTS,
+  MAX_RESTORE_POINTS,
   autoBackupPassphrase,
   listRestorePoints,
   markBackupExported,
@@ -284,8 +286,8 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
     <>
     <Section
       title="Encrypted backups & restore points"
-      sub="Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. One automatic restore point is created each day and the newest 30 stay on this device; manual restore points keep the newest seven."
-      actions={<Badge tone={points.length ? 'green' : 'neutral'}>{`${manualCount}/7 manual · ${automaticCount}/30 daily`}</Badge>}
+      sub={`Backup format v2 encrypts the complete budget with PBKDF2-SHA-256 and AES-256-GCM. One automatic restore point is created each day and the newest ${MAX_AUTOMATIC_RESTORE_POINTS} stay on this device; manual restore points keep the newest ${MAX_RESTORE_POINTS}.`}
+      actions={<Badge tone={points.length ? 'green' : 'neutral'}>{`${manualCount}/${MAX_RESTORE_POINTS} manual · ${automaticCount}/${MAX_AUTOMATIC_RESTORE_POINTS} daily`}</Badge>}
     >
       <div className="inline-form">
         <Field label="Backup passphrase" hint={`At least ${MIN_BACKUP_PASSPHRASE} characters; never stored`}>
@@ -318,7 +320,7 @@ export function EncryptedBackupSection({ ds, update, notify, userId }: BackupPro
         />
       </div>
       <div style={{ padding: '0 16px 16px' }} className="notice info">
-        A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a manual restore point can be opened. Automatic daily points keep 30 days of history, use a key held in this device's secure store and restore here without a prompt.
+        A restore replaces every budget record after downloading a plain safety copy. Keep the passphrase somewhere separate: without it, neither an exported backup nor a manual restore point can be opened. Automatic daily points keep {MAX_AUTOMATIC_RESTORE_POINTS} days of history, use a key held in this device's secure store and restore here without a prompt.
       </div>
       {compare && (
         <div style={{ padding: '12px 16px' }}>

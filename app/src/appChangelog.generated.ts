@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.26",
-  "buildId": "c2593f504eaa",
+  "buildId": "0273dfc34e95",
   "builtAt": "2026-11-26",
   "releases": [
     {
@@ -28,7 +28,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Manual entries take their category from the import rules",
             "Backfill transaction categories from the rules and run the petrol rule first",
             "Add Aldi, Morrisons, Sainsbury's, Lidl and Petrol import rules",
-            "Shrink the installer: English-only locale, no npm packages in the asar, maximum compression"
+            "Shrink the installer: English-only locale, no npm packages in the asar, maximum compression",
+            "Keep the newest 7 automatic restore points instead of 30"
           ]
         }
       ]

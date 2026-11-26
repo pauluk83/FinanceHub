@@ -29,13 +29,13 @@ test('manual restore points keep only the newest seven', () => {
   assert.equal(kept.at(-1)?.createdAt, '2026-11-04T00:00:00.000Z');
 });
 
-test('automatic daily backups keep a month, not the manual seven', () => {
+test('automatic daily backups keep a week, not the manual seven', () => {
   const automatic = Array.from({ length: 40 }, (_, index) => ({
     createdAt: new Date(Date.UTC(2026, 8, 1 + index)).toISOString(),
     automatic: true,
   }));
   const kept = pruneRestorePoints(automatic);
-  assert.equal(MAX_AUTOMATIC_RESTORE_POINTS, 30);
+  assert.equal(MAX_AUTOMATIC_RESTORE_POINTS, 7);
   assert.equal(kept.length, MAX_AUTOMATIC_RESTORE_POINTS);
   assert.equal(kept.every((point) => point.automatic), true);
   const newest = [...automatic].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];

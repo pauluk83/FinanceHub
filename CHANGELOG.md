@@ -22,6 +22,7 @@ and the build time.
 - Backfill transaction categories from the rules and run the petrol rule first
 - Add Aldi, Morrisons, Sainsbury's, Lidl and Petrol import rules
 - Shrink the installer: English-only locale, no npm packages in the asar, maximum compression
+- Keep the newest 7 automatic restore points instead of 30
 
 ## [2026.11.25] — 25 November 2026
 

@@ -1,14 +1,14 @@
 /**
  * Restore-point retention.
  *
- * Automatic daily points and manual points are two separate pools: a month of
+ * Automatic daily points and manual points are two separate pools: a week of
  * daily backups can never push out a point the owner created deliberately, and a
  * burst of manual points cannot erase the daily history.
  */
 /** Manual restore points keep the newest seven. */
 export const MAX_RESTORE_POINTS = 7;
-/** Automatic daily points keep the newest 30 — a month of days. */
-export const MAX_AUTOMATIC_RESTORE_POINTS = 30;
+/** Automatic daily points keep the newest 7 — a week of days, about 4 MB. */
+export const MAX_AUTOMATIC_RESTORE_POINTS = 7;
 
 interface PrunablePoint {
   createdAt: string;

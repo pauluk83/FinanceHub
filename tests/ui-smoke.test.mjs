@@ -220,7 +220,7 @@ test('the encrypted backup panel shows the retention limit and stored restore po
   const html = render(EncryptedBackupSection, props(ds));
 
   assert.match(html, /Encrypted backups &amp; restore points/);
-  assert.match(html, /1\/7 manual · 0\/30 daily/);
+  assert.match(html, /1\/7 manual · 0\/7 daily/);
   assert.match(html, /Before large edit/);
   assert.match(html, /2 KB/);
   assert.match(html, />Restore<\/button>/);
@@ -228,7 +228,7 @@ test('the encrypted backup panel shows the retention limit and stored restore po
   assert.match(html, /Save restore point/);
 
   const empty = render(EncryptedBackupSection, props(ds, { userId: 'ui-smoke-empty' }));
-  assert.match(empty, /0\/7 manual · 0\/30 daily/);
+  assert.match(empty, /0\/7 manual · 0\/7 daily/);
   assert.match(empty, /No encrypted restore points yet/);
 });
 
