@@ -11,9 +11,17 @@ files:
   - package.json
   - '!**/*.map'
   - '!**/.env*'
+  # The renderer is bundled into dist/ and the main process requires only Node
+  # built-ins and electron, so no npm package is needed at runtime. Shipping
+  # @supabase/supabase-js and React again added ~13 MB to the asar.
+  - '!node_modules/**'
 
 asar: true
-compression: normal
+compression: maximum
+
+# Chromium ships 55 locale packs (~49 MB); this app is English only.
+electronLanguages:
+  - en-GB
 
 win:
   target:
