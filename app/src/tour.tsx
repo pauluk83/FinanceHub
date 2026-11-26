@@ -6,6 +6,8 @@ import { t, type MessageKey } from './i18n';
  * once per workspace. It is keyboard operable (Esc skips, arrows move), keeps
  * focus inside the card, and never touches the budget.
  */
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const STEPS: { title: MessageKey; body: MessageKey }[] = [
   { title: 'tour.welcome.title', body: 'tour.welcome.body' },
   { title: 'tour.nav.title', body: 'tour.nav.body' },
@@ -26,7 +28,22 @@ export function FirstRunTour({ onDone, onOpenSample }: { onDone: () => void; onO
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); onDone(); }
+      if (event.key === 'Escape') { event.preventDefault(); onDone(); return; }
+      // The card is modal, so Tab has to cycle inside it rather than walking
+      // the page behind.
+      if (event.key === 'Tab') {
+        const root = cardRef.current;
+        if (!root) return;
+        const items = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+        if (items.length === 0) { event.preventDefault(); root.focus(); return; }
+        const first = items[0];
+        const lastItem = items[items.length - 1];
+        const current = document.activeElement as HTMLElement | null;
+        const inside = !!current && root.contains(current);
+        if (!event.shiftKey && (!inside || current === lastItem)) { event.preventDefault(); first.focus(); }
+        else if (event.shiftKey && (!inside || current === first)) { event.preventDefault(); lastItem.focus(); }
+        return;
+      }
       if (event.key === 'ArrowRight' && !last) { event.preventDefault(); setStep((s) => s + 1); }
       if (event.key === 'ArrowLeft' && step > 0) { event.preventDefault(); setStep((s) => s - 1); }
     };

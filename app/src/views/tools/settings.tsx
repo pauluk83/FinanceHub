@@ -16,6 +16,7 @@ import { AppLockSection } from '../appLock';
 import { EncryptedBackupSection } from '../backup';
 import { YearRolloverSection } from './yearRollover';
 import { CredentialVault } from './credentialVault';
+import { LOCALES, locale as currentLocale, setLocale, t, type Locale } from '../../i18n';
 
 type SettingsPane = 'account' | 'ai' | 'budget' | 'data' | 'app';
 
@@ -361,7 +362,24 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
           <button className={`tab ${theme === 'glass' ? 'active' : ''}`} onClick={() => setTheme('glass')}>🫧 Liquid glass</button>
           <button className={`tab ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
           <button className={`tab ${theme === 'contrast' ? 'active' : ''}`} onClick={() => setTheme('contrast')}>◐ Contrast</button>
-          <button className={`tab ${theme === 'system' ? 'active' : ''}`} onClick={() => setTheme('system')}>🖥 Follow system</button>
+          <button className={`tab ${theme === 'system' ? 'active' : ''}`} onClick={() => setTheme('system')}>🖥 {t('theme.system')}</button>
+        </div>
+      </Section>
+
+      <Section title={t('language.title')} sub={t('language.hint')}>
+        <div className="inline-form">
+          <Field label={t('language.label')}>
+            <select
+              className="select"
+              aria-label={t('language.label')}
+              value={currentLocale()}
+              onChange={(e) => setLocale(e.target.value as Locale)}
+            >
+              {LOCALES.map((entry) => (
+                <option key={entry.id} value={entry.id}>{entry.label}</option>
+              ))}
+            </select>
+          </Field>
         </div>
       </Section>
 

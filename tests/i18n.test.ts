@@ -5,7 +5,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LOCALES, locale, setLocale, t } from '../app/src/i18n.ts';
+import { LOCALES, locale, setLocale, subscribeLocale, t } from '../app/src/i18n.ts';
 
 test('at least one locale is offered and it is the default', () => {
   assert.ok(LOCALES.length >= 1);
@@ -18,6 +18,9 @@ test('every message resolves, with no empty strings', () => {
     'app.name',
     'a11y.skip',
     'theme.system',
+    'language.title',
+    'language.label',
+    'language.hint',
     'tour.progress',
     'tour.skip',
     'tour.back',
@@ -53,4 +56,16 @@ test('the locale switch is guarded and updates the document language', () => {
   // An unknown locale is ignored rather than blanking the interface.
   setLocale('xx-XX' as unknown as 'en-GB');
   assert.equal(locale(), 'en-GB');
+});
+
+test('a language change notifies subscribed components', () => {
+  let calls = 0;
+  const unsubscribe = subscribeLocale(() => { calls += 1; });
+  setLocale('en-GB');
+  assert.equal(calls, 1, 'subscribers hear about a real switch');
+  setLocale('xx-XX' as unknown as 'en-GB');
+  assert.equal(calls, 1, 'an unknown locale does not notify');
+  unsubscribe();
+  setLocale('en-GB');
+  assert.equal(calls, 1, 'unsubscribed listeners are not called');
 });

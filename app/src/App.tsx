@@ -73,6 +73,8 @@ import { HOSTED_WEB } from './runtime';
 import { clearHostedCache } from './store';
 import { DEMO_USER_ID, demoState } from './demo';
 import { FirstRunTour } from './tour';
+import { t } from './i18n';
+import { useLocale } from './useLocale';
 import type { EncryptedVault, UnlockedVault } from './vault';
 import { readAppLock, writeAppLock } from './appLockStore';
 import { shouldAutoLock, type AppLockConfig } from './appLock';
@@ -368,6 +370,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
   const syncRef = useRef(sync);
   syncRef.current = sync;
 
+  // Re-render the shell when the language changes in Settings.
+  useLocale();
   const today = useToday();
   const engine = useMemo(() => buildEngine(state.dataset, { today }), [state.dataset, today]);
   const yearOptions = useMemo(() => availableYears(state.dataset), [state.dataset]);
@@ -827,7 +831,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
       </aside>
 
       <div className="main">
-        <a className="skip-link" href="#main">Skip to main content</a>
+        <a className="skip-link" href="#main">{t('a11y.skip')}</a>
         <header className="topbar">
           <div className="topbar-left">
             <h1 className="view-title">{current.label}</h1>
@@ -871,7 +875,7 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
               aria-label={`Switch to ${nextTheme(state.theme)} theme`}
               title={`Switch to ${nextTheme(state.theme)} theme`}
             >
-              {THEME_LABELS[nextTheme(state.theme)]}
+              {themeLabel(nextTheme(state.theme))}
             </button>
             {deviceOnly && appLock && (
               <button
@@ -1035,7 +1039,8 @@ function FinanceHub({ user, onSignOut, localAccount, demo = false, onChooseWorks
 }
 
 const nextTheme = (theme: Theme): Theme => theme === 'dark' ? 'glass' : theme === 'glass' ? 'light' : theme === 'light' ? 'contrast' : theme === 'contrast' ? 'system' : 'dark';
-const THEME_LABELS: Record<Theme, string> = { dark: '🌙 Dark', glass: '🫧 Liquid glass', light: '☀ Light', contrast: '◐ Contrast', system: '🖥 System' };
+const THEME_LABELS: Record<Exclude<Theme, 'system'>, string> = { dark: '🌙 Dark', glass: '🫧 Liquid glass', light: '☀ Light', contrast: '◐ Contrast' };
+const themeLabel = (theme: Theme): string => (theme === 'system' ? `🖥 ${t('theme.system')}` : THEME_LABELS[theme]);
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);

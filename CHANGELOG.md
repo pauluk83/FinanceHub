@@ -15,6 +15,7 @@ and the build time.
 - Bills shows a blank linked sheet instead of None, and inactive bills drop to the bottom of the list
 - A bill can be deleted outright from a future year's plan, so the new year's list can start clean
 - Follow-system theme, a first-run tour, a translation layer, and accessibility fixes: skip link, scoped table headers, focus rings and a light-theme contrast fix
+- The tour traps Tab inside its card, and Settings gains a language selector on top of the translation layer
 
 ## [2026.11.25] — 25 November 2026
 

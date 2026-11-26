@@ -18,6 +18,9 @@ const EN_GB = {
   'app.name': 'FinanceHub',
   'a11y.skip': 'Skip to main content',
   'theme.system': 'Follow system',
+  'language.title': 'Language',
+  'language.label': 'Interface language',
+  'language.hint': 'The interface language is stored on this device. New languages appear here as their catalogues are written.',
   'tour.progress': 'Step {step} of {total}',
   'tour.skip': 'Skip the tour',
   'tour.back': 'Back',
@@ -47,16 +50,42 @@ const CATALOGUES: Record<Locale, Record<MessageKey, string>> = {
   'en-GB': EN_GB,
 };
 
-let active: Locale = 'en-GB';
+const STORAGE_KEY = 'financehub.locale';
+const listeners = new Set<() => void>();
+
+function storedLocale(): Locale {
+  try {
+    const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(STORAGE_KEY);
+    return saved && saved in CATALOGUES ? (saved as Locale) : 'en-GB';
+  } catch {
+    return 'en-GB';
+  }
+}
+
+let active: Locale = storedLocale();
+
+if (typeof document !== 'undefined') document.documentElement.lang = active;
 
 /** The locale the interface is currently rendered in. */
 export const locale = (): Locale => active;
 
-/** Switch the interface language, and tell assistive technology which one it is. */
+/** Subscribe to language changes; `useLocale()` wraps this for components. */
+export function subscribeLocale(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** Switch the interface language, remember it, and tell assistive technology which one it is. */
 export function setLocale(next: Locale): void {
   if (!(next in CATALOGUES)) return;
   active = next;
   if (typeof document !== 'undefined') document.documentElement.lang = next;
+  try {
+    if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, next);
+  } catch {
+    /* a blocked store only means the choice is not remembered */
+  }
+  for (const listener of listeners) listener();
 }
 
 /**
