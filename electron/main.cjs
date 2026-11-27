@@ -429,7 +429,7 @@ function ebEnsureCallbackServer() {
     const state = url.searchParams.get('state') ?? '';
     const providerError = url.searchParams.get('error_description') || url.searchParams.get('error') || '';
     let title = 'Bank connection failed';
-    let message = providerError || 'The bank did not return an authorisation code.';
+    let message = 'The bank connection failed.';
     let ok = false;
     try {
       if (!ebPendingLink) throw new Error('Start the bank connection from FinanceHub again.');
@@ -461,7 +461,8 @@ function ebEnsureCallbackServer() {
       title = 'Bank connected';
       message = 'You can close this tab and return to FinanceHub.';
     } catch (error) {
-      message = error instanceof Error ? error.message : 'The bank connection failed.';
+      console.error('Enable Banking callback failed:', error);
+      message = 'The bank connection failed.';
     }
     ebPendingLink = null;
     if (mainWindow && !mainWindow.isDestroyed()) {
