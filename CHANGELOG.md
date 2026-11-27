@@ -14,6 +14,7 @@ and the build time.
 - Provider sheets fill the planned payment and tick it off on the bill's due date
 - Make the Pure Cremation opening balance stick as the plan's anchor
 - Count Pure Cremation's remaining payments from the plan
+- Count Park Christmas's remaining payments from its latest plan
 
 ## [2026.11.26] — 26 November 2026
 

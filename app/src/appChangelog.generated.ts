@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.27",
-  "buildId": "58d672ce0765",
+  "buildId": "9f53e2591fa2",
   "builtAt": "2026-11-27",
   "releases": [
     {
@@ -20,7 +20,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Stop O2 from November while the account is in credit",
             "Provider sheets fill the planned payment and tick it off on the bill's due date",
             "Make the Pure Cremation opening balance stick as the plan's anchor",
-            "Count Pure Cremation's remaining payments from the plan"
+            "Count Pure Cremation's remaining payments from the plan",
+            "Count Park Christmas's remaining payments from its latest plan"
           ]
         }
       ]

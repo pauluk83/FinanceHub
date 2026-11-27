@@ -1213,6 +1213,17 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   const monthly = p.monthlyPaymentPence ?? contract?.tiers?.[0]?.amountPence ?? displayRows[displayRows.length - 1]?.paymentPence ?? 0;
   const billedThisYear = billedTotalPence(displayRows);
   const accountDetails = providerAccountDetails(provider, p);
+  // Both savings plans count their own remaining payments from the balance the
+  // latest plan has reached, so a stored workbook figure cannot go stale.
+  if (provider === 'pureCremation' || provider === 'parkXmas') {
+    const remainingIndex = accountDetails.findIndex(([label]) => label === 'Monthly payments remaining');
+    if (remainingIndex >= 0) {
+      accountDetails[remainingIndex] = [
+        'Monthly payments remaining',
+        String(remainingPaymentsFor(latest?.balancePence ?? 0, futurePlanPayments())),
+      ];
+    }
+  }
   if (provider === 'water') {
     accountDetails.push([latestLabel, latest ? gbp(latest.balancePence) : undefined]);
   }
@@ -1229,15 +1240,6 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
     );
   }
   if (provider === 'pureCremation') {
-    // The stored count came from the old workbook and reads zero, so the plan's
-    // own months decide how many payments are left before it clears.
-    const remainingIndex = accountDetails.findIndex(([label]) => label === 'Monthly payments remaining');
-    if (remainingIndex >= 0) {
-      accountDetails[remainingIndex] = [
-        'Monthly payments remaining',
-        String(remainingPaymentsFor(latest?.balancePence ?? 0, futurePlanPayments())),
-      ];
-    }
     accountDetails.push(
       ['Monthly payment', gbp(monthly)],
       [latestLabel, latest ? gbp(latest.balancePence) : undefined],
