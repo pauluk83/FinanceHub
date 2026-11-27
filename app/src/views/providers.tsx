@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, isOpeningRow, markPaidRows, quietPlanRows, recalculate, remainingPaymentsFor, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
+import { PAID_MARK, appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, isOpeningRow, isPaidValue, markPaidRows, quietPlanRows, recalculate, remainingPaymentsFor, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -114,8 +114,8 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZeroFrom: '2027-09' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZeroFrom: '2027-09' },
       { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money', blankZeroFrom: '2027-09' },
-      // Marked by the as-of date, so a month that has not arrived says nothing.
-      { key: 'status', label: 'Status', readOnlyBlank: true },
+      // Marked by the bill's due date, so a month that has not arrived says nothing.
+      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   pureCremation: {
@@ -131,8 +131,8 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
       { key: 'totalPaidPence', label: 'Total paid', money: true, edit: 'money' },
-      // Marked by the as-of date, so a month that has not arrived says nothing.
-      { key: 'status', label: 'Status', readOnlyBlank: true },
+      // Marked by the bill's due date, so a month that has not arrived says nothing.
+      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   o2: {
@@ -655,6 +655,9 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
               const value = row[column.key];
               if (!column.edit) {
                 if (column.money) return <td key={column.key} className={`num ${typeof value === 'number' && value < 0 ? 'amount neg' : ''}`}>{typeof value === 'number' ? gbp(value) : '—'}</td>;
+                // Every provider prints the same single mark, whatever the saved
+                // sheet happened to record ("✓ Yes", "No", "Paid").
+                if (column.key === 'paid') return <td key={column.key} className="muted">{isPaidValue(value) ? PAID_MARK : ''}</td>;
                 if (column.readOnlyBlank) return <td key={column.key} className="muted">{value ? String(value) : ''}</td>;
                 if (column.key === 'date') return <td key={column.key} className="muted">{dateUk(value)}</td>;
                 return <td key={column.key} className={column.key === 'month' ? 'nowrap' : 'muted'}>{value ?? '—'}</td>;
@@ -726,6 +729,7 @@ function ArchivedLedger({ title, cfg, rows, year }: { title: string; cfg: Ledger
                   </td>
                 );
               }
+              if (column.key === 'paid') return <td key={column.key} className="muted">{isPaidValue(value) ? PAID_MARK : ''}</td>;
               return <td key={column.key} className="muted">{value ?? '—'}</td>;
             })}
           </tr>

@@ -7,6 +7,19 @@
 
 import { isOpeningRow, type LedgerSpec } from '../../core/providerLedger.ts';
 
+/** The one mark every provider sheet uses for a paid month. */
+export const PAID_MARK = '✓';
+
+/**
+ * True for every way a saved sheet has recorded a payment: the single mark, the
+ * older "✓ Yes", a plain "yes", or the savings plans' "Paid"/"Paid Off"
+ * status. The sheets never print the saved text itself, only the one mark.
+ */
+export function isPaidValue(value: unknown): boolean {
+  const text = String(value ?? '').trim().toLowerCase();
+  return text === PAID_MARK || text === `✓ yes` || text === 'yes' || text === 'paid' || text === 'paid off';
+}
+
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export * from '../../core/providerLedger.ts';
@@ -72,7 +85,7 @@ export function markPaidRows(rows: any[], year: number, asOfDate: unknown, dueDa
       ? dueDate <= today
       : `${year}-${String(month).padStart(2, '0')}` <= cutoff;
     const paid = arrived && Number(row?.paymentPence ?? 0) !== 0;
-    return { ...row, status: paid ? 'Paid' : '', paid: paid ? '✓ Yes' : '' };
+    return { ...row, paid: paid ? PAID_MARK : '' };
   });
 }
 

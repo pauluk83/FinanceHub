@@ -8,7 +8,9 @@ import {
   billedTotalPence,
   billingMonthsFor,
   blankCell,
+  isPaidValue,
   markPaidRows,
+  PAID_MARK,
   monthRank,
   quietPlanRows,
   clearRowOrder,
@@ -322,7 +324,7 @@ test('a provider month ticks off on the bill\'s own due date', () => {
   assert.equal(early[1].paid, '');
 
   const due = markPaidRows(rows, 2026, '2026-11-14', { Nov: '2026-11-14', Dec: '2026-12-14' });
-  assert.equal(due[0].paid, '✓ Yes', 'ticked on its due date');
+  assert.equal(due[0].paid, PAID_MARK, 'ticked on its due date');
   assert.equal(due[1].paid, '', 'later months stay blank');
 
   const unpaid = markPaidRows([{ month: 'Nov', paymentPence: 0 }], 2026, '2026-11-30', { Nov: '2026-11-14' });
@@ -387,25 +389,31 @@ const monthsOf = (year: number, payments: Record<string, number> = {}) => ['Jan'
 
 test('months are marked paid once the as-of date reaches them', () => {
   const marked = markPaidRows(monthsOf(2026), 2026, '2026-11-25');
-  assert.deepEqual(marked.slice(0, 11).map((row: any) => row.status), Array(11).fill('Paid'));
-  assert.deepEqual(marked.slice(0, 11).map((row: any) => row.paid), Array(11).fill('✓ Yes'));
-  assert.equal(marked[11].status, '', 'December has not arrived yet');
-  assert.equal(marked[11].paid, '');
+  assert.deepEqual(marked.slice(0, 11).map((row: any) => row.paid), Array(11).fill(PAID_MARK));
+  assert.equal(marked[11].paid, '', 'December has not arrived yet');
+  assert.equal(marked[11].status, undefined, 'the old status text is gone');
+});
+
+test('every saved spelling of paid prints the one mark', () => {
+  assert.equal(isPaidValue(PAID_MARK), true);
+  assert.equal(isPaidValue('✓ Yes'), true, 'the older tick text');
+  assert.equal(isPaidValue('Paid'), true, 'the savings plans\' status');
+  assert.equal(isPaidValue('No'), false);
+  assert.equal(isPaidValue(''), false);
 });
 
 test('a year that has not started says nothing at all', () => {
   const marked = markPaidRows(monthsOf(2027), 2027, '2026-11-25');
-  assert.deepEqual(marked.map((row: any) => row.status), Array(12).fill(''));
   assert.deepEqual(marked.map((row: any) => row.paid), Array(12).fill(''));
 });
 
 test('later months fill in as their dates arrive', () => {
   const marked = markPaidRows(monthsOf(2027), 2027, '2027-03-15');
-  assert.deepEqual(marked.map((row: any) => row.status), ['Paid', 'Paid', 'Paid', ...Array(9).fill('')]);
+  assert.deepEqual(marked.map((row: any) => row.paid), [PAID_MARK, PAID_MARK, PAID_MARK, ...Array(9).fill('')]);
 });
 
 test('a month with no payment is not called paid', () => {
   const marked = markPaidRows(monthsOf(2027, { Jan: 0 }), 2027, '2027-03-15');
-  assert.equal(marked[0].status, '', 'nothing was paid in January');
-  assert.equal(marked[1].status, 'Paid');
+  assert.equal(marked[0].paid, '', 'nothing was paid in January');
+  assert.equal(marked[1].paid, PAID_MARK);
 });
