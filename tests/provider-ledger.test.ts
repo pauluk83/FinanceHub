@@ -15,6 +15,7 @@ import {
   hasManualOrder,
   recalculate,
   recordBill,
+  remainingPaymentsFor,
   reorderRows,
   sortRows,
   usagePenceFor,
@@ -288,6 +289,13 @@ test('a column blanked from a month hides whatever it holds', () => {
   assert.equal(blankCell(column, -85_477, 2028, 10), true, 'October is blank even with a balance');
   assert.equal(blankCell(column, 0, 2040, 6), true);
   assert.equal(blankCell(column, -85_477, 2026, 10), false, 'earlier years keep their balance');
+});
+
+test('payments remaining count the plan\'s own months, not one division', () => {
+  assert.equal(remainingPaymentsFor(0, [10_000]), 0, 'a cleared plan needs nothing');
+  assert.equal(remainingPaymentsFor(25_000, [10_000, 10_000, 10_000]), 3);
+  assert.equal(remainingPaymentsFor(20_000, [10_000, 0, 10_000]), 2, 'months with no payment are skipped');
+  assert.equal(remainingPaymentsFor(128_002, [10_666, 10_666, 10_666]), 3, 'the last payment can be a remainder');
 });
 
 test('a line labelled Opening Balance anchors the plan without the flag', () => {

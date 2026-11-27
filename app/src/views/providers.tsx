@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from '../types';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '../format';
-import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, markPaidRows, quietPlanRows, recalculate, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
+import { appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, isOpeningRow, markPaidRows, quietPlanRows, recalculate, remainingPaymentsFor, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
 import { providerBilling } from '../providerSetup';
@@ -1187,6 +1187,29 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
   const comparisonDate = year === ds.settings.targetYear ? ds.settings.asOfDate : `${year}-12-31`;
   const latest = balanceAsOf(displayRows, statementYear, comparisonDate);
   const latestLabel = `Balance at ${dateUk(comparisonDate)}`;
+  // The months after the as-of date, in order, from this year's rows and every
+  // later block: the payments still to come on the plan.
+  const futurePlanPayments = () => {
+    const asOfMonth = ds.settings.asOfDate.slice(0, 7);
+    const entries: { key: string; paymentPence: number }[] = [];
+    const collect = (list: any[], listYear: number) => {
+      for (const row of list) {
+        if (isOpeningRow(row)) continue;
+        const monthIndex = MONTHS.indexOf(String(row?.month ?? '')) + 1;
+        if (monthIndex < 1) continue;
+        const key = `${listYear}-${String(monthIndex).padStart(2, '0')}`;
+        if (key <= asOfMonth) continue;
+        entries.push({ key, paymentPence: Number(row?.paymentPence) || 0 });
+      }
+    };
+    collect(displayRows, year);
+    for (const key of Object.keys(p.years ?? {}).map(Number).sort((a, b) => a - b)) {
+      if (key <= year) continue;
+      const block = (p.years as any)[String(key)];
+      if (Array.isArray(block?.rows)) collect(block.rows, key);
+    }
+    return entries.sort((a, b) => a.key.localeCompare(b.key)).map((entry) => entry.paymentPence);
+  };
   const monthly = p.monthlyPaymentPence ?? contract?.tiers?.[0]?.amountPence ?? displayRows[displayRows.length - 1]?.paymentPence ?? 0;
   const billedThisYear = billedTotalPence(displayRows);
   const accountDetails = providerAccountDetails(provider, p);
@@ -1206,6 +1229,15 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
     );
   }
   if (provider === 'pureCremation') {
+    // The stored count came from the old workbook and reads zero, so the plan's
+    // own months decide how many payments are left before it clears.
+    const remainingIndex = accountDetails.findIndex(([label]) => label === 'Monthly payments remaining');
+    if (remainingIndex >= 0) {
+      accountDetails[remainingIndex] = [
+        'Monthly payments remaining',
+        String(remainingPaymentsFor(latest?.balancePence ?? 0, futurePlanPayments())),
+      ];
+    }
     accountDetails.push(
       ['Monthly payment', gbp(monthly)],
       [latestLabel, latest ? gbp(latest.balancePence) : undefined],

@@ -167,6 +167,28 @@ export function recalculate(spec: LedgerSpec, rows: any[], baseline: number) {
   }
 }
 
+/**
+ * Payments still to come before a savings plan clears.
+ *
+ * Walks the months after the as-of date in order, taking each row's payment off
+ * the balance until nothing is left, so a plan whose payment changes month by
+ * month counts its real number of payments rather than one division. Months
+ * with no payment are skipped; a balance already at zero needs nothing.
+ */
+export function remainingPaymentsFor(balancePence: number, payments: readonly number[]): number {
+  let left = Math.max(0, Number(balancePence) || 0);
+  if (left === 0) return 0;
+  let count = 0;
+  for (const value of payments) {
+    const payment = Number(value) || 0;
+    if (payment <= 0) continue;
+    left -= payment;
+    count += 1;
+    if (left <= 0) break;
+  }
+  return count;
+}
+
 const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 const utcDay = (year: number, month: number, day: number) => Date.UTC(year, month, day);
