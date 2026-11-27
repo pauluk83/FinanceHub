@@ -706,6 +706,33 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // O2 is in credit, so no direct debit is taken until that credit is used up.
+    // The bill stops from November 2026: November's £10 is neither an expense nor
+    // a payment, and the generated 27/11 row goes with it. The £22.50 paid on
+    // 1 November is real history and stays, and the O2 sheet keeps its own ledger.
+    id: 'o2-stopped-in-credit-2026-11-27',
+    apply: (dataset) => {
+      const bill = (dataset.bills ?? []).find((entry) => /^o2$/i.test(String(entry.name ?? '').trim()));
+      if (!bill) return;
+      const changes = (dataset.billChanges ??= []);
+      const stopped = changes.some((change) => change.bill === bill.name && change.skip === true && !change.appliesTo);
+      if (!stopped) {
+        changes.push({
+          bill: bill.name,
+          appliesFrom: '2026-11-01',
+          appliesTo: '',
+          amountOverridePence: null,
+          dueDateOverride: '',
+          changeType: 'Stopped',
+          note: 'O2 in credit - no payments until the credit is used up',
+          skip: true,
+        });
+      }
+      dataset.transactions = dataset.transactions.filter((tx) =>
+        !(tx.autoBill === true && tx.date >= '2026-11-01' && String(tx.billKey ?? '').startsWith(`${bill.name}|`)));
+    },
+  },
+  {
     // The 26 November £68.02 correction reconciled Starling to £0.17 against the
     // bank. It is a balance adjustment rather than a purchase, so it belongs to
     // cash movement: the balance still carries it, November's spending does not.
