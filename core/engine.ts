@@ -465,9 +465,16 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
     return amounts;
   }
 
-  /** Bill payments that fill a linked provider's monthly payment. */
+  /**
+   * Bill payments that fill a linked provider's monthly payment.
+   *
+   * Every month the bill is scheduled for carries the plan's figure, whether or
+   * not that month has arrived yet, so the sheet reads ahead with the schedule
+   * instead of waiting for each payment. `paid` says whether the due date has
+   * been reached, which is what ticks the month off.
+   */
   function providerBillPayments(provider: string, year = ds.settings.targetYear) {
-    const payments: Record<string, { bill: string; amountPence: number; dueDate: string; fromLog: boolean }> = {};
+    const payments: Record<string, { bill: string; amountPence: number; dueDate: string; paid: boolean; fromLog: boolean }> = {};
     const loggedTotals = new Map<string, Map<string, number>>();
     const totalsFor = (source: Bill) => {
       const key = `${source.account ?? ''}|${source.name}`;
@@ -485,11 +492,11 @@ export function buildEngine(ds: Dataset, options: EngineOptions = {}) {
         if (providerKeyForSheet(bill.linkedSheet) !== provider) continue;
         const source = ds.bills.find((entry) => entry.name === bill.name);
         const loggedPence = source ? totalsFor(source).get(monthKey) ?? 0 : 0;
-        if (!bill.paid && loggedPence <= 0) continue;
         payments[MONTHS[month - 1]] = {
           bill: bill.name,
           amountPence: loggedPence > 0 ? loggedPence : bill.amountPence,
           dueDate: bill.dueDate,
+          paid: bill.paid,
           fromLog: loggedPence > 0,
         };
       }

@@ -28,7 +28,7 @@ const providerCustomLogo = (provider: any) =>
     ? provider.logoData as string
     : undefined;
 
-type AutoPayment = { bill: string; amountPence: number; dueDate: string; fromLog?: boolean };
+type AutoPayment = { bill: string; amountPence: number; dueDate: string; paid: boolean; fromLog?: boolean };
 type ContractTier = { label: string; amountPence: number };
 type ProviderContract = {
   accountName?: string;
@@ -65,6 +65,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
     rowsKey: 'statement',
     formula: 'cashflow',
     monthly: true,
+    markPaidByDate: true,
     note: 'Monthly plan; bill periods arrive half-yearly. Balance = previous + payment − bill.',
     defaults: { month: 'Jan', billPeriod: '', billAmountPence: '0.00', paymentPence: '44.00' },
     columns: [
@@ -75,12 +76,15 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'billAmountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
+      // Ticked by the linked bill's due date, not typed.
+      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   ovo: {
     rowsKey: 'statement',
     formula: 'cashflow',
     monthly: true,
+    markPaidByDate: true,
     note: 'Statement periods run 17th to 16th. Balance = previous + payment + credit − bill − refund. The bill is what the period used; a refund is money Ovo paid back for credit you held.',
     defaults: { month: 'Jan', billPeriod: '', billAmountPence: '0.00', creditPence: '0.00', refundPence: '0.00', paymentPence: '109.00' },
     columns: [
@@ -91,6 +95,8 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'refundPence', label: 'Refund', money: true, edit: 'money', blankZero: true },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money' },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money' },
+      // Ticked by the linked bill's due date, not typed.
+      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   parkXmas: {
@@ -133,6 +139,7 @@ export const CONFIG: Record<string, LedgerConfig> = {
     rowsKey: 'statement',
     formula: 'telco',
     monthly: true,
+    markPaidByDate: true,
     note: 'Contract amounts by month. Balance = previous + payment − bill.',
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
@@ -142,12 +149,15 @@ export const CONFIG: Record<string, LedgerConfig> = {
       // contract's figure and the balance it leaves rather than a zero.
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZero: true },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZero: true },
+      // Ticked by the linked bill's due date, not typed.
+      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   virgin: {
     rowsKey: 'statement',
     formula: 'telco',
     monthly: true,
+    markPaidByDate: true,
     note: 'Contract amounts by month; £32.99 from Oct 2026. Balance = previous + payment − bill.',
     defaults: { month: 'Jan', amountPence: '0.00', paymentPence: '0.00' },
     columns: [
@@ -156,6 +166,8 @@ export const CONFIG: Record<string, LedgerConfig> = {
       { key: 'amountPence', label: 'Bill', money: true, edit: 'money', blankZero: true },
       { key: 'paymentPence', label: 'Payment', money: true, edit: 'money', blankZero: true },
       { key: 'balancePence', label: 'Balance', money: true, edit: 'money', blankZero: true, blankFrom: '2028-10' },
+      // Ticked by the linked bill's due date, not typed.
+      { key: 'paid', label: 'Paid', readOnlyBlank: true },
     ],
   },
   councilTax: {
@@ -431,7 +443,10 @@ function LedgerEditor({ ds, provider, title, cfg, year, update, notify, autoPaym
   const rows = edit?.rows ?? [];
   const openingPence = edit?.openingPence ?? p?.ledgerOpeningPence;
   const effectiveRows = effectiveRowsFor(cfg, rows, autoPayments, openingPence, autoBills);
-  const displayRows = cfg.markPaidByDate ? markPaidRows(effectiveRows, year, ds.settings.asOfDate) : effectiveRows;
+  // The linked bills' own due dates tick a month off on its real day; a plan
+  // without one falls back to the month itself.
+  const dueDates = Object.fromEntries(Object.entries(autoPayments ?? {}).map(([month, auto]) => [month, auto.dueDate]));
+  const displayRows = cfg.markPaidByDate ? markPaidRows(effectiveRows, year, ds.settings.asOfDate, dueDates) : effectiveRows;
   // A plan that was paid off prints nothing for months nobody has filled in yet.
   const quietRows = cfg.quietUntilPaid ? quietPlanRows(displayRows) : [];
   const editable = cfg.columns.filter((c) => c.edit);

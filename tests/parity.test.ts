@@ -202,10 +202,17 @@ test('a bill due today leaves the Starling balance from midnight, before the nex
   assert.equal(waiting.starlingBalance(waiting.throughFor(2026, 11)), before.starlingBalance(before.throughFor(2026, 11)), 'tomorrow\'s bill is not deducted early');
 });
 
-test('due bills auto-mark paid and supply linked provider payments', () => {
+test('planned bills supply linked provider payments and mark them paid on the due date', () => {
   const before = buildEngine({ ...ds, settings: { ...ds.settings, asOfDate: '2026-11-29' } });
   assert.equal(before.scheduledBills(2026, 11).find((b) => b.name === 'Virgin Media')?.paid, false);
-  assert.equal(before.providerBillPayments('virgin')['Nov'], undefined);
+  // The sheet reads ahead with the plan: the month is filled before it is due.
+  assert.deepEqual(before.providerBillPayments('virgin')['Nov'], {
+    bill: 'Virgin Media',
+    amountPence: 3299,
+    dueDate: '2026-11-30',
+    paid: false,
+    fromLog: false,
+  });
 
   const onDue = buildEngine({ ...ds, settings: { ...ds.settings, asOfDate: '2026-11-30' } });
   assert.equal(onDue.scheduledBills(2026, 11).find((b) => b.name === 'Virgin Media')?.paid, true);
@@ -213,8 +220,11 @@ test('due bills auto-mark paid and supply linked provider payments', () => {
     bill: 'Virgin Media',
     amountPence: 3299,
     dueDate: '2026-11-30',
+    paid: true,
     fromLog: false,
   });
+  assert.equal(onDue.providerBillPayments('virgin')['Dec']?.amountPence, 3299, 'next month is planned too');
+  assert.equal(onDue.providerBillPayments('virgin')['Dec']?.paid, false, 'and is not paid yet');
 });
 
 test('a linked provider takes the amount actually paid from the log', () => {
@@ -226,7 +236,7 @@ test('a linked provider takes the amount actually paid from the log', () => {
   const engine = buildEngine(live);
   const o2 = engine.providerBillPayments('o2', 2026);
   // O2 bill payments logged on 24 Sep, 26 Oct + 31 Oct, and 1 Nov.
-  assert.deepEqual(o2['Sep'], { bill: 'O2', amountPence: 933, dueDate: '2026-09-30', fromLog: true });
+  assert.deepEqual(o2['Sep'], { bill: 'O2', amountPence: 933, dueDate: '2026-09-30', paid: true, fromLog: true });
   assert.equal(o2['Oct'].amountPence, 13_000, 'two payments in the month add up');
   assert.equal(o2['Oct'].fromLog, true);
   assert.equal(o2['Nov'].amountPence, 2_250);

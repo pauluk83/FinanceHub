@@ -290,6 +290,20 @@ test('a column blanked from a month hides whatever it holds', () => {
   assert.equal(blankCell(column, -85_477, 2026, 10), false, 'earlier years keep their balance');
 });
 
+test('a provider month ticks off on the bill\'s own due date', () => {
+  const rows = [{ month: 'Nov', paymentPence: 4400 }, { month: 'Dec', paymentPence: 4400 }];
+  const early = markPaidRows(rows, 2026, '2026-11-13', { Nov: '2026-11-14', Dec: '2026-12-14' });
+  assert.equal(early[0].paid, '', 'the month has started but the bill is not due');
+  assert.equal(early[1].paid, '');
+
+  const due = markPaidRows(rows, 2026, '2026-11-14', { Nov: '2026-11-14', Dec: '2026-12-14' });
+  assert.equal(due[0].paid, '✓ Yes', 'ticked on its due date');
+  assert.equal(due[1].paid, '', 'later months stay blank');
+
+  const unpaid = markPaidRows([{ month: 'Nov', paymentPence: 0 }], 2026, '2026-11-30', { Nov: '2026-11-14' });
+  assert.equal(unpaid[0].paid, '', 'a month with no payment never ticks');
+});
+
 test('an opening balance for a new plan sorts after August', () => {
   assert.ok(monthRank('2027 Opening Balance') > monthRank('Aug'), 'the line follows August');
   assert.ok(monthRank('2027 Opening Balance') < monthRank('Sep'), 'and leads September');

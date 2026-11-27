@@ -11,6 +11,7 @@ and the build time.
 - Count the 26 November £68.02 correction as a transfer so it stops inflating November spending
 - Bill changes: Remove now deletes the row it was clicked on
 - Stop O2 from November while the account is in credit
+- Provider sheets fill the planned payment and tick it off on the bill's due date
 
 ## [2026.11.26] — 26 November 2026
 
