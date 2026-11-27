@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Count the 26 November £68.02 correction as a transfer so it stops inflating November spending
+- Bill changes: Remove now deletes the row it was clicked on
 
 ## [2026.11.26] — 26 November 2026
 

@@ -1583,7 +1583,14 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
               <td className="muted">{c.dueDateOverride ? dateUk(c.dueDateOverride) : typeof c.dueDayOverride === 'number' ? `Day ${c.dueDayOverride}` : '—'}</td>
               <td className="muted small">{c.skip ? `Removed for ${year}` : c.changeType || '—'}</td>
               <td className="muted small">{c.note || '—'}</td>
-              <td><button className="btn ghost sm" onClick={() => update((d) => { d.billChanges = d.billChanges.filter((entry) => entry !== c); })}>Remove</button></td>
+              <td><button className="btn ghost sm" onClick={() => {
+                // `update` hands the mutator a cloned dataset, so this row's object
+                // is not the clone's object and an identity filter would match
+                // nothing. Remove it by its position in the saved list instead.
+                const index = ds.billChanges.indexOf(c);
+                if (index < 0) return;
+                update((d) => { d.billChanges.splice(index, 1); });
+              }}>Remove</button></td>
             </tr>
           ))}
         </Table>
