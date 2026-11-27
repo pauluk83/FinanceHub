@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.27] — 27 November 2026
+
+### Changed
+- Count the 26 November £68.02 correction as a transfer so it stops inflating November spending
+
 ## [2026.11.26] — 26 November 2026
 
 ### Changed

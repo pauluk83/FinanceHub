@@ -3,7 +3,7 @@
 Local-first household budget: a Windows app (Electron + React) and a hosted web build
 (Cloudflare Pages + Supabase), sharing one calculation engine and one budget document.
 
-Current release **2026.11.23**, suite **587/587**, `tsc` clean,
+Current release **2026.11.27**, suite **641/641**, `tsc` clean,
 `release:check` 9/9. Live at <https://financehub-uk.pages.dev/>.
 
 This file holds what is still to do and the rules that constrain it. It does not keep a
@@ -109,7 +109,7 @@ and the hosted bundle, deploys to Pages and verifies the live bundle matches.
 ## 6. Verification
 
 ```
-npm test                                  # full suite (587)
+npm test                                  # full suite (641)
 npx tsc -p app/tsconfig.json --noEmit     # typecheck
 npm run release:check                     # release + live parity
 npm run test:e2e                          # Playwright: demo flows + responsive guard

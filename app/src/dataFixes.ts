@@ -706,6 +706,21 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // The 26 November £68.02 correction reconciled Starling to £0.17 against the
+    // bank. It is a balance adjustment rather than a purchase, so it belongs to
+    // cash movement: the balance still carries it, November's spending does not.
+    id: 'correction-transfer-2026-11-27',
+    apply: (dataset) => {
+      const row = dataset.transactions.find((tx) =>
+        tx.date === '2026-11-26'
+        && tx.account === 'Starling'
+        && tx.type === 'Expense'
+        && tx.amountPence === 6802
+        && /^correction$/i.test(String(tx.comments ?? '').trim()));
+      if (row) row.budgetTreatment = 'Transfer';
+    },
+  },
+  {
     id: 'changelog-2026-11-07-descriptions',
     apply: (dataset) => {
       const entry = ((dataset.changelog ?? []) as any[]).find((existing: any) => existing.signature === 'financehub-2026-11-07-dan-account');

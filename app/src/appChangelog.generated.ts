@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.26",
-  "buildId": "0273dfc34e95",
-  "builtAt": "2026-11-26",
+  "version": "2026.11.27",
+  "buildId": "9d72d1859100",
+  "builtAt": "2026-11-27",
   "releases": [
+    {
+      "version": "2026.11.27",
+      "date": "27 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Count the 26 November £68.02 correction as a transfer so it stops inflating November spending"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.26",
       "date": "26 November 2026",
