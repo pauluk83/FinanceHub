@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.27",
-  "buildId": "d79006837d95",
+  "buildId": "2c6bc6f3a9c5",
   "builtAt": "2026-11-27",
   "releases": [
     {
@@ -18,7 +18,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Count the 26 November £68.02 correction as a transfer so it stops inflating November spending",
             "Bill changes: Remove now deletes the row it was clicked on",
             "Stop O2 from November while the account is in credit",
-            "Provider sheets fill the planned payment and tick it off on the bill's due date"
+            "Provider sheets fill the planned payment and tick it off on the bill's due date",
+            "Make the Pure Cremation opening balance stick as the plan's anchor"
           ]
         }
       ]

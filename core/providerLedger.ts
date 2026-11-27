@@ -101,6 +101,19 @@ export function baselineFor(spec: LedgerSpec, rows: any[], stored?: number): num
 }
 
 /**
+ * The sheet's own opening line.
+ *
+ * Older sheets do not carry the flag, so the label the workbook uses counts
+ * too: a line reading "Opening Balance" is the anchor every later row comes
+ * off, exactly like `opening: true`. A year line such as
+ * "2027 Opening Balance" is a new plan, not the sheet's anchor.
+ */
+export function isOpeningRow(row: any): boolean {
+  if (row?.opening === true) return true;
+  return /^opening balance$/i.test(String(row?.month ?? '').trim());
+}
+
+/**
  * Recalculate every running balance in the current row order.
  *
  * Savings sheets carry one extra workbook rule: once a plan is paid off (the
@@ -127,7 +140,7 @@ export function recalculate(spec: LedgerSpec, rows: any[], baseline: number) {
     const stored = Number(row.balancePence);
     if (spec.formula === 'cashflow') running += payment - bill + credit - refund;
     else if (spec.formula === 'savings') {
-      if (row.opening === true) {
+      if (isOpeningRow(row)) {
         running = Number(row.balancePence) || 0;
         totalPaid = 0;
         row.totalPaidPence = 0;

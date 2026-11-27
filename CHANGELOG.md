@@ -12,6 +12,7 @@ and the build time.
 - Bill changes: Remove now deletes the row it was clicked on
 - Stop O2 from November while the account is in credit
 - Provider sheets fill the planned payment and tick it off on the bill's due date
+- Make the Pure Cremation opening balance stick as the plan's anchor
 
 ## [2026.11.26] — 26 November 2026
 

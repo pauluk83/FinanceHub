@@ -290,6 +290,23 @@ test('a column blanked from a month hides whatever it holds', () => {
   assert.equal(blankCell(column, -85_477, 2026, 10), false, 'earlier years keep their balance');
 });
 
+test('a line labelled Opening Balance anchors the plan without the flag', () => {
+  const savings: LedgerConfig = { rowsKey: 'statement', formula: 'savings', monthly: true, note: '', defaults: {}, columns: [] };
+  const rows = [
+    { month: 'Jan', paymentPence: 0 },
+    { month: 'Opening Balance', paymentPence: 0, balancePence: 179_500, balanceOverridePence: 179_500 },
+    { month: 'Aug', paymentPence: 9_500 },
+    { month: 'Sep', paymentPence: 10_000 },
+  ];
+  const quiet = quietPlanRows(rows);
+  assert.equal(quiet[1], false, 'the opening line prints its figure');
+  assert.equal(quiet[2], false, 'and so do the months after it');
+  recalculate(savings, rows, 0);
+  assert.equal(rows[1].balancePence, 179_500, 'the opening line is the anchor');
+  assert.equal(rows[2].balancePence, 170_000, 'the first payment comes off it');
+  assert.equal(rows[3].balancePence, 160_000, 'and so does the next');
+});
+
 test('a provider month ticks off on the bill\'s own due date', () => {
   const rows = [{ month: 'Nov', paymentPence: 4400 }, { month: 'Dec', paymentPence: 4400 }];
   const early = markPaidRows(rows, 2026, '2026-11-13', { Nov: '2026-11-14', Dec: '2026-12-14' });

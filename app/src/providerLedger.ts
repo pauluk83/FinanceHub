@@ -5,7 +5,7 @@
  * re-exported here, so the app and any other port share one implementation.
  */
 
-import type { LedgerSpec } from '../../core/providerLedger.ts';
+import { isOpeningRow, type LedgerSpec } from '../../core/providerLedger.ts';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -37,13 +37,13 @@ export type LedgerColumn = {
  */
 export function quietPlanRows(rows: any[]): boolean[] {
   const paid = (row: any) => Number(row?.paymentPence ?? 0) !== 0;
-  const firstPayment = rows.findIndex((row) => row?.opening !== true && paid(row));
-  const lastOpening = rows.reduce((last, row, index) => (row?.opening === true ? index : last), -1);
+  const firstPayment = rows.findIndex((row) => !isOpeningRow(row) && paid(row));
+  const lastOpening = rows.reduce((last, row, index) => (isOpeningRow(row) ? index : last), -1);
   const firstAfterOpening = lastOpening < 0 ? -1 : rows.findIndex((row, index) => index > lastOpening && paid(row));
   return rows.map((row, index) => {
     // An opening line only prints a figure the owner has typed into it; a
     // carried balance waits until a payment brings the new plan into being.
-    if (row?.opening === true) return !Number.isFinite(row?.balanceOverridePence);
+    if (isOpeningRow(row)) return !Number.isFinite(row?.balanceOverridePence);
     if (firstPayment < 0 || index < firstPayment) return true;
     if (lastOpening < 0 || index <= lastOpening) return false;
     return firstAfterOpening < 0 || index < firstAfterOpening;
@@ -64,7 +64,7 @@ export function markPaidRows(rows: any[], year: number, asOfDate: unknown, dueDa
   const today = String(asOfDate ?? '');
   if (!/^\d{4}-\d{2}$/.test(cutoff) || !Number.isInteger(year)) return rows;
   return rows.map((row) => {
-    if (row?.opening === true) return row;
+    if (isOpeningRow(row)) return row;
     const month = MONTH_NAMES.indexOf(String(row?.month ?? '')) + 1;
     if (month < 1) return row;
     const dueDate = String(dueDates[String(row?.month ?? '')] ?? '');
