@@ -16,6 +16,7 @@ and the build time.
 - Count Pure Cremation's remaining payments from the plan
 - Count Park Christmas's remaining payments from its latest plan
 - Show one Paid mark on every provider sheet
+- Add a yearly water bill card to the payment plan review
 
 ## [2026.11.26] — 26 November 2026
 

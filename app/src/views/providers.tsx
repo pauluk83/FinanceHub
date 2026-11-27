@@ -320,7 +320,7 @@ function UsageBalanceChart({ points, title }: { points: UsagePoint[]; title: str
  * Turns recorded usage and the current balance into a monthly payment. Read-only:
  * it explains the figure but never changes a bill, a payment or a balance.
  */
-function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabel, billedMonths, settleMonths, onSettleMonthsChange, onApply }: {
+function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabel, billedMonths, settleMonths, onSettleMonthsChange, onApply, yearlyBillPence, year }: {
   plan: PaymentPlan;
   currentPaymentPence: number;
   balancePence: number;
@@ -329,6 +329,9 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
   settleMonths: number;
   onSettleMonthsChange: (months: number) => void;
   onApply: (amountPence: number) => void;
+  /** Every bill on the year's sheet added up; shown when the sheet has any. */
+  yearlyBillPence?: number;
+  year?: number;
 }) {
   const [amount, setAmount] = useState(() => (plan.recommendedPence / 100).toFixed(2));
   useEffect(() => setAmount((plan.recommendedPence / 100).toFixed(2)), [plan.recommendedPence]);
@@ -379,6 +382,9 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
     >
       <div className="metric-list" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
         <div className="metric"><span>Average usage</span><strong>{gbp(plan.monthlyUsagePence)}</strong></div>
+        {typeof yearlyBillPence === 'number' && (
+          <div className="metric"><span>Yearly bill {year}</span><strong>{gbp(yearlyBillPence)}</strong></div>
+        )}
         <div className="metric"><span>{latestLabel}</span><strong>{gbp(balancePence)}</strong></div>
         <div className="metric"><span>Usage-only payment</span><strong>{gbp(plan.monthlyUsagePence)}</strong></div>
         <div className="metric"><span>Recommended payment</span><strong className="pos">{gbp(plan.recommendedPence)}</strong></div>
@@ -1433,6 +1439,8 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           settleMonths={settleMonths}
           onSettleMonthsChange={setSettleMonths}
           onApply={applyPlan}
+          year={year}
+          yearlyBillPence={provider === 'water' ? billedThisYear : undefined}
         />
       )}
       {editableYear ? (

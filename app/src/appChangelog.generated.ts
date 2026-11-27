@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.27",
-  "buildId": "0a56bc008a7a",
+  "buildId": "dcfb4d782d41",
   "builtAt": "2026-11-27",
   "releases": [
     {
@@ -22,7 +22,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Make the Pure Cremation opening balance stick as the plan's anchor",
             "Count Pure Cremation's remaining payments from the plan",
             "Count Park Christmas's remaining payments from its latest plan",
-            "Show one Paid mark on every provider sheet"
+            "Show one Paid mark on every provider sheet",
+            "Add a yearly water bill card to the payment plan review"
           ]
         }
       ]
