@@ -38,6 +38,36 @@ export const STARLING_STATEMENT_EVIDENCE: { date: string; pence: number }[] = [
  * payment low (£0.17 on 26 November, £461.85 on 27 November), so a blank budget,
  * an earlier budget, or a budget already corrected is left exactly as it is.
  */
+/**
+ * Move an account's opening balance so its computed balance matches the bank.
+ *
+ * The difference goes to the year's opening figure when a year rollover set one
+ * (that snapshot, not the account's own opening, is what the engine reads for
+ * that year), otherwise to the account itself. Transactions are never touched,
+ * and the figure the engine computes after this is exactly `targetPence`.
+ */
+export function reconcileAccountOpening(
+  dataset: Dataset,
+  accountName: string,
+  date: string,
+  targetPence: number,
+  currentPence: number,
+): number {
+  const delta = Math.round(targetPence) - Math.round(currentPence);
+  if (!delta) return 0;
+  const year = String(date).slice(0, 4);
+  const snapshot = (dataset.settings?.yearOpenings ?? {})[year];
+  const snapshotBalance = snapshot?.accounts?.[accountName];
+  if (typeof snapshotBalance === 'number') {
+    snapshot.accounts[accountName] = snapshotBalance + delta;
+    return delta;
+  }
+  const account = (dataset.accounts ?? []).find((entry) => entry.name === accountName);
+  if (!account) return 0;
+  account.openingPence = Number(account.openingPence || 0) + delta;
+  return delta;
+}
+
 export function restoreStarlingAnchorPayment(dataset: Dataset): boolean {
   const starling = (dataset.accounts ?? []).find((account) => /^starling$/i.test(String(account.name ?? '')));
   if (!starling) return false;

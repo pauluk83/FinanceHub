@@ -418,6 +418,10 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.match(accounts, /Add account/);
   assert.match(accounts, /aria-label="Target Current"/);
   assert.doesNotMatch(accounts, /Pseudo-accounts and excluded rows/);
+  assert.match(accounts, /Reconcile Current/, 'the main account can be reconciled to the bank');
+  assert.match(accounts, /aria-label="Bank balance"/, 'with the figure the bank shows');
+  assert.match(accounts, /aria-label="Reconcile date"/, 'for the date it was taken');
+  assert.match(accounts, /Match the balance/, 'and one button to apply it');
   assert.doesNotMatch(accounts, /— linked account/);
 
   assert.match(render(Cards, viewProps), /Add card/);

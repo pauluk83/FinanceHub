@@ -7,6 +7,7 @@ import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, LINK_SHEET_PROVIDER_KEYS, providerKeyForSheetName } from '../billSheets';
 import { isProviderEnabled, providerDisplayName } from '../providerSetup';
+import { reconcileAccountOpening } from '../../../core/accountRepairs';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
@@ -821,7 +822,24 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
     ds.accounts.find((a) => a.name === (ds.settings.primaryAccount || ds.accounts[0]?.name))?.name ?? balances[0]?.name ?? '',
   );
   const [acct, setAcct] = useState({ name: '', target: '', opening: '' });
+  const [reconcile, setReconcile] = useState({ date: asOf, balance: '' });
   const mainAccount = ds.settings.primaryAccount || ds.accounts[0]?.name || 'the main account';
+  const reconcileDate = /^\d{4}-\d{2}-\d{2}$/.test(reconcile.date) ? reconcile.date : asOf;
+  const reconcileCurrent = engine.accountBalances(reconcileDate).find((a) => a.name === mainAccount)?.balancePence ?? 0;
+  /**
+   * Match the bank: only the opening balance moves, by exactly the difference, so
+   * a statement's figure can be reconciled without inventing a transaction.
+   */
+  const applyReconcile = () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(reconcile.date)) return notify('Choose the date the bank balance is from');
+    if (!reconcile.balance.trim()) return notify('Enter the balance your bank shows');
+    const target = parseMoney(reconcile.balance);
+    const delta = target - reconcileCurrent;
+    setReconcile((current) => ({ ...current, balance: '' }));
+    if (!delta) return notify(`${mainAccount} already reads ${gbp(target)} on ${dateUk(reconcile.date)}`);
+    update((d) => { reconcileAccountOpening(d, mainAccount, reconcile.date, target, reconcileCurrent); });
+    notify(`${mainAccount} opening moved by ${gbp(delta)} — ${dateUk(reconcile.date)} now reads ${gbp(target)}`);
+  };
   const nameInUse = (name: string, old?: string) =>
     ds.accounts.some((a) => a.name === name && a.name !== old)
     || ds.people.some((p) => p.shortName === name && p.shortName !== old)
@@ -887,6 +905,38 @@ export function Accounts({ ds, engine, year, month, update, notify }: ViewProps)
           <Field label="Target £"><input className="input" inputMode="decimal" value={acct.target} onChange={(e) => setAcct({ ...acct, target: e.target.value })} /></Field>
           <Field label="Opening £"><input className="input" inputMode="decimal" value={acct.opening} onChange={(e) => setAcct({ ...acct, opening: e.target.value })} /></Field>
           <button className="btn primary" onClick={addAccount}>Add account</button>
+        </div>
+      </Section>
+
+      <Section
+        title={`Reconcile ${mainAccount}`}
+        sub={`Type the balance your bank shows for a date. Only the opening balance moves, by exactly the difference, so FinanceHub reads the same figure — no transaction or bill is changed.`}
+        actions={<Badge tone="blue">{`Reads ${gbpBlank(reconcileCurrent)}`}</Badge>}
+      >
+        <div className="inline-form">
+          <Field label="Bank balance £" hint={`${dateUk(reconcileDate)} reads ${gbpBlank(reconcileCurrent)} here`}>
+            <input
+              className="input"
+              inputMode="decimal"
+              aria-label="Bank balance"
+              placeholder="e.g. 461.85"
+              value={reconcile.balance}
+              onChange={(e) => setReconcile({ ...reconcile, balance: e.target.value })}
+            />
+          </Field>
+          <Field label="On date">
+            <input
+              className="input"
+              type="date"
+              aria-label="Reconcile date"
+              value={reconcile.date}
+              onChange={(e) => setReconcile({ ...reconcile, date: e.target.value })}
+            />
+          </Field>
+          <button className="btn primary" onClick={applyReconcile}>Match the balance</button>
+        </div>
+        <div className="muted small" style={{ padding: '0 16px 12px' }}>
+          The opening balance is the anchor the whole running balance counts from, so a statement's close is enough to put the account back on the bank's figure. A year rollover's opening figure is moved instead when the date falls in a rolled-over year.
         </div>
       </Section>
 

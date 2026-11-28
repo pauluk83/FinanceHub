@@ -19,6 +19,7 @@ and the build time.
 - The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.
 - The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.
 - The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.
+- Accounts: a Reconcile panel matches the main account to the bank's figure for a date, moving only the opening balance.
 
 ## [2026.11.27] — 27 November 2026
 

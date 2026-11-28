@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.28",
-  "buildId": "7d409927043e",
+  "buildId": "cfc53c525098",
   "builtAt": "2026-11-28",
   "releases": [
     {
@@ -25,7 +25,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Bills: a provider left with no bill and no link sheet can be removed from the menu from the link-sheet panel, keeping its ledger.",
             "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.",
             "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.",
-            "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85."
+            "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.",
+            "Accounts: a Reconcile panel matches the main account to the bank's figure for a date, moving only the opening balance."
           ]
         }
       ]
