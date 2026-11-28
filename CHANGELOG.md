@@ -23,6 +23,7 @@ and the build time.
 - Updates: the delta archive is published under its build id, so a same-version rebuild can never mix two builds, and a failed block checksum is retried once before it is reported.
 - Starling: Water's £44 monthly payment is back on the bill after the sheet's carried-forward zeros hid it, and the opening balance is aligned to the November statement's own figures, so 26 November reads £0.17 and the 27th £461.85.
 - Starling: a Water bill month's zero is kept to that month instead of taking the payment out of every month after it, and the opening balance refits to the statement whenever a plan changes — so 26 November reads £0.17 and the 27th £461.85 again.
+- Settings → App: a Check for updates button compares the version and build id running here with the newest published release and with this build's own changelog entry, so you can confirm the latest build without leaving the app.
 
 ## [2026.11.27] — 27 November 2026
 

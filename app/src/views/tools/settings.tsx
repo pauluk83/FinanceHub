@@ -15,6 +15,7 @@ import { AccountSecuritySection } from '../accountSecurity';
 import { AppLockSection } from '../appLock';
 import { EncryptedBackupSection } from '../backup';
 import { YearRolloverSection } from './yearRollover';
+import { UpdateCheckSection } from './updateCheck';
 import { CredentialVault } from './credentialVault';
 import { LOCALES, locale as currentLocale, setLocale, t, type Locale } from '../../i18n';
 
@@ -333,6 +334,7 @@ export function SettingsView({ ds, update, notify, theme, setTheme, engine, go, 
       </div>
 
       <div className="settings-pane" hidden={settingsPane !== 'app'}>
+      <UpdateCheckSection notify={notify} />
       <Section title="About & legal" sub="Ownership, copyright, trademark and the documents that govern your use of FinanceHub">
         <div style={{ padding: 16, display: 'grid', gap: 10 }}>
           <div><strong>FinanceHub™</strong> <span className="muted small">· version {LEGAL_VERSION}</span></div>
