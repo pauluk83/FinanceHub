@@ -75,6 +75,13 @@ test('the published checksum and delta manifest describe the uploaded files', ()
     assert.equal(manifest.blocks[0].sha256, sha256(asarBytes.subarray(0, 256 * 1024)));
     assert.notEqual(manifest.buildId, 'stale', 'the manifest carries this build, not the previous one');
     assert.deepEqual(JSON.parse(readFileSync(manifestPath, 'utf8')).asar, manifest.asar, 'the manifest on disk matches the upload');
+    // The archive the manifest names is written beside the stable copy, so a
+    // same-version rebuild publishes bytes no other build can replace.
+    assert.deepEqual(
+      readFileSync(join(dir, manifest.asar.name)),
+      asarBytes,
+      'the build-id archive is published with this manifest',
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

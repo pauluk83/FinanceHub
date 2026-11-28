@@ -10,6 +10,7 @@
  */
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ROOT, buildId, parseChangelog } from './app-changelog.mjs';
@@ -46,6 +47,9 @@ export function prepareReleaseAssets({ installerPath, asarPath, manifestPath, ch
   });
   writeFileSync(checksumsPath, `${sha256(installerBytes)}  ${basename(installerPath)}\n`);
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  // The build-id copy the manifest names, written beside the stable archive so the
+  // uploader can publish both without recomputing anything.
+  copyFileSync(asarPath, join(dirname(asarPath), manifest.asar.name));
   return manifest;
 }
 
@@ -194,7 +198,7 @@ async function main() {
   if (!existsSync(updateAsar)) throw new Error(`${updateAsar} is missing — run npm run dist:win first.`);
 
   // Derive the checksum and the delta manifest from the uploaded files themselves.
-  prepareReleaseAssets({ installerPath: installer, asarPath: updateAsar, manifestPath: updateManifest, checksumsPath: checksums, version });
+  const manifest = prepareReleaseAssets({ installerPath: installer, asarPath: updateAsar, manifestPath: updateManifest, checksumsPath: checksums, version });
 
   // SBOM and claims travel with the installer so a download can be audited.
   const evidence = [join(ROOT, 'release', 'SBOM.json'), join(ROOT, 'release', 'RELEASE_CLAIMS.md')]
@@ -203,7 +207,7 @@ async function main() {
   // the name its manifest carries, so a same-version rebuild can never hand a
   // client a manifest and an archive from different builds.
   const namedAsar = join(ROOT, 'release', 'update', manifest.asar.name);
-  copyFileSync(updateAsar, namedAsar);
+  if (!existsSync(namedAsar)) throw new Error(`${namedAsar} was not written by prepareReleaseAssets.`);
 
   const result = await publishInstaller({
     version,
