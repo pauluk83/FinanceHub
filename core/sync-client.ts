@@ -1,3 +1,5 @@
+import { randomToken } from './ids.ts';
+
 export interface SyncOutboxItem<T> {
   opId: string;
   entity: 'settings';
@@ -365,7 +367,5 @@ export function planSettingsSync<T>(input: {
 }
 
 function defaultId(): string {
-  const cryptoApi = globalThis.crypto;
-  if (cryptoApi?.randomUUID) return cryptoApi.randomUUID();
-  return `op_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return randomToken();
 }

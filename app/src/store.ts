@@ -13,6 +13,7 @@ import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
 import { todayIso } from './format';
 import type { EncryptedVault } from './vault';
+import { randomId } from '../../core/ids.ts';
 
 export interface AppState {
   version: 1;
@@ -716,5 +717,4 @@ export function blankDataset(current: Dataset, opts: {
   };
 }
 
-export const newId = (prefix: string) =>
-  `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+export const newId = (prefix: string) => randomId(prefix);

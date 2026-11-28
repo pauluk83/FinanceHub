@@ -16,6 +16,7 @@ import {
   type DeviceClient,
   type DeviceRow,
 } from '../../core/devices';
+import { randomToken } from '../../core/ids.ts';
 
 const DEVICE_KEY = 'financehub.device-id.v1';
 
@@ -25,9 +26,7 @@ export const devicesConfigured = Boolean(authClient);
 export function currentDeviceId(): string {
   const existing = readPersistedValue(DEVICE_KEY);
   if (existing && /^[A-Za-z0-9-]{8,64}$/.test(existing)) return existing;
-  const next = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const next = randomToken();
   writePersistedValue(DEVICE_KEY, requireDeviceId(next));
   return next;
 }

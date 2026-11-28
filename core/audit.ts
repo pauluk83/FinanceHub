@@ -1,4 +1,5 @@
 import type { Dataset } from './engine';
+import { randomToken } from './ids.ts';
 
 export type AuditSection = 'transactions' | 'accounts' | 'people' | 'cards' | 'bills' | 'billChanges';
 export type AuditAction = 'create' | 'update' | 'delete';
@@ -126,7 +127,7 @@ export function diffRecords(
       if (!sample) continue;
       sequence += 1;
       entries.push({
-        id: `audit_${Date.now().toString(36)}_${sequence.toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+        id: `audit_${Date.now().toString(36)}_${sequence.toString(36)}_${randomToken().slice(0, 8)}`,
         at,
         section,
         action,

@@ -3,6 +3,7 @@ import type { ViewProps } from '../types';
 import type { Debt } from '../../../core/engine';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { gbp, parseMoney } from '../format';
+import { randomId } from '../../../core/ids.ts';
 
 const AGREEMENTS = ['Personal loan', 'Credit card', 'Car finance', 'Buy now pay later', 'Overdraft', 'Family loan', 'Other'];
 const BLANK = { name: '', creditor: '', agreementType: AGREEMENTS[0], agreementRef: '', balance: '', monthly: '', dueDay: '1', interest: '', startDate: '', notes: '' };
@@ -27,7 +28,7 @@ export function Debts({ ds, update, notify }: ViewProps) {
     const balance = parseMoney(form.balance);
     if (!balance) return notify('Enter how much is still owed');
     const debt: Debt = {
-      id: editing ?? `debt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+      id: editing ?? randomId('debt'),
       name,
       creditor: form.creditor.trim(),
       agreementType: form.agreementType,

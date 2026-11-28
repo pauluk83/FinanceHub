@@ -53,6 +53,9 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "wrangler": "^4.164.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "11.0.9"
   }
 }

@@ -140,7 +140,7 @@ async function main() {
   const outputDir = path.join(root, 'release-store');
 
   console.log(`Store identity: ${identity.identityName}`);
-  console.log(`Publisher:      ${identity.publisher}`);
+  console.log(`Publisher:      ${identity.publisher ? 'configured' : 'missing'}`);
   console.log(`Package version: ${version}`);
 
   if (process.argv.includes('--check')) {

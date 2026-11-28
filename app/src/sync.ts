@@ -28,6 +28,7 @@ import {
   writePersistedValue,
   type AppState,
 } from './store';
+import { randomId } from '../../core/ids.ts';
 
 export type SyncPhase = 'idle' | 'syncing' | 'pending' | 'synced' | 'offline' | 'error' | 'conflict';
 
@@ -47,11 +48,6 @@ const outboxKey = (userId: string) => `financehub.sync.outbox.v1:${userId}`;
 const conflictsKey = (userId: string) => `financehub.sync.conflicts.v1:${userId}`;
 const deviceKey = (userId: string) => `financehub.sync.device.v1:${userId}`;
 
-function randomId(prefix: string): string {
-  const cryptoApi = globalThis.crypto;
-  if (cryptoApi?.randomUUID) return `${prefix}_${cryptoApi.randomUUID()}`;
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function readJson<T>(key: string, fallback: T): T {
   const raw = readPersistedValue(key);

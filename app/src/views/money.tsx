@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ViewProps } from '../types';
 import { createTapGuard } from '../mutationGuard';
 import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
@@ -7,7 +7,6 @@ import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
 import { applyBillDueDay } from '../providerSetup';
-import { applyProviderPayment, PAYMENT_PLANS } from '../../../core/providerBillLink';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
@@ -15,33 +14,17 @@ import { mergeSuggestion, ruleFieldText, suggestForTransaction } from '../../../
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
 import { bulkEditTransactions } from '../../../core/cleanup';
-import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { deletePortalsForPerson, renamePortalPerson } from '../portal';
 import { PeopleAccessSection } from './peoplePortal';
 
 const BILL_METHODS = ['Direct Debit', 'Standing Order', 'Continuous Card Authority', 'Manual'];
 
-/**
- * A linked plan's payment follows a base-amount edit on the Bills tab.
- *
- * The edit is year-agnostic, so it applies from the as-of month onwards: earlier
- * months keep what actually happened and the rest of the plan moves with it.
- */
-function applyLinkedPlanPayment(d: any, bill: any, amountPence: number) {
-  const sheet = String(bill?.linkedSheet ?? '').trim().toLowerCase();
-  const key = Object.keys(PAYMENT_PLANS).find((entry) => PAYMENT_PLANS[entry].sheet.toLowerCase() === sheet);
-  if (!key) return;
-  const asOf = String(d?.settings?.asOfDate ?? '');
-  const year = Number(asOf.slice(0, 4)) || Number(d?.settings?.targetYear) || 0;
-  if (!year) return;
-  applyProviderPayment(d, key, year, Number(asOf.slice(5, 7)) || 1, amountPence);
-}
-
-function nextAprilDate(asOfDate: string): string {
-  const year = Number(asOfDate.slice(0, 4)) || new Date().getFullYear();
-  const month = Number(asOfDate.slice(5, 7)) || 1;
-  return `${month >= 4 ? year + 1 : year}-04-01`;
-}
+/** The three kinds of dated bill change, so the type is picked rather than typed. */
+const CHANGE_MODES: { id: string; label: string }[] = [
+  { id: 'date', label: 'Move a date' },
+  { id: 'amount', label: 'Change an amount' },
+  { id: 'stop', label: 'Stop it' },
+];
 
 function auditActionLabel(entry: AuditEntry): string {
   if (entry.action === 'update') return `Edited · ${entry.label}`;
@@ -750,7 +733,7 @@ export function Transactions({ ds, engine, month, setMonth, update, notify }: Vi
                 {linkedTo && t.account !== linkedTo && <Badge tone="blue">Linked to {linkedTo}</Badge>}
               </td>
               <td><Badge tone={t.type === 'Income' ? 'green' : 'neutral'}>{t.type}</Badge></td>
-              <td className={`num ${t.type === 'Income' ? 'amount pos' : 'amount neg'}`}>{t.type === 'Income' ? '+' : '−'}{gbp(t.amountPence).replace('£', '£')}</td>
+              <td className={`num ${t.type === 'Income' ? 'amount pos' : 'amount neg'}`}>{t.type === 'Income' ? '+' : '−'}{gbp(t.amountPence)}</td>
               <td className="muted">{t.comments || '—'}</td>
               <td>{t.category ? <Badge tone="blue">{t.category}</Badge> : <span className="faint">—</span>}</td>
               <td className="muted small">{(t.tags ?? []).length ? t.tags!.join(', ') : '—'}</td>
@@ -1081,17 +1064,14 @@ function EditableName({ value, onCommit, ariaLabel }: { value: string; onCommit:
   );
 }
 
-export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
+export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps) {
   const sheets = billSheetsFor(ds);
   const [sheetDraft, setSheetDraft] = useState('');
   const [sheetRename, setSheetRename] = useState({ from: '', to: '' });
   const [billDraft, setBillDraft] = useState({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: '', account: '' });
-  const [change, setChange] = useState({ bill: ds.bills[0]?.name ?? '', from: '', to: '', amount: '', due: '', type: '' });
-  const [rentChange, setRentChange] = useState(() => ({
-    amount: typeof ds.providers.rent?.monthlyRentPence === 'number' ? (ds.providers.rent.monthlyRentPence / 100).toFixed(2) : '',
-    payment: typeof ds.providers.rent?.monthlyPaymentPence === 'number' ? (ds.providers.rent.monthlyPaymentPence / 100).toFixed(2) : '',
-    from: nextAprilDate(ds.settings.asOfDate),
-  }));
+  const [change, setChange] = useState({ bill: ds.bills[0]?.name ?? '', from: '', to: '', amount: '', due: '', mode: 'date' });
+  const [showStopped, setShowStopped] = useState(false);
+  const [openActions, setOpenActions] = useState<string | null>(null);
   const planning = year > ds.settings.targetYear;
   const planStart = `${year}-01-01`;
   const planEnd = `${year}-12-31`;
@@ -1168,6 +1148,16 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
   };
   const planAmount = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.amountOverridePence ?? engine.billAmount(bill, year, 1);
   const planDueDay = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.dueDayOverride ?? bill.dueDay;
+  /**
+   * A bill paid by a provider plan reads its amount from that plan. The provider
+   * page owns the figure, so this tab shows it and never edits it.
+   */
+  const planKeyForBill = (bill: typeof ds.bills[number]) => {
+    const key = providerKeyForSheetName(bill.linkedSheet ?? '');
+    return key && (ds.providers as any)?.[key] ? key : undefined;
+  };
+  const activeBillCount = ds.bills.filter((bill) => bill.active !== false).length;
+  const stoppedBillCount = ds.bills.length - activeBillCount;
 
   const addSheet = () => {
     const name = sheetDraft.trim();
@@ -1276,156 +1266,63 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
 
   const addChange = () => {
     if (!change.bill) return notify('Choose a bill');
+    if (!change.from) return notify(change.mode === 'stop' ? 'Choose the date the bill stops' : 'Choose the date the change starts');
+    if (change.mode === 'date' && !change.due) return notify('Choose the new date for that month');
+    if (change.mode === 'amount' && !change.amount.trim()) return notify('Enter the new amount');
     update((d) => d.billChanges.push({
       bill: change.bill,
       appliesFrom: change.from,
-      appliesTo: change.to,
-      amountOverridePence: change.amount.trim() ? parseMoney(change.amount) : null,
-      dueDateOverride: change.due,
-      changeType: change.type,
+      appliesTo: change.mode === 'stop' ? '' : change.to,
+      amountOverridePence: change.mode === 'amount' ? parseMoney(change.amount) : null,
+      dueDateOverride: change.mode === 'date' ? change.due : '',
+      dueDayOverride: null,
+      changeType: change.mode === 'date' ? 'One-off date' : change.mode === 'amount' ? 'Amount change' : 'Stopped',
       note: '',
+      skip: change.mode === 'stop',
     }));
-    setChange({ ...change, from: '', to: '', amount: '', due: '', type: '' });
-    notify('Bill change added');
-  };
-
-  const rentProvider = ds.providers.rent;
-  const rentMonthlyDraft = parseMoney(rentChange.amount);
-  const rentPaymentDraft = parseMoney(rentChange.payment);
-  const rentWeeklyDraft = weeklyRentPence(rentMonthlyDraft);
-  const rentTargets = rentProvider && rentChange.from
-    ? rentChangeTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
-    : [];
-  const rentPaymentRows = rentProvider && rentChange.from
-    ? rentPaymentTargets((rentProvider.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
-    : [];
-
-  const applyRentChange = () => {
-    if (!rentProvider) return notify('No Rent ledger is loaded');
-    if (!rentChange.from) return notify('Choose the date the new rent starts');
-    if (rentMonthlyDraft <= 0) return notify('Enter a monthly rent above zero');
-    if (!confirm(
-      `Change the monthly rent to ${gbp(rentMonthlyDraft)} from ${dateUk(rentChange.from)}?\n\n`
-      + `The weekly charge will be ${gbp(rentWeeklyDraft)}. ${rentTargets.length} future Rent Charge row${rentTargets.length === 1 ? '' : 's'} will update; `
-      + `entries on or before ${dateUk(ds.settings.asOfDate)} stay unchanged.`,
-    )) return;
-    update((d) => {
-      applyMonthlyRentChange(d.providers.rent, d.settings.asOfDate, rentMonthlyDraft, rentChange.from);
-    });
-    setRentChange({ ...rentChange, amount: (rentMonthlyDraft / 100).toFixed(2) });
-    notify(rentTargets.length
-      ? `Rent updated — ${rentTargets.length} future weekly charge${rentTargets.length === 1 ? '' : 's'} changed`
-      : 'Rent updated — no future weekly charges matched');
-  };
-
-  const applyRentPaymentChange = () => {
-    if (!rentProvider) return notify('No Rent ledger is loaded');
-    if (!rentChange.from) return notify('Choose the date the new payment starts');
-    if (rentPaymentDraft <= 0) return notify('Enter a monthly payment above zero');
-    if (!confirm(
-      `Change the monthly Rent payment to ${gbp(rentPaymentDraft)} from ${dateUk(rentChange.from)}?\n\n`
-      + `${rentPaymentRows.length} future rent payment row${rentPaymentRows.length === 1 ? '' : 's'} will update. `
-      + 'Earlier payment rows and earlier Rent bill months stay unchanged.',
-    )) return;
-    update((d) => {
-      applyMonthlyPaymentChange(d.providers.rent, d.settings.asOfDate, rentPaymentDraft, rentChange.from);
-      const rentBill = d.bills.find((bill) => bill.name === 'Rent');
-      if (rentBill) {
-        rentBill.baseAmountPence = rentPaymentDraft;
-        rentBill.amountPence = rentPaymentDraft;
-      }
-    });
-    setRentChange({ ...rentChange, payment: (rentPaymentDraft / 100).toFixed(2) });
-    notify(rentPaymentRows.length
-      ? `Rent payment updated — ${rentPaymentRows.length} future payment row${rentPaymentRows.length === 1 ? '' : 's'} changed`
-      : 'Rent payment updated — no future payment rows matched');
+    setChange({ ...change, from: '', to: '', amount: '', due: '' });
+    notify(change.mode === 'stop' ? `Stopped ${change.bill} from ${dateUk(change.from)}` : 'Bill change added');
   };
 
   return (
     <>
-      {rentProvider && (
-        <Section title="Rent" sub="Change the monthly rent or payment from the chosen date; passed history stays intact">
-          <div className="inline-form">
-            <Field label="Monthly rent £" hint={`Current ${gbp(rentProvider.monthlyRentPence ?? 0)}`}>
-              <input
-                className="input"
-                aria-label="Monthly rent"
-                inputMode="decimal"
-                value={rentChange.amount}
-                onChange={(e) => setRentChange({ ...rentChange, amount: e.target.value })}
-              />
-            </Field>
-            <Field label="Apply from" hint="Passed and zero/free-week rows stay untouched">
-              <input
-                className="input"
-                aria-label="Rent change effective date"
-                type="date"
-                value={rentChange.from}
-                onChange={(e) => setRentChange({ ...rentChange, from: e.target.value })}
-              />
-            </Field>
-            <button className="btn primary" onClick={applyRentChange}>Update future rent</button>
-          </div>
-          <div className="notice info" style={{ margin: '0 16px 12px' }}>
-            Weekly charge will be <strong>{gbp(rentWeeklyDraft)}</strong> (monthly rent ÷ 4).{' '}
-            {rentTargets.length} future Rent Charge row{rentTargets.length === 1 ? '' : 's'} will update.
-            <div className="muted small" style={{ marginTop: 4 }}>
-              Entries on or before As-Of {dateUk(ds.settings.asOfDate)} and zero/free-week rows are retained.
-            </div>
-          </div>
-          <div className="inline-form" style={{ borderTop: '1px solid var(--line)' }}>
-            <Field label="Monthly payment £" hint={`Current ${gbp(rentProvider.monthlyPaymentPence ?? 0)}`}>
-              <input
-                className="input"
-                aria-label="Monthly payment"
-                inputMode="decimal"
-                value={rentChange.payment}
-                onChange={(e) => setRentChange({ ...rentChange, payment: e.target.value })}
-              />
-            </Field>
-            <button className="btn primary" onClick={applyRentPaymentChange}>Update future payment</button>
-          </div>
-          <div className="notice info" style={{ margin: '0 16px 16px' }}>
-            Payment will be <strong>{gbp(rentPaymentDraft)}</strong> from {dateUk(rentChange.from)}.{' '}
-            {rentPaymentRows.length} future rent payment row{rentPaymentRows.length === 1 ? '' : 's'} will update.
-            <div className="muted small" style={{ marginTop: 4 }}>
-              The payment card updates now; the Rent bill applies from this date. Earlier payment rows, zero-payment months, and earlier bill months are retained.
-            </div>
-          </div>
-        </Section>
-      )}
-
       <Section
         title={planning ? `${year} bill plan and link sheets` : 'Bills and link sheets'}
         sub={planning
           ? `Amount, due day and removal apply to ${year} only. Method, account and linked sheet stay shared.`
-          : "Edit a bill in place; adding a bill uses the base amount, or the linked provider's scheduled amount when one is available. Link sheets below are optional labels that group bills."}
+          : "Edit a bill in place. A bill linked to a provider sheet shows that plan's amount here and is changed on the provider page. Link sheets below are optional labels that group bills."}
       >
         <Table className="ledger-table-start" head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
-          {/* A bill switched off is kept but sits at the bottom of the list. */}
+          {/* Active bills first; stopped ones sit behind a count so the list stays short. */}
           {ds.bills.map((b, i) => ({ b, i }))
             .sort((x, y) => (x.b.active === false ? 1 : 0) - (y.b.active === false ? 1 : 0))
+            .filter(({ b }) => (showStopped || b.active !== false) && !(planning && skipChangeFor(ds.billChanges, b.name)))
             .map(({ b, i }) => (
-            planning && skipChangeFor(ds.billChanges, b.name) ? null : (
-            <tr key={b.name || i}>
+            <Fragment key={b.name || i}>
+            <tr>
               <td><EditableName value={b.name} onCommit={(next) => renameBill(b.name, next)} ariaLabel={`Bill name ${b.name}`} /></td>
               <td className="num">
-                <input
-                  className="table-input"
-                  inputMode="decimal"
-                  aria-label={`${planning ? `${year} ` : ''}amount ${b.name}`}
-                  value={((planning ? planAmount(b) : b.baseAmountPence) / 100).toFixed(2)}
-                  disabled={planning && yearChange(b.name)?.skip === true}
-                  onChange={(e) => planning
-                    ? setPlan(b.name, { amountOverridePence: e.target.value.trim() ? parseMoney(e.target.value) : null })
-                    : update((d) => {
-                      const amount = parseMoney(e.target.value);
-                      d.bills[i].baseAmountPence = amount;
-                      d.bills[i].amountPence = amount;
-                      // A linked plan's payment is this amount from the as-of month on.
-                      applyLinkedPlanPayment(d, b, amount);
-                    })}
-                />
+                {!planning && planKeyForBill(b) ? (
+                  <div>
+                    <strong>{gbp(engine.billAmount(b, year, month))}</strong>
+                    <div className="muted small">from the {b.linkedSheet} plan</div>
+                  </div>
+                ) : (
+                  <input
+                    className="table-input"
+                    inputMode="decimal"
+                    aria-label={`${planning ? `${year} ` : ''}amount ${b.name}`}
+                    value={((planning ? planAmount(b) : b.baseAmountPence) / 100).toFixed(2)}
+                    disabled={planning && yearChange(b.name)?.skip === true}
+                    onChange={(e) => planning
+                      ? setPlan(b.name, { amountOverridePence: e.target.value.trim() ? parseMoney(e.target.value) : null })
+                      : update((d) => {
+                        const amount = parseMoney(e.target.value);
+                        d.bills[i].baseAmountPence = amount;
+                        d.bills[i].amountPence = amount;
+                      })}
+                  />
+                )}
               </td>
               <td className="num">
                 <input
@@ -1481,26 +1378,60 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
                       </span>
                     )}
                   </>}</td>
-              <td>
-              <button className="btn ghost sm" onClick={() => {
-                if (planning) {
-                  if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
-                  removeFromYear(b.name);
-                  notify(`${b.name} removed from ${year} and later years`);
-                  return;
-                }
-                if (!confirm(`Stop ${b.name} from ${MONTH_LONG[month - 1]} ${year}? Earlier months and earlier years keep their payments.`)) return;
-                stopBillFrom(b.name);
-                notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
-              }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button>
-              {planning && (
-                <button className="btn ghost sm" style={{ marginLeft: 6 }} onClick={() => deleteBill(b.name)}>Delete</button>
-              )}
+              <td className="nowrap">
+                <button
+                  className="btn ghost sm"
+                  aria-label={`Actions for ${b.name}`}
+                  aria-expanded={openActions === b.name}
+                  onClick={() => setOpenActions((current) => (current === b.name ? null : b.name))}
+                >
+                  ⋯
+                </button>
               </td>
             </tr>
-            )
+            {openActions === b.name && (
+              <tr className="row-actions">
+                <td colSpan={9}>
+                  <div className="page-actions">
+                    <button className="btn sm" onClick={() => {
+                      setOpenActions(null);
+                      if (planning) {
+                        if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
+                        removeFromYear(b.name);
+                        notify(`${b.name} removed from ${year} and later years`);
+                        return;
+                      }
+                      if (!confirm(`Stop ${b.name} from ${MONTH_LONG[month - 1]} ${year}? Earlier months and earlier years keep their payments.`)) return;
+                      stopBillFrom(b.name);
+                      notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
+                    }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button>
+                    {planning && (
+                      <button className="btn sm danger" onClick={() => { setOpenActions(null); deleteBill(b.name); }}>Delete</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+            </Fragment>
           ))}
         </Table>
+        {stoppedBillCount > 0 && (
+          <div className="toolbar" style={{ borderTop: '1px solid var(--line)' }}>
+            <span className="muted small">{activeBillCount} active · {stoppedBillCount} stopped</span>
+            <div className="toolbar-spacer" />
+            <button className="btn ghost sm" onClick={() => setShowStopped((open) => !open)}>
+              {showStopped ? 'Hide stopped bills' : 'Show stopped bills'}
+            </button>
+          </div>
+        )}
+        {ds.providers.rent && (
+          <div style={{ padding: '12px 16px 0' }}>
+            <div className="notice info">
+              Rent's monthly charge and payment are set on the Rent page, so this tab and that page never disagree.{' '}
+              <button className="btn ghost sm" onClick={() => go('rent')}>Open Rent</button>
+            </div>
+          </div>
+        )}
         {planning && (
           <div style={{ padding: '0 16px 16px' }}>
             <div className="notice info">
@@ -1602,12 +1533,33 @@ export function Bills({ ds, engine, year, month, update, notify }: ViewProps) {
               {ds.bills.map((b) => <option key={b.name} value={b.name}>{b.name}</option>)}
             </select>
           </Field>
-          <Field label="Applies from"><input className="input" type="date" value={change.from} onChange={(e) => setChange({ ...change, from: e.target.value })} /></Field>
-          <Field label="Applies to"><input className="input" type="date" value={change.to} onChange={(e) => setChange({ ...change, to: e.target.value })} /></Field>
-          <Field label="Amount £"><input className="input" inputMode="decimal" value={change.amount} onChange={(e) => setChange({ ...change, amount: e.target.value })} /></Field>
-          <Field label="Due override"><input className="input" type="date" value={change.due} onChange={(e) => setChange({ ...change, due: e.target.value })} /></Field>
-          <Field label="Type"><input className="input" value={change.type} onChange={(e) => setChange({ ...change, type: e.target.value })} /></Field>
-          <button className="btn primary" onClick={addChange}>Add change</button>
+          <div className="field">
+            <span>What changes</span>
+            <div className="segmented" role="group" aria-label="Kind of bill change">
+              {CHANGE_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  className={`btn sm ${change.mode === mode.id ? 'primary' : 'ghost'}`}
+                  aria-pressed={change.mode === mode.id}
+                  onClick={() => setChange({ ...change, mode: mode.id })}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Field label={change.mode === 'stop' ? 'Stops from' : 'Applies from'}><input className="input" type="date" value={change.from} onChange={(e) => setChange({ ...change, from: e.target.value })} /></Field>
+          {change.mode !== 'stop' && (
+            <Field label="Applies to" hint="Leave blank for this month onwards"><input className="input" type="date" value={change.to} onChange={(e) => setChange({ ...change, to: e.target.value })} /></Field>
+          )}
+          {change.mode === 'date' && (
+            <Field label="New date"><input className="input" type="date" value={change.due} onChange={(e) => setChange({ ...change, due: e.target.value })} /></Field>
+          )}
+          {change.mode === 'amount' && (
+            <Field label="New amount £"><input className="input" inputMode="decimal" value={change.amount} onChange={(e) => setChange({ ...change, amount: e.target.value })} /></Field>
+          )}
+          <button className="btn primary" onClick={addChange}>{change.mode === 'stop' ? 'Stop the bill' : 'Add change'}</button>
         </div>
       </Section>
     </>

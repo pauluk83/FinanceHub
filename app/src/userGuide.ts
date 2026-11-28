@@ -281,13 +281,15 @@ export const USER_GUIDE: GuideEntry[] = [
     title: 'Bills',
     summary: 'Bill definitions, link sheets, standing overrides and one-off changes; the monthly run is on Monthly.',
     steps: [
-      'Add a bill with its amount, due day, method, category and an optional provider link.',
-      'Edit the base amount for the current year; use Bill changes on Bills for a dated change instead of rewriting history.',
-      'Mark a bill inactive to stop it appearing in future months while keeping its past rows.',
+      'Add a bill with its amount, due day, method and an optional provider sheet.',
+      'Edit a bill in place; the ... button on its row stops it from this month or removes it from a planned year.',
+      'Add a dated change in Bill changes by picking one of three choices: move a date, change an amount, or stop the bill.',
+      'Mark a bill inactive to stop it appearing in future months while keeping its past rows; stopped bills sit behind the Stopped count.',
     ],
     notes: [
       'A dated change wins over the base amount from its effective date onward.',
-      'A provider-linked bill follows the provider ledger unless an override applies.',
+      'A bill linked to a provider sheet shows that plan’s amount and is changed on the provider page, never here.',
+      'Rent’s monthly charge and payment are changed on the Rent page.',
     ],
   },
   {

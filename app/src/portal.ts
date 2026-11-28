@@ -1,4 +1,5 @@
 import type { Dataset } from '../../core/engine';
+import { randomId } from '../../core/ids.ts';
 
 export const PEOPLE_PORTAL_KEY_PREFIX = 'financehub.people-portal.v1:';
 export const PEOPLE_FEEDBACK_KEY_PREFIX = 'financehub.people-feedback.v1:';
@@ -227,7 +228,7 @@ export async function createPersonPortal(input: CreatePortalInput): Promise<Pers
   const now = new Date().toISOString();
   return {
     version: 1,
-    id: `portal_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    id: randomId('portal'),
     ownerId: input.ownerId,
     person: input.person,
     username,
@@ -353,7 +354,7 @@ export function addPortalFeedback(input: CreatePortalFeedbackInput): PortalFeedb
   if (problem) throw new Error(problem);
   const item: PortalFeedback = {
     version: 1,
-    id: `feedback_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    id: randomId('feedback'),
     ownerId: input.ownerId,
     person: input.person,
     message: input.message.trim(),

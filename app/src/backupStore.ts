@@ -1,6 +1,7 @@
 import type { EncryptedBackup } from './backupArchive';
 import { readPersistedValue, writePersistedValue } from './store';
 import { MAX_AUTOMATIC_RESTORE_POINTS, MAX_RESTORE_POINTS, pruneRestorePoints } from '../../core/backupRetention';
+import { randomId } from '../../core/ids.ts';
 
 export { MAX_AUTOMATIC_RESTORE_POINTS, MAX_RESTORE_POINTS, pruneRestorePoints };
 
@@ -50,7 +51,7 @@ export function readRestorePoint(ownerId: string, id: string): EncryptedBackup |
 export function saveRestorePoint(ownerId: string, backup: EncryptedBackup, label: string, automatic = false): RestorePointMeta | null {
   const points = parsePoints(readPersistedValue(keyFor(ownerId)));
   const point: StoredPoint = {
-    id: `restore_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    id: randomId('restore'),
     createdAt: backup.createdAt,
     label: label.trim().slice(0, 80) || 'Manual restore point',
     bytes: JSON.stringify(backup).length,

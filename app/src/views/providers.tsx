@@ -11,6 +11,7 @@ import { sheetNameForProviderKey } from '../billSheets';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
 import { applyProviderPayment, PAYMENT_PLANS } from '../../../core/providerBillLink';
+import { applyMonthlyPaymentChange, applyMonthlyRentChange, rentChangeTargets, rentPaymentTargets, weeklyRentPence } from '../../../core/rent';
 import { buildExcelWorkbook, buildPrintReport } from '../../../core/exporters';
 import { printHtml } from '../print';
 import type { VaultSecrets } from '../vault';
@@ -59,6 +60,13 @@ const RENT_CONFIG: LedgerConfig = {
     { key: 'matched', label: 'Matched', edit: 'check' },
   ],
 };
+
+/** The next 1 April after the as-of date: when a rent review is usually applied. */
+function nextAprilDate(asOfDate: string): string {
+  const year = Number(asOfDate.slice(0, 4)) || new Date().getFullYear();
+  const month = Number(asOfDate.slice(5, 7)) || 1;
+  return `${month >= 4 ? year + 1 : year}-04-01`;
+}
 
 export const CONFIG: Record<string, LedgerConfig> = {
   water: {
@@ -887,6 +895,12 @@ function rentAccountDetails(rent: any): [string, string | undefined][] {
 
 export function Rent({ ds, engine, year, go, update, notify, vaultSession }: ViewProps) {
   const rent = ds.providers.rent;
+  // A dated change rewrites the future rent rows only, so passed history stays.
+  const [rentChange, setRentChange] = useState(() => ({
+    amount: typeof rent?.monthlyRentPence === 'number' ? (rent.monthlyRentPence / 100).toFixed(2) : '',
+    payment: typeof rent?.monthlyPaymentPence === 'number' ? (rent.monthlyPaymentPence / 100).toFixed(2) : '',
+    from: nextAprilDate(ds.settings.asOfDate),
+  }));
   if (!rent) {
     return (
       <Section title="Rent" sub="No rent ledger yet" actions={<button className="btn primary" onClick={() => go('setup')}>Open setup</button>}>
@@ -918,6 +932,54 @@ export function Rent({ ds, engine, year, go, update, notify, vaultSession }: Vie
     if (label === 'Agreement') return <DetailEditor label={label} multiline value={rent.agreement ?? ''} onCommit={(value) => updateRentField('agreement', value)} />;
     return null;
   };
+  const rentMonthlyDraft = parseMoney(rentChange.amount);
+  const rentPaymentDraft = parseMoney(rentChange.payment);
+  const rentWeeklyDraft = weeklyRentPence(rentMonthlyDraft);
+  const rentTargets = rentChange.from
+    ? rentChangeTargets((rent.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
+    : [];
+  const rentPaymentRows = rentChange.from
+    ? rentPaymentTargets((rent.entries ?? []) as any[], ds.settings.asOfDate, rentChange.from)
+    : [];
+
+  const applyRentChange = () => {
+    if (!rentChange.from) return notify('Choose the date the new rent starts');
+    if (rentMonthlyDraft <= 0) return notify('Enter a monthly rent above zero');
+    if (!confirm(
+      `Change the monthly rent to ${gbp(rentMonthlyDraft)} from ${dateUk(rentChange.from)}?\n\n`
+      + `The weekly charge will be ${gbp(rentWeeklyDraft)}. ${rentTargets.length} future Rent Charge row${rentTargets.length === 1 ? '' : 's'} will update; `
+      + `entries on or before ${dateUk(ds.settings.asOfDate)} stay unchanged.`,
+    )) return;
+    update((d) => {
+      applyMonthlyRentChange(d.providers.rent, d.settings.asOfDate, rentMonthlyDraft, rentChange.from);
+    });
+    setRentChange({ ...rentChange, amount: (rentMonthlyDraft / 100).toFixed(2) });
+    notify(rentTargets.length
+      ? `Rent updated — ${rentTargets.length} future weekly charge${rentTargets.length === 1 ? '' : 's'} changed`
+      : 'Rent updated — no future weekly charges matched');
+  };
+
+  const applyRentPaymentChange = () => {
+    if (!rentChange.from) return notify('Choose the date the new payment starts');
+    if (rentPaymentDraft <= 0) return notify('Enter a monthly payment above zero');
+    if (!confirm(
+      `Change the monthly Rent payment to ${gbp(rentPaymentDraft)} from ${dateUk(rentChange.from)}?\n\n`
+      + `${rentPaymentRows.length} future rent payment row${rentPaymentRows.length === 1 ? '' : 's'} will update. `
+      + 'Earlier payment rows and earlier Rent bill months stay unchanged.',
+    )) return;
+    update((d) => {
+      applyMonthlyPaymentChange(d.providers.rent, d.settings.asOfDate, rentPaymentDraft, rentChange.from);
+      const rentBill = d.bills.find((bill) => bill.name === 'Rent');
+      if (rentBill) {
+        rentBill.baseAmountPence = rentPaymentDraft;
+        rentBill.amountPence = rentPaymentDraft;
+      }
+    });
+    setRentChange({ ...rentChange, payment: (rentPaymentDraft / 100).toFixed(2) });
+    notify(rentPaymentRows.length
+      ? `Rent payment updated — ${rentPaymentRows.length} future payment row${rentPaymentRows.length === 1 ? '' : 's'} changed`
+      : 'Rent payment updated — no future payment rows matched');
+  };
   return (
     <>
       <AccountDetails
@@ -937,6 +999,47 @@ export function Rent({ ds, engine, year, go, update, notify, vaultSession }: Vie
           <div className="card"><div className="card-title">Balance</div><div className="kpi-value pos">{gbp(ledger.balancePence)}</div><div className="card-sub">{ledger.balancePence >= 0 ? 'Credit' : 'Debt'}</div></div>
         </div>
       </AccountDetails>
+      <Section title="Change the rent" sub="A dated change rewrites only the future rent rows; what has already passed stays as it is.">
+        <div className="inline-form">
+          <Field label="Monthly rent £" hint={`Current ${gbp(rent.monthlyRentPence ?? 0)}`}>
+            <input
+              className="input"
+              aria-label="Monthly rent"
+              inputMode="decimal"
+              value={rentChange.amount}
+              onChange={(e) => setRentChange({ ...rentChange, amount: e.target.value })}
+            />
+          </Field>
+          <Field label="Apply from" hint="Passed and free-week rows stay untouched">
+            <input
+              className="input"
+              aria-label="Rent change effective date"
+              type="date"
+              value={rentChange.from}
+              onChange={(e) => setRentChange({ ...rentChange, from: e.target.value })}
+            />
+          </Field>
+          <button className="btn primary" onClick={applyRentChange}>Update future rent</button>
+        </div>
+        <div className="muted small" style={{ padding: '0 16px 12px' }}>
+          Weekly charge {gbp(rentWeeklyDraft)} (monthly rent ÷ 4) · {rentTargets.length} future Rent Charge row{rentTargets.length === 1 ? '' : 's'} will update.
+        </div>
+        <div className="inline-form" style={{ borderTop: '1px solid var(--line)' }}>
+          <Field label="Monthly payment £" hint={`Current ${gbp(rent.monthlyPaymentPence ?? 0)}`}>
+            <input
+              className="input"
+              aria-label="Monthly payment"
+              inputMode="decimal"
+              value={rentChange.payment}
+              onChange={(e) => setRentChange({ ...rentChange, payment: e.target.value })}
+            />
+          </Field>
+          <button className="btn primary" onClick={applyRentPaymentChange}>Update future payment</button>
+        </div>
+        <div className="muted small" style={{ padding: '0 16px 16px' }}>
+          {rentPaymentRows.length} future payment row{rentPaymentRows.length === 1 ? '' : 's'} will update; the Rent bill follows from {rentChange.from ? dateUk(rentChange.from) : 'the chosen date'}.
+        </div>
+      </Section>
       {vaultSession ? (
         <AccessDetails
           items={providerAccessDetails('rent', vaultSession.secrets)}

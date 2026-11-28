@@ -3,6 +3,7 @@ import type { ViewProps } from '../types';
 import type { SavingsAccount } from '../../../core/engine';
 import { Badge, Empty, Field, Section, Table } from '../components';
 import { gbp, parseMoney } from '../format';
+import { randomId } from '../../../core/ids.ts';
 
 const TYPES = ['Cash ISA', 'Stocks and shares ISA', 'Easy access savings', 'Fixed-rate savings', 'Regular saver', 'Premium bonds', 'Other'];
 const BLANK = { name: '', provider: '', type: TYPES[2], sortCode: '', accountNumber: '', balance: '', target: '', targetDate: '', monthly: '', contributionDay: '1', interest: '', notes: '' };
@@ -26,7 +27,7 @@ export function Savings({ ds, update, notify }: ViewProps) {
     if (!name) return notify('Give the savings account a name');
     const balance = parseMoney(form.balance);
     const account: SavingsAccount = {
-      id: editing ?? `savings_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+      id: editing ?? randomId('savings'),
       name,
       provider: form.provider.trim(),
       type: form.type,
