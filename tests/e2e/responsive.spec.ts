@@ -40,6 +40,10 @@ for (const width of WIDTHS) {
     await page.goto('/');
     await page.getByRole('button', { name: 'Take a look around' }).click();
     await expect(page.getByText('Demo workspace.')).toBeVisible();
+    // The first-run tour opens once per workspace in a fresh browser context;
+    // dismiss it so its backdrop does not swallow the palette and nav clicks.
+    await page.getByRole('button', { name: 'Skip the tour' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
 
     const overflowed: string[] = [];
     for (const label of VIEWS) {

@@ -5,6 +5,10 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Take a look around' }).click();
   await expect(page.getByText('Demo workspace.')).toBeVisible();
+  // The first-run tour opens once per workspace, so a fresh browser context
+  // always shows it; its backdrop would block every click in the demo.
+  await page.getByRole('button', { name: 'Skip the tour' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('demo navigation and month switch', async ({ page }) => {
