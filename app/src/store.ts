@@ -8,7 +8,7 @@ import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { dropYearsAfter, fillPlanYears, PLAN_LAST_YEAR, PURE_CREMATION_END_YEAR, recordLiveYear, restorePureCremationBill, shapeRestartYear } from '../../core/providerPlans';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
-import { restoreStarlingAnchorPayment } from '../../core/accountRepairs';
+import { alignStarlingStatementOpening, restoreStarlingAnchorPayment, restoreStarlingWaterPayment } from '../../core/accountRepairs';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
@@ -252,6 +252,9 @@ export function seedState(): AppState {
 /** Repair id for a Pure Cremation bill that a plan-year delete removed everywhere. */
 const PURE_CREMATION_BILL_REPAIR = 'pure-cremation-bill-2026-11-28';
 
+/** Repair id for the opening balance the November statement figures put right. */
+const STARLING_STATEMENT_REPAIR = 'starling-statement-2026-11-28';
+
 function healPlanYears(state: AppState): AppState {
   fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
   const parkXmas = (state.dataset as unknown as { providers?: Record<string, any> }).providers?.parkXmas;
@@ -285,6 +288,18 @@ function healPlanYears(state: AppState): AppState {
   // The workbook fixes that never run in the hosted build live here instead, so
   // a budget kept on the web host gets the same corrections as the desktop app.
   restoreStarlingAnchorPayment(state.dataset as unknown as Dataset);
+  // The £44 Water payment the sheet's carried zero hid, then the opening balance
+  // the statement's own figures put right. The order matters: the payment is a
+  // dated movement, and only once it is on the bill do both statement dates sit
+  // the same distance from the bank.
+  restoreStarlingWaterPayment(state.dataset as unknown as Dataset);
+  // Once only: later imports that move both dates would otherwise cancel
+  // themselves against the opening instead of showing as the spending they are.
+  const meta = (state.dataset.meta ?? {}) as { repairs?: string[] };
+  const repairs = Array.isArray(meta.repairs) ? meta.repairs : [];
+  if (!repairs.includes(STARLING_STATEMENT_REPAIR) && alignStarlingStatementOpening(state.dataset as unknown as Dataset)) {
+    state.dataset.meta = { ...(state.dataset.meta ?? {}), repairs: [...repairs, STARLING_STATEMENT_REPAIR] };
+  }
   return state;
 }
 
