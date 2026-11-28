@@ -748,6 +748,18 @@ const DATA_FIXES: { id: string; apply: (dataset: Dataset) => void }[] = [
     },
   },
   {
+    // The 9 July anchor was set before the £106.66 Pure Cremation payment left
+    // the account, so every balance since has been one payment short. The
+    // November statement proves it: with the payment back the plan lands on
+    // £0.17 on 26 November (the statement's close) and £461.85 on 27 November
+    // (the balance after the 27th's bills), both to the penny.
+    id: 'starling-anchor-cremation-2026-11-28',
+    apply: (dataset) => {
+      const starling = dataset.accounts.find((account) => /^starling$/i.test(account.name));
+      if (starling) starling.openingPence = Number(starling.openingPence || 0) + 10666;
+    },
+  },
+  {
     id: 'changelog-2026-11-07-descriptions',
     apply: (dataset) => {
       const entry = ((dataset.changelog ?? []) as any[]).find((existing: any) => existing.signature === 'financehub-2026-11-07-dan-account');

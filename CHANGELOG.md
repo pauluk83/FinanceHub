@@ -5,6 +5,11 @@ release history ships with the web bundle and the Windows app. Add a section whe
 release changes behaviour; the build stamps it with the version, a source build id
 and the build time.
 
+## [2026.11.28] — 28 November 2026
+
+### Changed
+- Correct the Starling anchor by the missing Pure Cremation payment
+
 ## [2026.11.27] — 27 November 2026
 
 ### Changed

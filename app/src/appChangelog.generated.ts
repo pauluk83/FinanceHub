@@ -4,10 +4,22 @@ export interface AppChangelogRelease { version: string; date: string; sections: 
 export interface AppChangelog { version: string; buildId: string; builtAt: string; releases: AppChangelogRelease[] }
 
 export const APP_CHANGELOG: AppChangelog = {
-  "version": "2026.11.27",
-  "buildId": "dcfb4d782d41",
-  "builtAt": "2026-11-27",
+  "version": "2026.11.28",
+  "buildId": "c15e1ac16237",
+  "builtAt": "2026-11-28",
   "releases": [
+    {
+      "version": "2026.11.28",
+      "date": "28 November 2026",
+      "sections": [
+        {
+          "title": "Changed",
+          "items": [
+            "Correct the Starling anchor by the missing Pure Cremation payment"
+          ]
+        }
+      ]
+    },
     {
       "version": "2026.11.27",
       "date": "27 November 2026",
