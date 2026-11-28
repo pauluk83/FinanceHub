@@ -1212,10 +1212,19 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
     return true;
   };
 
+  /**
+   * Delete a link sheet. A provider sheet whose bill is still in the list stays:
+   * the bill reads that plan, so remove the bill first and then the sheet goes.
+   */
   const removeSheet = (name: string) => {
+    const sheet = sheets.find((entry) => entry.name === name);
     const used = ds.bills.filter((b) => b.linkedSheet === name).length;
-    const detail = used ? ` ${used} bill${used === 1 ? '' : 's'} will become standalone; the provider ledger itself is not deleted.` : '';
-    if (!confirm(`Remove link sheet “${name}”?${detail}`)) return;
+    if (sheet?.providerKey && used > 0) {
+      notify(`${name} is a provider sheet and ${used} bill${used === 1 ? ' still uses' : 's still use'} it — remove the bill${used === 1 ? '' : 's'} first`);
+      return;
+    }
+    const detail = used ? ` ${used} bill${used === 1 ? '' : 's'} will become standalone; the provider ledger itself is not deleted.` : ' The provider ledger itself is not deleted.';
+    if (!confirm(`Delete link sheet “${name}”?${detail}`)) return;
     update((d) => {
       d.settings.billSheets = billSheetsFor(d).filter((sheet) => sheet.name !== name);
       d.bills.forEach((b) => { if (b.linkedSheet === name) b.linkedSheet = ''; });
@@ -1516,7 +1525,24 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
         <div className="muted small" style={{ padding: '0 16px 4px' }}>
           {sheets.length === 0
             ? 'No link sheets yet — add one below and pick it on a bill.'
-            : sheets.map((sheet) => `${sheet.name} (${sheet.providerKey ? 'provider' : 'custom'}, ${ds.bills.filter((b) => b.linkedSheet === sheet.name).length} bills)`).join(' · ')}
+            : (
+              <div style={{ display: 'grid', gap: 6 }}>
+                {sheets.map((sheet) => {
+                  const used = ds.bills.filter((b) => b.linkedSheet === sheet.name).length;
+                  return (
+                    <div key={sheet.name} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span>{sheet.name} ({sheet.providerKey ? 'provider' : 'custom'}, {used} bill{used === 1 ? '' : 's'})</span>
+                      <button
+                        className="btn ghost sm"
+                        aria-label={`Delete link sheet ${sheet.name}`}
+                        title={sheet.providerKey && used > 0 ? 'Remove the bill first, then the sheet' : undefined}
+                        onClick={() => removeSheet(sheet.name)}
+                      >Delete</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
         </div>
         <div className="inline-form">
           <Field label="New link sheet"><input className="input" placeholder="e.g. TV Licence" value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} /></Field>

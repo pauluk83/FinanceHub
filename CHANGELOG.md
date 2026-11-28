@@ -14,6 +14,7 @@ and the build time.
 - Bills: Paid from is a hidden column behind a header toggle, and a bill with its own provider sheet keeps the plan's amount in future years
 - Bills shows a provider's due day read-only; each provider page now has a Due date card that copies the day to its linked bill.
 - A plan year can only remove a bill from that year onwards; Pure Cremation is restored to 2026 and 2027 after a plan-year delete took it out of every year.
+- Bills: each link sheet can be deleted from the panel once no bill uses it, including a provider's sheet after its bill is removed.
 
 ## [2026.11.27] — 27 November 2026
 

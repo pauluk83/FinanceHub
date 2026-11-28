@@ -436,6 +436,7 @@ test('accounts, cards, people and bills edit their own records on their own page
   const panel = billsSection.slice(0, billsSection.indexOf('</section>'));
   assert.match(panel, /Add link sheet/, 'link sheets stay inside the bills panel');
   assert.match(panel, /Rename link sheet/, 'a sheet can be renamed from the bills panel');
+  assert.match(panel, /aria-label="Delete link sheet /, 'and each sheet can be deleted from the panel');
   assert.doesNotMatch(bills, /<th[^>]*>Link sheet<\/th>/, 'no separate link sheet table');
   assert.doesNotMatch(panel, /<th[^>]*>Paid from<\/th>/, 'Paid from starts hidden');
   assert.match(bills, /Show Paid from/, 'the header keeps the hidden column reachable');
@@ -470,7 +471,6 @@ test('a future year keeps removed and stopped bills behind one toggle, without a
   assert.doesNotMatch(html, /Bill name Old Gym/, 'a stopped bill is out of the plan list');
   assert.match(html, /Keep in 2027 undoes that removal/, 'the removal is undone from this tab');
   assert.match(html, /to delete a bill from every year, use the current year/, 'a whole-bill delete is not offered in a plan year');
-  assert.doesNotMatch(html, /Delete/, 'so a plan year can never take the bill out of an earlier year');
 });
 
 test('a provider-linked bill reads its plan amount in a future year too', async () => {

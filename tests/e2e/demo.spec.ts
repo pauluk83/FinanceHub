@@ -95,6 +95,10 @@ test('a bill removed from a future year can be kept or deleted from Bills', asyn
   await page.getByRole('button', { name: 'Hide Paid from' }).click();
   await expect(page.getByRole('columnheader', { name: 'Paid from' })).toHaveCount(0);
 
+  // A link sheet no bill uses can be deleted from the same panel.
+  await page.getByRole('button', { name: 'Delete link sheet Water' }).click();
+  await expect(page.getByRole('button', { name: 'Delete link sheet Water' })).toHaveCount(0);
+
   // Removing a bill hides it with the stopped ones, not out of reach. A plan year
   // offers no whole-bill Delete, so it can never reach an earlier year.
   await page.getByRole('button', { name: 'Actions for Rent' }).click();

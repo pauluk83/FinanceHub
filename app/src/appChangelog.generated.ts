@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.28",
-  "buildId": "1dc4a3c6cc85",
+  "buildId": "36cd55e2f0ac",
   "builtAt": "2026-11-28",
   "releases": [
     {
@@ -20,7 +20,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "Bills: a stopped or removed bill stays reachable in future years and can be kept in the year or deleted for a clean slate",
             "Bills: Paid from is a hidden column behind a header toggle, and a bill with its own provider sheet keeps the plan's amount in future years",
             "Bills shows a provider's due day read-only; each provider page now has a Due date card that copies the day to its linked bill.",
-            "A plan year can only remove a bill from that year onwards; Pure Cremation is restored to 2026 and 2027 after a plan-year delete took it out of every year."
+            "A plan year can only remove a bill from that year onwards; Pure Cremation is restored to 2026 and 2027 after a plan-year delete took it out of every year.",
+            "Bills: each link sheet can be deleted from the panel once no bill uses it, including a provider's sheet after its bill is removed."
           ]
         }
       ]
