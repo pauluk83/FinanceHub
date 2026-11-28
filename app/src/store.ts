@@ -8,6 +8,7 @@ import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { dropYearsAfter, fillPlanYears, PLAN_LAST_YEAR, PURE_CREMATION_END_YEAR, recordLiveYear, restorePureCremationBill, shapeRestartYear } from '../../core/providerPlans';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
+import { restoreStarlingAnchorPayment } from '../../core/accountRepairs';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
@@ -281,6 +282,9 @@ function healPlanYears(state: AppState): AppState {
     }
   }
   syncProviderPaymentsFromBills(state.dataset as unknown as Dataset);
+  // The workbook fixes that never run in the hosted build live here instead, so
+  // a budget kept on the web host gets the same corrections as the desktop app.
+  restoreStarlingAnchorPayment(state.dataset as unknown as Dataset);
   return state;
 }
 

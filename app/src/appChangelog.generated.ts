@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.28",
-  "buildId": "fb58e2438f83",
+  "buildId": "7d409927043e",
   "builtAt": "2026-11-28",
   "releases": [
     {
@@ -22,7 +22,10 @@ export const APP_CHANGELOG: AppChangelog = {
             "Bills shows a provider's due day read-only; each provider page now has a Due date card that copies the day to its linked bill.",
             "A plan year can only remove a bill from that year onwards; Pure Cremation is restored to 2026 and 2027 after a plan-year delete took it out of every year.",
             "Bills: each link sheet can be deleted from the panel once no bill uses it, including a provider's sheet after its bill is removed.",
-            "Bills: a provider left with no bill and no link sheet can be removed from the menu from the link-sheet panel, keeping its ledger."
+            "Bills: a provider left with no bill and no link sheet can be removed from the menu from the link-sheet panel, keeping its ledger.",
+            "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.",
+            "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.",
+            "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85."
           ]
         }
       ]
