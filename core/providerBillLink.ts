@@ -73,6 +73,21 @@ function rechain(provider: any, spec: LedgerSpec, dataset: Dataset) {
   }
 }
 
+/** One month's payment, leaving every other month as it stands. */
+function setPaymentForMonth(provider: any, spec: LedgerSpec, year: number, month: number, amountPence: number): boolean {
+  for (const block of yearRows(provider, spec)) {
+    if (block.year !== year) continue;
+    for (const row of block.rows) {
+      if (MONTHS.indexOf(String(row?.month ?? '')) + 1 !== month) continue;
+      const same = (Number(row.paymentPence) || 0) === amountPence;
+      row.paymentPence = amountPence;
+      row.paymentEdited = true;
+      return !same;
+    }
+  }
+  return false;
+}
+
 /** The payment for every row from a month onwards. */
 function setPaymentFrom(provider: any, spec: LedgerSpec, year: number, month: number, amountPence: number): boolean {
   let changed = false;
@@ -103,19 +118,29 @@ export function applyProviderPayment(dataset: Dataset, key: string, year: number
   const bill = paymentBillFor(dataset, key);
   if (!plan || !provider || !bill || !Number.isInteger(year) || month < 1 || month > 12) return false;
 
-  const changed = setPaymentFrom(provider, plan.spec, year, month, amountPence);
+  // A zero is one month's fact — a bill month with nothing to pay — not a new
+  // standing amount: it must not take the payment out of every later month.
+  const oneMonth = amountPence === 0;
+  const changed = oneMonth
+    ? setPaymentForMonth(provider, plan.spec, year, month, 0)
+    : setPaymentFrom(provider, plan.spec, year, month, amountPence);
   const from = `${year}-${pad(month)}-01`;
+  const to = oneMonth
+    ? `${year}-${pad(month)}-${pad(new Date(Date.UTC(year, month, 0)).getUTCDate())}`
+    : '';
   if (!Array.isArray(dataset.billChanges)) dataset.billChanges = [];
   const same = dataset.billChanges.find((change) => change.bill === bill.name
     && change.appliesFrom === from
     && change.amountOverridePence !== null
     && change.amountOverridePence !== undefined);
-  if (same) same.amountOverridePence = amountPence;
-  else {
+  if (same) {
+    same.amountOverridePence = amountPence;
+    same.appliesTo = to;
+  } else {
     dataset.billChanges.push({
       bill: bill.name,
       appliesFrom: from,
-      appliesTo: '',
+      appliesTo: to,
       amountOverridePence: amountPence,
       dueDateOverride: '',
       dueDayOverride: null,

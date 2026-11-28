@@ -58,48 +58,48 @@ export function reconcileAccountOpening(
   return delta;
 }
 
-/** Water's monthly payment when the sheet's carried-forward zeros still hide it. */
-export const WATER_RESUMED_PAYMENT_PENCE = 4400;
+/** The change type a retired repair used when it stood in for Water's payment. */
+const WATER_RESUME_CHANGE = 'Monthly payment resumed';
 
 /**
- * Put Water's monthly payment back on the bill.
+ * Drop the Water change a retired repair left on the bill.
  *
- * The Water sheet stops paying while the account is in credit and leaves the
- * months after that as carried-forward zeros, so the bill read £0 and the £44
- * the bank still takes never left the balance. A month whose zero carries no
- * edit of its own is one of those placeholders, not a decision: the plan's
- * monthly payment goes back on the bill from 1 November 2026.
+ * It stood in for the £44 the sheet had stopped recording, and it applies from
+ * November 2026 onwards, so it would go on overriding the sheet's own monthly
+ * figures — including a later bill month's zero — for ever.
  */
-export function restoreStarlingWaterPayment(dataset: Dataset): boolean {
-  const water = (dataset.providers as Record<string, any> | undefined)?.water;
-  const bill = (dataset.bills ?? []).find((entry) => /^water$/i.test(String(entry.name ?? '')));
-  if (!water || !bill) return false;
-  const plan = Number(water.paymentBasePence ?? water.monthlyPaymentPence ?? 0);
-  if (plan !== WATER_RESUMED_PAYMENT_PENCE) return false;
-  // A month with no payment of its own is a carried-forward zero, not a decision:
-  // the address is still billed monthly, so the plan's payment is what leaves.
-  const november = ((water.statement ?? []) as any[]).find((row) => row.month === 'Nov');
-  if (!november || (Number(november.paymentPence) || 0) !== 0 || november.paymentEdited === true) return false;
-  const from = '2026-11-01';
-  const changes = (dataset.billChanges ??= []);
-  const already = changes.some((change) =>
-    change.bill === bill.name
-    && (change.appliesFrom ?? '') >= from
-    && change.amountOverridePence !== null
-    && change.amountOverridePence !== undefined);
-  if (already) return false;
-  changes.push({
-    bill: bill.name,
-    appliesFrom: from,
-    appliesTo: '',
-    amountOverridePence: WATER_RESUMED_PAYMENT_PENCE,
-    dueDateOverride: '',
-    dueDayOverride: null,
-    changeType: 'Monthly payment resumed',
-    note: 'Account credit used up: the monthly payment resumes on 27/11/2026',
-    skip: false,
-  });
+export function retireWaterPaymentResume(dataset: Dataset): boolean {
+  const changes = dataset.billChanges ?? [];
+  const kept = changes.filter((change) => change.changeType !== WATER_RESUME_CHANGE);
+  if (kept.length === changes.length) return false;
+  dataset.billChanges = kept;
   return true;
+}
+
+/**
+ * Keep a Water bill month's zero to its own month.
+ *
+ * Water's bill months carry no payment, and the sheet records that as an amount
+ * from that month onwards — so every later month lost its payment too and the
+ * balance fell behind by one payment each month. A zero is a fact about the one
+ * month it starts in, so it is capped there and the payments the sheet carries
+ * for the months after it come back.
+ */
+export function scopeWaterBillMonthZeros(dataset: Dataset): boolean {
+  let changed = false;
+  for (const change of dataset.billChanges ?? []) {
+    if (!/^water$/i.test(String(change.bill ?? ''))) continue;
+    if (Number(change.amountOverridePence) !== 0) continue;
+    if (change.appliesTo) continue;
+    const from = String(change.appliesFrom ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) continue;
+    const year = Number(from.slice(0, 4));
+    const month = Number(from.slice(5, 7));
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    change.appliesTo = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    changed = true;
+  }
+  return changed;
 }
 
 /**

@@ -47,6 +47,17 @@ test('a payment changed on the sheet applies from that month forward only', () =
   assert.equal(change?.amountOverridePence, 5_000, 'the Bills tab follows from March 2027');
 });
 
+test('a bill month typed as zero stays one month, not a standing zero', () => {
+  const ds = waterBudget();
+  applyProviderPayment(ds, 'water', 2026, 9, 0);
+  const rows = ds.providers.water.statement;
+  assert.equal(rows[8].paymentPence, 0, 'September pays nothing');
+  assert.equal(rows[9].paymentPence, 4_400, 'October keeps its own payment');
+  assert.equal(rows[11].paymentPence, 4_400, 'and so does December');
+  const change = ds.billChanges.find((entry: any) => entry.bill === 'Water' && entry.appliesFrom === '2026-09-01');
+  assert.equal(change?.appliesTo, '2026-09-30', 'the zero applies to its own month only');
+});
+
 test('a bill change made on the Bills tab reaches the plan from its month', () => {
   const ds = waterBudget();
   ds.billChanges.push({

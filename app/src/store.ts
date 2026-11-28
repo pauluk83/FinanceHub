@@ -1,14 +1,14 @@
 // Resolved by Vite and tsconfig: the private workbook when present, otherwise the
 // committed blank seed, so a clean checkout still typechecks and builds.
 import seed from '@workbook';
-import { advanceAsOfToLatestTransaction, latestTransactionDate, type Dataset } from '../../core/engine';
+import { advanceAsOfToLatestTransaction, buildEngine, latestTransactionDate, type Dataset } from '../../core/engine';
 import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
 import { dropYearsAfter, fillPlanYears, PLAN_LAST_YEAR, PURE_CREMATION_END_YEAR, recordLiveYear, restorePureCremationBill, shapeRestartYear } from '../../core/providerPlans';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
-import { alignStarlingStatementOpening, restoreStarlingAnchorPayment, restoreStarlingWaterPayment } from '../../core/accountRepairs';
+import { alignStarlingStatementOpening, restoreStarlingAnchorPayment, retireWaterPaymentResume, scopeWaterBillMonthZeros } from '../../core/accountRepairs';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
 import { idbRemove, idbSet, idbValues } from './idbStore';
@@ -252,8 +252,6 @@ export function seedState(): AppState {
 /** Repair id for a Pure Cremation bill that a plan-year delete removed everywhere. */
 const PURE_CREMATION_BILL_REPAIR = 'pure-cremation-bill-2026-11-28';
 
-/** Repair id for the opening balance the November statement figures put right. */
-const STARLING_STATEMENT_REPAIR = 'starling-statement-2026-11-28';
 
 function healPlanYears(state: AppState): AppState {
   fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
@@ -288,17 +286,25 @@ function healPlanYears(state: AppState): AppState {
   // The workbook fixes that never run in the hosted build live here instead, so
   // a budget kept on the web host gets the same corrections as the desktop app.
   restoreStarlingAnchorPayment(state.dataset as unknown as Dataset);
-  // The £44 Water payment the sheet's carried zero hid, then the opening balance
-  // the statement's own figures put right. The order matters: the payment is a
-  // dated movement, and only once it is on the bill do both statement dates sit
-  // the same distance from the bank.
-  restoreStarlingWaterPayment(state.dataset as unknown as Dataset);
-  // Once only: later imports that move both dates would otherwise cancel
-  // themselves against the opening instead of showing as the spending they are.
-  const meta = (state.dataset.meta ?? {}) as { repairs?: string[] };
-  const repairs = Array.isArray(meta.repairs) ? meta.repairs : [];
-  if (!repairs.includes(STARLING_STATEMENT_REPAIR) && alignStarlingStatementOpening(state.dataset as unknown as Dataset)) {
-    state.dataset.meta = { ...(state.dataset.meta ?? {}), repairs: [...repairs, STARLING_STATEMENT_REPAIR] };
+  retireWaterPaymentResume(state.dataset as unknown as Dataset);
+  // A Water bill month with no payment is one month's fact; recorded as a
+  // standing zero it took the payment out of every month after it.
+  scopeWaterBillMonthZeros(state.dataset as unknown as Dataset);
+  // Then the opening balance the statement's own figures put right. It is
+  // recalibrated when the scheduled plan changes — a bill edited, a payment
+  // typed on a sheet — and never when a transaction is imported: an import has
+  // to show as the spending it is, not vanish into the opening balance.
+  const engine = buildEngine(state.dataset as unknown as Dataset);
+  const fingerprint = ['2026-11-26', '2026-11-27']
+    .map((date) => {
+      const breakdown = engine.starlingBreakdown(date);
+      return breakdown.billsOut + breakdown.scheduledIncome;
+    })
+    .join('/');
+  const meta = (state.dataset.meta ?? {}) as { starlingAlignment?: string };
+  if (meta.starlingAlignment !== fingerprint) {
+    alignStarlingStatementOpening(state.dataset as unknown as Dataset);
+    state.dataset.meta = { ...(state.dataset.meta ?? {}), starlingAlignment: fingerprint };
   }
   return state;
 }

@@ -7,11 +7,11 @@ import {
   alignStarlingStatementOpening,
   reconcileAccountOpening,
   restoreStarlingAnchorPayment,
-  restoreStarlingWaterPayment,
+  retireWaterPaymentResume,
+  scopeWaterBillMonthZeros,
   STARLING_ANCHOR_PAYMENT_PENCE,
   STARLING_STATEMENT_CLOSE,
   STARLING_STATEMENT_CLOSE_PENCE,
-  WATER_RESUMED_PAYMENT_PENCE,
 } from '../core/accountRepairs.ts';
 
 const workbook = () => {
@@ -85,36 +85,56 @@ test('a year rollover snapshot is reconciled instead of the account opening', ()
   assert.equal(buildEngine(ds).starlingBalance(date), current - 1_000, 'and the balance follows it');
 });
 
-test('a Water month that carries a zero gets its monthly payment back on the bill', () => {
+test('a Water bill month keeps its zero to that month', () => {
   const ds = workbook();
-  const original26 = buildEngine(ds).starlingBalance('2026-11-26');
-  const original27 = buildEngine(ds).starlingBalance('2026-11-27');
-  const water = (ds.providers as any).water;
-  const november = water.statement.find((row: any) => row.month === 'Nov');
-  // The sheet stops paying while the account is in credit and every later month
-  // carries that zero forward, which turned the bill into £0.
-  november.paymentPence = 0;
-  delete november.paymentEdited;
+  // The account pays £44 a month except in the two months a bill arrives.
+  const october = (ds.providers as any).water.statement.find((row: any) => row.month === 'Oct');
+  october.paymentPence = 4_400;
+  october.paymentEdited = true;
+  ds.billChanges = [
+    ...(ds.billChanges ?? []),
+    {
+      bill: 'Water', appliesFrom: '2026-09-01', appliesTo: '', amountOverridePence: 0,
+      dueDateOverride: '', dueDayOverride: null, changeType: 'Plan payment',
+      note: 'Typed on the Water sheet', skip: false,
+    },
+  ];
+  const plan = (dataset: Dataset, month: number) =>
+    buildEngine(dataset).scheduledBills(2026, month).find((bill) => bill.name === 'Water')?.amountPence ?? 0;
 
-  const broken = buildEngine(ds);
-  assert.equal(broken.scheduledBills(2026, 11).find((bill) => bill.name === 'Water')!.amountPence, 0, 'the carried zero made the bill free');
-  assert.equal(broken.starlingBalance('2026-11-26'), original26, 'nothing changed before the 27th');
-  assert.equal(broken.starlingBalance('2026-11-27'), original27 + WATER_RESUMED_PAYMENT_PENCE, 'the 27th lost the £44');
+  assert.equal(plan(ds, 9), 0, 'September is the bill month');
+  assert.equal(plan(ds, 10), 0, 'the zero took every month after it with it');
 
-  assert.equal(restoreStarlingWaterPayment(ds), true, 'the repair fires');
-  const repaired = buildEngine(ds);
-  assert.equal(repaired.scheduledBills(2026, 11).find((bill) => bill.name === 'Water')!.amountPence, WATER_RESUMED_PAYMENT_PENCE);
-  assert.equal(repaired.starlingBalance('2026-11-26'), original26, 'the payment is dated after the 26th');
-  assert.equal(repaired.starlingBalance('2026-11-27'), original27, 'and the 27th is back where it was');
+  assert.equal(scopeWaterBillMonthZeros(ds), true, 'the repair fires');
+  assert.equal(plan(ds, 9), 0, 'the bill month stays unpaid');
+  assert.equal(plan(ds, 10), 4_400, 'October pays its £44 again');
+  assert.equal(plan(ds, 11), 4_400, 'and so does November');
 
-  assert.equal(restoreStarlingWaterPayment(ds), false, 'a second pass changes nothing');
-  assert.equal((ds.billChanges ?? []).filter((change) => change.bill === 'Water').length, 1);
+  assert.equal(scopeWaterBillMonthZeros(ds), false, 'a second pass changes nothing');
+  assert.equal((ds.billChanges ?? []).find((change) => change.appliesFrom === '2026-09-01')?.appliesTo, '2026-09-30');
 });
 
-test('a delivered Water month is left alone', () => {
+test('a budget with no Water bill months to scope is left alone', () => {
   const ds = workbook();
-  assert.equal(restoreStarlingWaterPayment(ds), false, 'the workbook sheet pays its £44 already');
-  assert.equal((ds.billChanges ?? []).filter((change) => change.bill === 'Water').length, 0);
+  assert.equal(scopeWaterBillMonthZeros(ds), false, 'nothing to cap');
+  assert.equal(retireWaterPaymentResume(ds), false, 'and no stand-in to retire');
+});
+
+test('the stand-in Water change a retired repair left is dropped', () => {
+  const ds = workbook();
+  ds.billChanges = [
+    ...(ds.billChanges ?? []),
+    {
+      bill: 'Water', appliesFrom: '2026-11-01', appliesTo: '', amountOverridePence: 4_400,
+      dueDateOverride: '', dueDayOverride: null, changeType: 'Monthly payment resumed',
+      note: 'Account credit used up', skip: false,
+    },
+    { bill: 'Rent', appliesFrom: '2026-11-01', appliesTo: '2026-11-30', amountOverridePence: 0, dueDateOverride: '', changeType: 'Credit - no payment', note: '', skip: false },
+  ];
+  assert.equal(retireWaterPaymentResume(ds), true, 'the repair fires');
+  assert.equal(ds.billChanges.some((change) => change.changeType === 'Monthly payment resumed'), false, 'the stand-in is gone');
+  assert.equal(ds.billChanges.some((change) => change.bill === 'Rent'), true, 'other changes stay');
+  assert.equal(retireWaterPaymentResume(ds), false, 'a second pass changes nothing');
 });
 
 test('the opening moves only when both statement figures carry the same difference', () => {

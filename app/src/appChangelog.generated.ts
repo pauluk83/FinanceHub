@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.28",
-  "buildId": "ce0dc0982624",
+  "buildId": "24279c133a03",
   "builtAt": "2026-11-28",
   "releases": [
     {
@@ -28,7 +28,8 @@ export const APP_CHANGELOG: AppChangelog = {
             "The Starling anchor repair now runs in the hosted build too: when 26 November closes one £106.66 payment short of £0.17, the payment is put back once so 27 November reads £461.85.",
             "Accounts: a Reconcile panel matches the main account to the bank's figure for a date, moving only the opening balance.",
             "Updates: the delta archive is published under its build id, so a same-version rebuild can never mix two builds, and a failed block checksum is retried once before it is reported.",
-            "Starling: Water's £44 monthly payment is back on the bill after the sheet's carried-forward zeros hid it, and the opening balance is aligned to the November statement's own figures, so 26 November reads £0.17 and the 27th £461.85."
+            "Starling: Water's £44 monthly payment is back on the bill after the sheet's carried-forward zeros hid it, and the opening balance is aligned to the November statement's own figures, so 26 November reads £0.17 and the 27th £461.85.",
+            "Starling: a Water bill month's zero is kept to that month instead of taking the payment out of every month after it, and the opening balance refits to the statement whenever a plan changes — so 26 November reads £0.17 and the 27th £461.85 again."
           ]
         }
       ]
