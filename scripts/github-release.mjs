@@ -9,7 +9,7 @@
  *   node scripts/github-release.mjs --notes   print the release notes only
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ROOT, buildId, parseChangelog } from './app-changelog.mjs';
@@ -29,14 +29,21 @@ export function prepareReleaseAssets({ installerPath, asarPath, manifestPath, ch
   const asarBytes = readFileSync(asarPath);
   if (!existsSync(manifestPath)) throw new Error(`${manifestPath} is missing — run npm run dist:win first.`);
   const previous = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const id = buildId(ROOT);
   const manifest = artifactManifest({
     ...previous,
     schema: previous.schema ?? 1,
     version,
-    buildId: buildId(ROOT),
+    buildId: id,
     generatedAt: new Date().toISOString(),
     notes: updateNotes(ROOT),
-  }, { asarBytes, installerBytes, installerName: basename(installerPath) });
+  }, {
+    asarBytes,
+    installerBytes,
+    installerName: basename(installerPath),
+    // Published beside the stable copy so this manifest always names its own bytes.
+    asarName: `FinanceHub-app-${id}.asar`,
+  });
   writeFileSync(checksumsPath, `${sha256(installerBytes)}  ${basename(installerPath)}\n`);
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   return manifest;
@@ -192,9 +199,17 @@ async function main() {
   // SBOM and claims travel with the installer so a download can be audited.
   const evidence = [join(ROOT, 'release', 'SBOM.json'), join(ROOT, 'release', 'RELEASE_CLAIMS.md')]
     .filter((file) => existsSync(file));
+  // A build-id copy next to the stable `FinanceHub-app.asar`: the updater asks for
+  // the name its manifest carries, so a same-version rebuild can never hand a
+  // client a manifest and an archive from different builds.
+  const namedAsar = join(ROOT, 'release', 'update', manifest.asar.name);
+  copyFileSync(updateAsar, namedAsar);
+
   const result = await publishInstaller({
     version,
-    files: [installer, checksums, updateManifest, updateAsar, ...evidence],
+    // The archives go up before the manifest that names them, so a client reading
+    // the new manifest can always fetch the archive it describes.
+    files: [installer, checksums, updateAsar, namedAsar, updateManifest, ...evidence],
     token,
   });
   console.log(`github release ${result.tag}: ${result.uploaded.map((asset) => `${asset.name} (${(asset.bytes / 1024 / 1024).toFixed(1)} MB)`).join(', ')}`);

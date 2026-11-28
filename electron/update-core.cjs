@@ -77,6 +77,13 @@ function validateManifest(value) {
   const size = positiveInteger(value.asar.size, MAX_ASAR_BYTES, 'archive size');
   const archiveHash = boundedString(value.asar.sha256, 64, 'archive hash').toLowerCase();
   if (!SHA256.test(archiveHash)) throw new Error('Invalid archive hash');
+  // The archive asset this manifest describes. Older manifests have no name and
+  // the updater falls back to the stable asset in that case.
+  let archiveName = '';
+  if (typeof value.asar.name === 'string' && value.asar.name.trim()) {
+    archiveName = boundedString(value.asar.name, 120, 'archive name');
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.asar$/.test(archiveName)) throw new Error('Invalid archive name');
+  }
 
   if (!Array.isArray(value.blocks)) throw new Error('Update manifest has no blocks');
   const expectedBlocks = Math.ceil(size / blockSize);
@@ -119,7 +126,7 @@ function validateManifest(value) {
     version,
     buildId,
     blockSize,
-    asar: { size, sha256: archiveHash },
+    asar: { name: archiveName, size, sha256: archiveHash },
     blocks,
     runtime,
     installer,

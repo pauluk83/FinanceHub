@@ -357,7 +357,15 @@ async function localChecks({ requireUpdateAssets = false, allowTagMismatch = fal
           } else {
             const manifestText = await (await fetch(updateManifest.browser_download_url)).text();
             const publishedManifest = JSON.parse(manifestText);
-            if (publishedManifest.asar?.sha256 !== updateAsar.digest?.slice(7)) {
+            const namedArchive = typeof publishedManifest.asar?.name === 'string'
+              && publishedManifest.asar.name !== 'FinanceHub-app.asar'
+              ? assets.find((entry) => entry.name === publishedManifest.asar.name)
+              : null;
+            if (publishedManifest.asar?.name && publishedManifest.asar.name !== 'FinanceHub-app.asar' && !namedArchive) {
+              fail(`the GitHub release is missing the build-id archive ${publishedManifest.asar.name} its manifest names`);
+            } else if (namedArchive?.digest && namedArchive.digest.slice(7) !== publishedManifest.asar.sha256) {
+              fail('the build-id archive does not match the update manifest');
+            } else if (publishedManifest.asar?.sha256 !== updateAsar.digest?.slice(7)) {
               fail('the GitHub update manifest does not match the published app.asar');
             } else {
               pass(`GitHub release v${pkg.version} installer and delta assets match their hashes`);

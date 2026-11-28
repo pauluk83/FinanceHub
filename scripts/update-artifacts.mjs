@@ -35,7 +35,7 @@ export function electronVersion(root = ROOT) {
  * derives them from the bytes being uploaded, so a stale copy left in release/
  * can never describe a different file.
  */
-export function artifactManifest(manifest, { asarBytes, installerBytes, installerName, blockSize = BLOCK_SIZE }) {
+export function artifactManifest(manifest, { asarBytes, installerBytes, installerName, asarName = 'FinanceHub-app.asar', blockSize = BLOCK_SIZE }) {
   const blocks = [];
   for (let offset = 0; offset < asarBytes.length; offset += blockSize) {
     const size = Math.min(blockSize, asarBytes.length - offset);
@@ -44,7 +44,7 @@ export function artifactManifest(manifest, { asarBytes, installerBytes, installe
   return {
     ...manifest,
     blockSize,
-    asar: { name: 'FinanceHub-app.asar', size: asarBytes.length, sha256: sha256(asarBytes) },
+    asar: { name: asarName, size: asarBytes.length, sha256: sha256(asarBytes) },
     blocks,
     ...(installerBytes && installerName
       ? { installer: { name: installerName, size: installerBytes.length, sha256: sha256(installerBytes) } }
@@ -63,10 +63,11 @@ export function buildUpdateArtifacts({ root = ROOT, blockSize = BLOCK_SIZE } = {
   const installerBytes = existsSync(installerPath) ? readFileSync(installerPath) : undefined;
   const runtime = electronVersion(root);
 
+  const id = buildId(root);
   const manifest = artifactManifest({
     schema: 1,
     version: pkg.version,
-    buildId: buildId(root),
+    buildId: id,
     generatedAt: new Date().toISOString(),
     runtime: runtime ? { electron: runtime } : undefined,
     notes: updateNotes(root),
@@ -74,6 +75,11 @@ export function buildUpdateArtifacts({ root = ROOT, blockSize = BLOCK_SIZE } = {
     asarBytes: bytes,
     installerBytes,
     installerName: installerBytes ? `FinanceHub-Setup-${pkg.version}.exe` : undefined,
+    // The archive is published under its build id as well as the stable name, so a
+    // manifest can only ever describe the bytes that belong to it — a same-version
+    // rebuild replaces the stable asset, and a download in flight would otherwise
+    // mix two builds and fail its block checksum.
+    asarName: `FinanceHub-app-${id}.asar`,
     blockSize,
   });
 

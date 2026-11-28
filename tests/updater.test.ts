@@ -41,6 +41,17 @@ test('a newer version or a new build of the same version is offered', () => {
   assert.equal(compareVersions('2026.11.15', '2026.11.9'), 6);
 });
 
+test('the manifest names its own archive, and only as a plain .asar filename', () => {
+  const buffer = Buffer.alloc(BLOCK, 3);
+  const named = manifestFor(buffer);
+  assert.equal(named.asar.name, '', 'a manifest from before the build-id asset has no name');
+
+  const archived = validateManifest({ ...named, asar: { ...named.asar, name: 'FinanceHub-app-abcdef123456.asar' } });
+  assert.equal(archived.asar.name, 'FinanceHub-app-abcdef123456.asar');
+  assert.throws(() => validateManifest({ ...named, asar: { ...named.asar, name: '../evil.asar' } }), /archive name/);
+  assert.throws(() => validateManifest({ ...named, asar: { ...named.asar, name: 'FinanceHub-app.exe' } }), /archive name/);
+});
+
 test('the manifest rejects unsafe or inconsistent block layouts', () => {
   const buffer = Buffer.alloc(BLOCK * 2 + 50, 1);
   const valid = manifestFor(buffer);

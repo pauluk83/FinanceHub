@@ -813,6 +813,16 @@ function freshDownloadUrl(url) {
   return `${url}${url.includes('?') ? '&' : '?'}cb=${Date.now()}`;
 }
 
+/**
+ * The archive asset this manifest names. A same-version rebuild publishes its own
+ * build-id copy, so the manifest and the bytes it hashes always belong together;
+ * a manifest without a name uses the stable asset.
+ */
+function updateArchiveUrl(manifest) {
+  const name = manifest?.asar?.name;
+  return name ? UPDATE_ARCHIVE_URL.replace(/[^/]+$/, name) : UPDATE_ARCHIVE_URL;
+}
+
 function updateAvailable(manifest, plan, requiresFullInstaller) {
   return {
     phase: 'available',
@@ -879,6 +889,7 @@ async function downloadUpdate() {
 
   const manifest = updateManifest;
   const plan = updatePlan;
+  const archiveUrl = updateArchiveUrl(manifest);
   const controller = new AbortController();
   updateController = controller;
   const started = Date.now();
@@ -895,12 +906,15 @@ async function downloadUpdate() {
 
   try {
     const oldAsar = await readInstalledAsar();
-    const archive = await reconstructAsar({
-      oldAsar: oldAsar ?? Buffer.alloc(0),
-      manifest,
-      plan,
-      readRemote: async (start, end) => {
-        const response = await fetch(freshDownloadUrl(UPDATE_ARCHIVE_URL), {
+    let archive = null;
+    for (let attempt = 0; archive === null; attempt += 1) {
+      try {
+        archive = await reconstructAsar({
+          oldAsar: oldAsar ?? Buffer.alloc(0),
+          manifest,
+          plan,
+          readRemote: async (start, end) => {
+            const response = await fetch(freshDownloadUrl(archiveUrl), {
           headers: {
             Range: `bytes=${start}-${end}`,
             'Cache-Control': 'no-cache',
@@ -923,19 +937,31 @@ async function downloadUpdate() {
         }
         throw new Error(`GitHub answered ${response.status} for the update download`);
       },
-      onProgress: ({ downloadedBytes, totalBytes }) => {
-        const now = Date.now();
-        if (now - lastProgressAt < 120 && downloadedBytes < totalBytes) return;
-        lastProgressAt = now;
-        const seconds = Math.max((now - started) / 1000, 0.2);
-        const speedBps = downloadedBytes / seconds;
-        publishUpdate({
-          downloadedBytes,
-          speedBps,
-          etaSeconds: speedBps > 0 ? Math.max(0, Math.round((totalBytes - downloadedBytes) / speedBps)) : null,
+          onProgress: ({ downloadedBytes, totalBytes }) => {
+            const now = Date.now();
+            if (now - lastProgressAt < 120 && downloadedBytes < totalBytes) return;
+            lastProgressAt = now;
+            const seconds = Math.max((now - started) / 1000, 0.2);
+            const speedBps = downloadedBytes / seconds;
+            publishUpdate({
+              downloadedBytes,
+              speedBps,
+              etaSeconds: speedBps > 0 ? Math.max(0, Math.round((totalBytes - downloadedBytes) / speedBps)) : null,
+            });
+          },
         });
-      },
-    });
+      } catch (error) {
+        // A same-version rebuild can replace the archive while its ranges are being
+        // read, which shows up as a failed block checksum. One clean retry settles
+        // that before the user is told the download is broken.
+        const retriable = !controller.signal.aborted
+          && attempt === 0
+          && /checksum|different update range|unexpected update archive/i.test(String(error?.message ?? error));
+        if (!retriable) throw error;
+        fullArchive = null;
+        publishUpdate({ phase: 'downloading', downloadedBytes: 0, speedBps: 0, etaSeconds: null, error: null });
+      }
+    }
 
     const directory = path.join(app.getPath('userData'), 'updates', manifest.buildId);
     await fs.promises.mkdir(directory, { recursive: true });

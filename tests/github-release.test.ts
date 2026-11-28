@@ -63,7 +63,13 @@ test('the published checksum and delta manifest describe the uploaded files', ()
       `${sha256(installerBytes)}  FinanceHub-Setup-2026.11.28.exe\n`,
       'the checksum file is derived from the installer being uploaded',
     );
-    assert.deepEqual(manifest.asar, { name: 'FinanceHub-app.asar', size: asarBytes.length, sha256: sha256(asarBytes) });
+    assert.deepEqual(manifest.asar, {
+      // The manifest names a build-id copy, so a same-version rebuild can never
+      // describe another build's bytes.
+      name: `FinanceHub-app-${manifest.buildId}.asar`,
+      size: asarBytes.length,
+      sha256: sha256(asarBytes),
+    });
     assert.deepEqual(manifest.installer, { name: 'FinanceHub-Setup-2026.11.28.exe', size: installerBytes.length, sha256: sha256(installerBytes) });
     assert.equal(manifest.blocks.length, 3, 'the block list covers the uploaded archive');
     assert.equal(manifest.blocks[0].sha256, sha256(asarBytes.subarray(0, 256 * 1024)));
