@@ -437,6 +437,8 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.match(panel, /Add link sheet/, 'link sheets stay inside the bills panel');
   assert.match(panel, /Rename link sheet/, 'a sheet can be renamed from the bills panel');
   assert.doesNotMatch(bills, /<th[^>]*>Link sheet<\/th>/, 'no separate link sheet table');
+  assert.doesNotMatch(panel, /<th[^>]*>Paid from<\/th>/, 'Paid from starts hidden');
+  assert.match(bills, /Show Paid from/, 'the header keeps the hidden column reachable');
   assert.doesNotMatch(bills, /Possible subscriptions|Expiry list|Price history/, 'bills keeps only bills, bill changes and link sheets');
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
@@ -468,6 +470,57 @@ test('a future year keeps removed and stopped bills behind one toggle, with Dele
   assert.doesNotMatch(html, /Bill name Old Gym/, 'a stopped bill is out of the plan list');
   assert.match(html, /Keep in 2027 undoes that removal/, 'the removal is undone from this tab');
   assert.match(html, /Delete removes it from every year/, 'the clean-slate delete is reachable');
+});
+
+test('a provider-linked bill reads its plan amount in a future year too', async () => {
+  const { Bills } = await server.ssrLoadModule('/src/views/money.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const ds = dataset({
+    dataset: {
+      bills: [{
+        name: 'Water', amountPence: 3500, dueDay: 14, linkedSheet: 'Water', frequency: 'Monthly',
+        latestBalancePence: 0, latestPaymentPence: 0, sortOrder: 1, active: true,
+        effectiveFrom: '', paymentMethod: 'Direct Debit', baseAmountPence: 3500, baseDueDay: 14,
+      }],
+      providers: { water: {} },
+    },
+  });
+  const html = render(Bills, props(ds, { engine: buildEngine(ds), year: 2027 }));
+
+  assert.match(html, /from the Water plan/, 'the plan owns the figure, as in the live year');
+  assert.doesNotMatch(html, /aria-label="2027 amount Water"/, 'the plan amount is not editable in a future year');
+  assert.doesNotMatch(html, /aria-label="2027 due day Water"/, 'the due day is set on the provider page instead');
+});
+
+test('every provider page carries the due date card that writes the linked bill', async () => {
+  const { ProviderView, Rent } = await server.ssrLoadModule('/src/views/providers.tsx');
+  const { newProviderData } = await server.ssrLoadModule('/src/providerSetup.ts');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const ds = dataset({
+    dataset: {
+      providers: {
+        water: newProviderData('water', 2026),
+        o2: newProviderData('o2', 2026),
+        rent: newProviderData('rent', 2026),
+      },
+      bills: [{
+        name: 'Water', amountPence: 3500, dueDay: 14, linkedSheet: 'Water', frequency: 'Monthly',
+        latestBalancePence: 0, latestPaymentPence: 0, sortOrder: 1, active: true,
+        effectiveFrom: '', paymentMethod: 'Direct Debit', baseAmountPence: 3500, baseDueDay: 14,
+      }],
+    },
+  });
+  const viewProps = props(ds, { engine: buildEngine(ds) });
+
+  for (const [provider, title] of [['water', 'Water'], ['o2', 'O2']]) {
+    const html = render(ProviderView, { ...viewProps, provider, title, subtitle: 'Ledger' });
+    assert.match(html, /Due date/, `${title} has the due date card`);
+    assert.match(html, new RegExp(`aria-label="${title} due day"`), `${title} has an editable day`);
+    assert.match(html, /copies the same day to the linked bill/, 'the card says where the day goes');
+  }
+
+  const rent = render(Rent, viewProps);
+  assert.match(rent, /aria-label="Rent due day"/, 'the Rent page carries the same card');
 });
 
 test('settings keeps only its own controls, not record or sign-in editors', async () => {

@@ -6,7 +6,6 @@ import { dateUk, dateTimeUk, download, gbp, gbpBlank, MONTH_LONG, parseMoney, pc
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
 import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
-import { applyBillDueDay } from '../providerSetup';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
@@ -1071,6 +1070,8 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
   const [billDraft, setBillDraft] = useState({ name: '', amount: '', due: '27', method: 'Direct Debit', sheet: '', account: '' });
   const [change, setChange] = useState({ bill: ds.bills[0]?.name ?? '', from: '', to: '', amount: '', due: '', mode: 'date' });
   const [showStopped, setShowStopped] = useState(false);
+  // Paid from is a reference column, so it starts hidden and the header keeps it reachable.
+  const [showPaidFrom, setShowPaidFrom] = useState(false);
   const [openActions, setOpenActions] = useState<string | null>(null);
   const planning = year > ds.settings.targetYear;
   const planStart = `${year}-01-01`;
@@ -1167,6 +1168,9 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
   };
   const planAmount = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.amountOverridePence ?? engine.billAmount(bill, year, 1);
   const planDueDay = (bill: typeof ds.bills[number]) => yearChange(bill.name)?.dueDayOverride ?? bill.dueDay;
+  /** A provider-linked bill reads the plan's figure in every year; month 1 is the year's baseline. */
+  const providerPlanAmount = (bill: typeof ds.bills[number]) => engine.billAmount(bill, year, planning ? 1 : month);
+  const billColumnCount = 8 + (showPaidFrom ? 1 : 0);
   /**
    * A bill paid by a provider plan reads its amount from that plan. The provider
    * page owns the figure, so this tab shows it and never edits it.
@@ -1311,10 +1315,16 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
       <Section
         title={planning ? `${year} bill plan and link sheets` : 'Bills and link sheets'}
         sub={planning
-          ? `Amount and due day apply to ${year} only; a removal lasts from ${year} onwards. Method, account and linked sheet stay shared.`
+          ? `Amount and due day apply to ${year} only; a removal lasts from ${year} onwards. Method, account and linked sheet stay shared. A bill linked to a provider sheet keeps reading that plan's amount.`
           : "Edit a bill in place. A bill linked to a provider sheet shows that plan's amount here and is changed on the provider page. Link sheets below are optional labels that group bills."}
+        actions={<button
+          type="button"
+          className="btn ghost sm"
+          aria-pressed={showPaidFrom}
+          onClick={() => setShowPaidFrom((open) => !open)}
+        >{showPaidFrom ? 'Hide Paid from' : 'Show Paid from'}</button>}
       >
-        <Table className="ledger-table-start" head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
+        <Table className="ledger-table-start" head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', ...(showPaidFrom ? ['Paid from'] : []), 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
           {/* Active bills first; stopped ones sit behind a count so the list stays short. */}
           {ds.bills.map((b, i) => ({ b, i }))
             .sort((x, y) => (x.b.active === false ? 1 : 0) - (y.b.active === false ? 1 : 0))
@@ -1324,9 +1334,9 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
             <tr>
               <td><EditableName value={b.name} onCommit={(next) => renameBill(b.name, next)} ariaLabel={`Bill name ${b.name}`} /></td>
               <td className="num">
-                {!planning && planKeyForBill(b) ? (
+                {planKeyForBill(b) ? (
                   <div>
-                    <strong>{gbp(engine.billAmount(b, year, month))}</strong>
+                    <strong>{gbp(providerPlanAmount(b))}</strong>
                     <div className="muted small">from the {b.linkedSheet} plan</div>
                   </div>
                 ) : (
@@ -1347,35 +1357,39 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
                 )}
               </td>
               <td className="num">
-                <input
-                  className="table-input"
-                  style={{ maxWidth: 64 }}
-                  type="number"
-                  min={1}
-                  max={31}
-                  aria-label={`${planning ? `${year} ` : ''}due day ${b.name}`}
-                  value={planning ? planDueDay(b) : b.dueDay}
-                  disabled={planning && Boolean(removedForYear(b.name))}
-                  onChange={(e) => planning
-                    ? setPlan(b.name, { dueDayOverride: Number(e.target.value) || null })
-                    : update((d) => {
-                        // The provider page shows this same date, so keep the two together.
-                        d.bills[i].dueDay = Number(e.target.value);
-                        d.bills[i].baseDueDay = Number(e.target.value);
-                        applyBillDueDay(d, b.providerKey, Number(e.target.value));
-                      })}
-                />
+                {planKeyForBill(b) ? (
+                  <strong title={`Set on the ${b.linkedSheet} page`}>{planning ? planDueDay(b) : b.dueDay}</strong>
+                ) : (
+                  <input
+                    className="table-input"
+                    style={{ maxWidth: 64 }}
+                    type="number"
+                    min={1}
+                    max={31}
+                    aria-label={`${planning ? `${year} ` : ''}due day ${b.name}`}
+                    value={planning ? planDueDay(b) : b.dueDay}
+                    disabled={planning && Boolean(removedForYear(b.name))}
+                    onChange={(e) => planning
+                      ? setPlan(b.name, { dueDayOverride: Number(e.target.value) || null })
+                      : update((d) => {
+                          d.bills[i].dueDay = Number(e.target.value);
+                          d.bills[i].baseDueDay = Number(e.target.value);
+                        })}
+                  />
+                )}
               </td>
               <td>
                 <select className="select" value={b.paymentMethod || 'Manual'} onChange={(e) => update((d) => { d.bills[i].paymentMethod = e.target.value; })}>
                   {BILL_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </td>
-              <td>
-                <select className="select" value={b.account || ds.settings.primaryAccount || ds.accounts[0]?.name || ''} onChange={(e) => update((d) => { d.bills[i].account = e.target.value; })}>
-                  {ds.accounts.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
-                </select>
-              </td>
+              {showPaidFrom && (
+                <td>
+                  <select className="select" value={b.account || ds.settings.primaryAccount || ds.accounts[0]?.name || ''} onChange={(e) => update((d) => { d.bills[i].account = e.target.value; })}>
+                    {ds.accounts.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+                  </select>
+                </td>
+              )}
               <td>
                 <select className="select" value={b.linkedSheet || ''} onChange={(e) => update((d) => { d.bills[i].linkedSheet = e.target.value; })}>
                   <option value=""></option>
@@ -1413,7 +1427,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
             </tr>
             {openActions === b.name && (
               <tr className="row-actions">
-                <td colSpan={9}>
+                <td colSpan={billColumnCount}>
                   <div className="page-actions">
                     {planning && planRemovalFor(b.name) && (
                       <button className="btn sm" onClick={() => {
@@ -1466,7 +1480,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
         {planning && (
           <div style={{ padding: '0 16px 16px' }}>
             <div className="notice info">
-              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}. Remove from {year} takes a bill out of {year} and every later year, and Keep in {year} undoes that removal. A stopped or removed bill sits behind the toggle below, where Delete removes it from every year so the year's list can start afresh.
+              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill linked to a provider sheet keeps its plan amount and due day, both set on the provider page. A bill added here starts in {year}. Remove from {year} takes a bill out of {year} and every later year, and Keep in {year} undoes that removal. A stopped or removed bill sits behind the toggle below, where Delete removes it from every year so the year's list can start afresh.
             </div>
           </div>
         )}

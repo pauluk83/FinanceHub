@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.28",
-  "buildId": "18bbca606021",
+  "buildId": "2071369d8c97",
   "builtAt": "2026-11-28",
   "releases": [
     {
@@ -17,7 +17,9 @@ export const APP_CHANGELOG: AppChangelog = {
           "items": [
             "Correct the Starling anchor by the missing Pure Cremation payment",
             "Bills simplified, security alerts cleared",
-            "Bills: a stopped or removed bill stays reachable in future years and can be kept in the year or deleted for a clean slate"
+            "Bills: a stopped or removed bill stays reachable in future years and can be kept in the year or deleted for a clean slate",
+            "Bills: Paid from is a hidden column behind a header toggle, and a bill with its own provider sheet keeps the plan's amount in future years",
+            "Bills shows a provider's due day read-only; each provider page now has a Due date card that copies the day to its linked bill."
           ]
         }
       ]

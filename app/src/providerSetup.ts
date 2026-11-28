@@ -1,4 +1,5 @@
 import type { Dataset } from '../../core/engine';
+import { sheetNameForProviderKey } from './billSheets.ts';
 
 /**
  * Metadata for the provider ledgers FinanceHub ships with. The onboarding
@@ -294,6 +295,27 @@ export function applyBillDueDay(dataset: Dataset, providerKey: string | undefine
   const safe = paymentDay(day);
   provider.paymentDay = safe;
   if (provider.billing && typeof provider.billing === 'object') provider.billing.paymentDay = safe;
+}
+
+/**
+ * The provider page owns the due date. Writing it there also writes the same day
+ * to the provider's own record and to every linked bill, so the Bills tab (which
+ * shows the day read-only for these bills) and the provider can never disagree.
+ */
+export function applyProviderDueDay(dataset: Dataset, providerKey: string | undefined, day: number): void {
+  if (!providerKey) return;
+  const provider = dataset.providers?.[providerKey] as ProviderRecord | undefined;
+  if (!provider) return;
+  const safe = paymentDay(day);
+  provider.paymentDay = safe;
+  if (provider.billing && typeof provider.billing === 'object') provider.billing.paymentDay = safe;
+  const sheetName = sheetNameForProviderKey(providerKey);
+  for (const bill of dataset.bills ?? []) {
+    if (bill.providerKey === providerKey || (sheetName && bill.linkedSheet === sheetName)) {
+      bill.dueDay = safe;
+      bill.baseDueDay = safe;
+    }
+  }
 }
 
 /** The figure the year plan uses: what you normally pay, else the normal bill. */

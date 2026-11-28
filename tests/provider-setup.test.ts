@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyBillDueDay,
+  applyProviderDueDay,
   buildProviderPlanEntries,
   buildProviderYearPlan,
   isProviderEnabled,
@@ -160,4 +161,30 @@ test('a bill due day and the provider payment day move together', () => {
   applyBillDueDay(ds, undefined, 9);
   applyBillDueDay(ds, 'o2', 9);
   assert.equal((ds.providers.o2 as any), undefined);
+});
+
+test('the provider page due date copies to the linked bill sheet', () => {
+  const ds = {
+    providers: { virgin: { paymentDay: 4, billing: { paymentDay: 4, recurring: true } } },
+    bills: [
+      { name: 'Virgin Media', providerKey: 'virgin', linkedSheet: 'Virgin', dueDay: 4, baseDueDay: 4 },
+      { name: 'Broadband', providerKey: '', linkedSheet: 'Virgin', dueDay: 9, baseDueDay: 9 },
+      { name: 'Gym', linkedSheet: '', dueDay: 6, baseDueDay: 6 },
+    ],
+    settings: {},
+  } as unknown as Dataset;
+
+  applyProviderDueDay(ds, 'virgin', 17);
+  assert.equal((ds.providers.virgin as any).paymentDay, 17, 'the provider record takes the day');
+  assert.equal(providerBilling(ds.providers.virgin).paymentDay, 17, 'and so does its billing block');
+  assert.equal(ds.bills[0].dueDay, 17, 'the bill linked by provider key follows');
+  assert.equal(ds.bills[1].dueDay, 17, 'a bill linked by sheet name follows too');
+  assert.equal(ds.bills[1].baseDueDay, 17, 'the base day stays in step');
+  assert.equal(ds.bills[2].dueDay, 6, 'an unlinked bill is untouched');
+
+  applyProviderDueDay(ds, 'virgin', 31);
+  assert.equal(ds.bills[0].dueDay, 28, 'out-of-range days clamp like the setup field');
+  applyProviderDueDay(ds, undefined, 9);
+  applyProviderDueDay(ds, 'missing', 9);
+  assert.equal(ds.bills[2].dueDay, 6);
 });

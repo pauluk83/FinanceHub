@@ -11,6 +11,8 @@ and the build time.
 - Correct the Starling anchor by the missing Pure Cremation payment
 - Bills simplified, security alerts cleared
 - Bills: a stopped or removed bill stays reachable in future years and can be kept in the year or deleted for a clean slate
+- Bills: Paid from is a hidden column behind a header toggle, and a bill with its own provider sheet keeps the plan's amount in future years
+- Bills shows a provider's due day read-only; each provider page now has a Due date card that copies the day to its linked bill.
 
 ## [2026.11.27] — 27 November 2026
 

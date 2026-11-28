@@ -88,6 +88,13 @@ test('a bill removed from a future year can be kept or deleted from Bills', asyn
   await page.getByLabel('Viewing year').selectOption('2027');
   await page.getByRole('button', { name: /^Bills$/ }).click();
 
+  // Paid from is a reference column, hidden until the header asks for it.
+  await expect(page.getByRole('columnheader', { name: 'Paid from' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show Paid from' }).click();
+  await expect(page.getByRole('columnheader', { name: 'Paid from' })).toBeVisible();
+  await page.getByRole('button', { name: 'Hide Paid from' }).click();
+  await expect(page.getByRole('columnheader', { name: 'Paid from' })).toHaveCount(0);
+
   // Removing a bill hides it with the stopped ones, not out of reach.
   await page.getByRole('button', { name: 'Actions for Rent' }).click();
   await page.getByRole('button', { name: 'Remove from 2027' }).click();

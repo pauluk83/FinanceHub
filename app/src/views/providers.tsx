@@ -6,7 +6,7 @@ import { dateUk, download, gbp, MONTHS, MONTH_LONG, parseMoney, toCsv } from '..
 import { PAID_MARK, appendRow, balanceAsOf, baselineFor, billedTotalPence, billingCadenceMonths, billingMonthsFor, blankCell, clearRowOrder, hasManualOrder, isOpeningRow, isPaidValue, markPaidRows, quietPlanRows, recalculate, remainingPaymentsFor, reorderRows, sortRows, usagePenceFor, type LedgerColumn, type LedgerConfig } from '../providerLedger';
 import { recalculateTelco, telcoRemainingMonths } from '../../../core/telco';
 import { paymentPlan, type PaymentPlan } from '../../../core/paymentPlan';
-import { providerBilling } from '../providerSetup';
+import { applyProviderDueDay, providerBilling } from '../providerSetup';
 import { sheetNameForProviderKey } from '../billSheets';
 import { ensureRowsForEdit, rowsForEdit, rowsForYear } from '../../../core/providerYears';
 import { carryForwardProviderYears } from '../../../core/providerCarry';
@@ -416,6 +416,53 @@ function PaymentPlanReview({ plan, currentPaymentPence, balancePence, latestLabe
             : ` That is ${gbp(Math.abs(difference))} ${difference < 0 ? 'less' : 'more'} than the current ${gbp(currentPaymentPence)}.`}
           {plan.floored && ` The recommendation is held at ${gbp(plan.floorPence)}, a quarter of usage, so accepting the plan can never set a £0 payment.`}
         </div>
+      </div>
+    </Section>
+  );
+}
+
+/**
+ * The provider owns its due date. Editing the day here writes it to the provider
+ * record and to every linked bill, where the Bills tab shows it read-only.
+ */
+function ProviderDueDayCard({ ds, provider, title, update, notify }: Pick<ViewProps, 'ds' | 'update' | 'notify'> & { provider: string; title: string }) {
+  const sheetName = sheetNameForProviderKey(provider);
+  const linked = ds.bills.filter((bill) => bill.providerKey === provider || (sheetName && bill.linkedSheet === sheetName));
+  const current = Math.min(28, Math.max(1, linked[0]?.dueDay ?? providerBilling(ds.providers[provider] ?? {}).paymentDay));
+  const [draft, setDraft] = useState(String(current));
+  useEffect(() => setDraft(String(current)), [current]);
+  const commit = () => {
+    const day = Math.min(28, Math.max(1, Math.round(Number(draft)) || current));
+    setDraft(String(day));
+    if (day === current) return;
+    update((d) => applyProviderDueDay(d, provider, day));
+    notify(`${title} is paid on day ${day}${linked.length ? ' — the linked bill follows' : ''}`);
+  };
+  return (
+    <Section
+      title="Due date"
+      sub={`The day of the month ${title} is paid. Changing it here copies the same day to the linked bill on the Bills tab, where the amount and due day are read-only.`}
+      actions={<Badge tone="blue">{`Day ${current}`}</Badge>}
+    >
+      <div className="inline-form">
+        <Field label="Paid on day" hint="1–28, so every month has the day">
+          <input
+            className="input"
+            type="number"
+            min={1}
+            max={28}
+            aria-label={`${title} due day`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.currentTarget.blur(); } }}
+          />
+        </Field>
+        <span className="muted small">
+          {linked.length
+            ? `Linked bill${linked.length === 1 ? '' : 's'}: ${linked.map((bill) => bill.name).join(', ')}`
+            : 'No linked bill yet — the day is kept on the provider.'}
+        </span>
       </div>
     </Section>
   );
@@ -999,6 +1046,7 @@ export function Rent({ ds, engine, year, go, update, notify, vaultSession }: Vie
           <div className="card"><div className="card-title">Balance</div><div className="kpi-value pos">{gbp(ledger.balancePence)}</div><div className="card-sub">{ledger.balancePence >= 0 ? 'Credit' : 'Debt'}</div></div>
         </div>
       </AccountDetails>
+      <ProviderDueDayCard ds={ds} provider="rent" title="Rent" update={update} notify={notify} />
       <Section title="Change the rent" sub="A dated change rewrites only the future rent rows; what has already passed stays as it is.">
         <div className="inline-form">
           <Field label="Monthly rent £" hint={`Current ${gbp(rent.monthlyRentPence ?? 0)}`}>
@@ -1493,6 +1541,7 @@ export function ProviderView({ ds, engine, year, provider, title, subtitle, go, 
           <div className="card"><div className="card-title">Latest balance</div><div className="kpi-value">{latest ? gbp(latest.balancePence) : '—'}</div><div className="card-sub">{latest?.date ? dateUk(latest.date) : latest?.month || '—'}</div></div>
         </div>
       )}
+      <ProviderDueDayCard ds={ds} provider={provider} title={title} update={update} notify={notify} />
       {/* O2 and Virgin keep only the contract and ledger: their account fields and
           vault logins are not used, so the two summary sections would be empty noise. */}
       {provider !== 'o2' && provider !== 'virgin' && (
