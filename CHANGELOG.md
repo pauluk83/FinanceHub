@@ -9,6 +9,7 @@ and the build time.
 
 ### Changed
 - Correct the Starling anchor by the missing Pure Cremation payment
+- Bills simplified, security alerts cleared
 
 ## [2026.11.27] — 27 November 2026
 

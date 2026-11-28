@@ -5,7 +5,7 @@ export interface AppChangelog { version: string; buildId: string; builtAt: strin
 
 export const APP_CHANGELOG: AppChangelog = {
   "version": "2026.11.28",
-  "buildId": "c15e1ac16237",
+  "buildId": "7b55f7d20367",
   "builtAt": "2026-11-28",
   "releases": [
     {
@@ -15,7 +15,8 @@ export const APP_CHANGELOG: AppChangelog = {
         {
           "title": "Changed",
           "items": [
-            "Correct the Starling anchor by the missing Pure Cremation payment"
+            "Correct the Starling anchor by the missing Pure Cremation payment",
+            "Bills simplified, security alerts cleared"
           ]
         }
       ]
