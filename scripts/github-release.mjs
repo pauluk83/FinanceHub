@@ -8,12 +8,39 @@
  *   node scripts/github-release.mjs           upload the current version
  *   node scripts/github-release.mjs --notes   print the release notes only
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ROOT, parseChangelog } from './app-changelog.mjs';
+import { ROOT, buildId, parseChangelog } from './app-changelog.mjs';
+import { artifactManifest, updateNotes } from './update-artifacts.mjs';
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+
+/**
+ * Derive the checksum file and the update manifest from the exact bytes that are
+ * about to be uploaded. Building them earlier leaves room for a stale copy in
+ * release/ to be published next to a different installer, and the download page
+ * and updater would then verify against the wrong hash.
+ */
+export function prepareReleaseAssets({ installerPath, asarPath, manifestPath, checksumsPath, version = pkg.version }) {
+  const installerBytes = readFileSync(installerPath);
+  const asarBytes = readFileSync(asarPath);
+  if (!existsSync(manifestPath)) throw new Error(`${manifestPath} is missing — run npm run dist:win first.`);
+  const previous = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const manifest = artifactManifest({
+    ...previous,
+    schema: previous.schema ?? 1,
+    version,
+    buildId: buildId(ROOT),
+    generatedAt: new Date().toISOString(),
+    notes: updateNotes(ROOT),
+  }, { asarBytes, installerBytes, installerName: basename(installerPath) });
+  writeFileSync(checksumsPath, `${sha256(installerBytes)}  ${basename(installerPath)}\n`);
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return manifest;
+}
 
 /** `owner/repo` from package.json, GITHUB_REPOSITORY, or an explicit override. */
 export function repoSlug(repository = pkg.repository) {
@@ -153,12 +180,14 @@ async function main() {
   const installer = join(ROOT, 'release', `FinanceHub-Setup-${version}.exe`);
   const checksums = join(ROOT, 'release', 'SHA256SUMS.txt');
   if (!existsSync(installer)) throw new Error(`${installer} is missing — run npm run dist:win first.`);
-  if (!existsSync(checksums)) throw new Error(`${checksums} is missing — generate the checksum file first.`);
 
   const updateManifest = join(ROOT, 'release', 'update', 'update-manifest.json');
   const updateAsar = join(ROOT, 'release', 'update', 'FinanceHub-app.asar');
   if (!existsSync(updateManifest)) throw new Error(`${updateManifest} is missing — run npm run dist:win first.`);
   if (!existsSync(updateAsar)) throw new Error(`${updateAsar} is missing — run npm run dist:win first.`);
+
+  // Derive the checksum and the delta manifest from the uploaded files themselves.
+  prepareReleaseAssets({ installerPath: installer, asarPath: updateAsar, manifestPath: updateManifest, checksumsPath: checksums, version });
 
   // SBOM and claims travel with the installer so a download can be audited.
   const evidence = [join(ROOT, 'release', 'SBOM.json'), join(ROOT, 'release', 'RELEASE_CLAIMS.md')]

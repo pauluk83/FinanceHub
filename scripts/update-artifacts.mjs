@@ -5,7 +5,7 @@
  * contains only hashes and sizes; the archive itself is uploaded beside it and
  * fetched with HTTP ranges so existing installs download changed blocks only.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -30,36 +30,52 @@ export function electronVersion(root = ROOT) {
   }
 }
 
+/**
+ * The manifest rows for the archive and installer exactly as given. Publishing
+ * derives them from the bytes being uploaded, so a stale copy left in release/
+ * can never describe a different file.
+ */
+export function artifactManifest(manifest, { asarBytes, installerBytes, installerName, blockSize = BLOCK_SIZE }) {
+  const blocks = [];
+  for (let offset = 0; offset < asarBytes.length; offset += blockSize) {
+    const size = Math.min(blockSize, asarBytes.length - offset);
+    blocks.push({ offset, size, sha256: sha256(asarBytes.subarray(offset, offset + size)) });
+  }
+  return {
+    ...manifest,
+    blockSize,
+    asar: { name: 'FinanceHub-app.asar', size: asarBytes.length, sha256: sha256(asarBytes) },
+    blocks,
+    ...(installerBytes && installerName
+      ? { installer: { name: installerName, size: installerBytes.length, sha256: sha256(installerBytes) } }
+      : {}),
+  };
+}
+
 export function buildUpdateArtifacts({ root = ROOT, blockSize = BLOCK_SIZE } = {}) {
   const asarPath = join(root, 'release', 'win-unpacked', 'resources', 'app.asar');
   if (!existsSync(asarPath)) throw new Error(`${asarPath} is missing — build the Windows app first.`);
 
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const bytes = readFileSync(asarPath);
-  const blocks = [];
-  for (let offset = 0; offset < bytes.length; offset += blockSize) {
-    const size = Math.min(blockSize, bytes.length - offset);
-    blocks.push({ offset, size, sha256: sha256(bytes.subarray(offset, offset + size)) });
-  }
 
   const installerPath = join(root, 'release', `FinanceHub-Setup-${pkg.version}.exe`);
-  const installer = existsSync(installerPath)
-    ? { name: `FinanceHub-Setup-${pkg.version}.exe`, size: statSync(installerPath).size, sha256: sha256(readFileSync(installerPath)) }
-    : undefined;
+  const installerBytes = existsSync(installerPath) ? readFileSync(installerPath) : undefined;
   const runtime = electronVersion(root);
 
-  const manifest = {
+  const manifest = artifactManifest({
     schema: 1,
     version: pkg.version,
     buildId: buildId(root),
     generatedAt: new Date().toISOString(),
-    blockSize,
     runtime: runtime ? { electron: runtime } : undefined,
-    asar: { name: 'FinanceHub-app.asar', size: bytes.length, sha256: sha256(bytes) },
-    blocks,
-    installer,
     notes: updateNotes(root),
-  };
+  }, {
+    asarBytes: bytes,
+    installerBytes,
+    installerName: installerBytes ? `FinanceHub-Setup-${pkg.version}.exe` : undefined,
+    blockSize,
+  });
 
   const outDir = join(root, 'release', 'update');
   mkdirSync(outDir, { recursive: true });

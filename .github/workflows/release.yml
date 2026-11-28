@@ -29,7 +29,7 @@ jobs:
       - name: Build Windows installer
         run: npm run dist:win
 
-      - name: Prepare release assets
+      - name: Check release artifacts
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
@@ -37,9 +37,9 @@ jobs:
           if (-not (Test-Path $installer)) { throw "Installer not built: $installer" }
           if (-not (Test-Path 'release/update/update-manifest.json')) { throw 'Delta update manifest was not built' }
           if (-not (Test-Path 'release/update/FinanceHub-app.asar')) { throw 'Delta update archive was not built' }
-          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
-          "$hash  FinanceHub-Setup-$version.exe" | Out-File -Encoding ascii release/SHA256SUMS.txt
-          Write-Output "sha256 $hash"
+          # The checksum file and the manifest hashes are derived from the
+          # uploaded bytes by scripts/github-release.mjs, never from an earlier
+          # build left in release/.
 
       - name: Generate release evidence
         run: node scripts/release-evidence.mjs
