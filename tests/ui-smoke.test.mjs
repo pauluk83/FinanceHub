@@ -473,6 +473,35 @@ test('a future year keeps removed and stopped bills behind one toggle, without a
   assert.match(html, /to delete a bill from every year, use the current year/, 'a whole-bill delete is not offered in a plan year');
 });
 
+test('a provider left with no bill and no link sheet can be taken out of the menu', async () => {
+  const { Bills } = await server.ssrLoadModule('/src/views/money.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const { newProviderData } = await server.ssrLoadModule('/src/providerSetup.ts');
+  const sheet = (name, providerKey) => ({ name, providerKey });
+  const ds = dataset({
+    settings: {
+      billSheets: [
+        sheet('Rent', 'rent'), sheet('Ovo', 'ovo'), sheet('Park Xmas', 'parkXmas'),
+        sheet('Pure Cremation', 'pureCremation'), sheet('Council Tax', 'councilTax'),
+        sheet('O2', 'o2'), sheet('Virgin', 'virgin'),
+      ],
+    },
+    dataset: { providers: { water: newProviderData('water', 2026) } },
+  });
+  const html = render(Bills, props(ds, { engine: buildEngine(ds) }));
+
+  assert.match(html, /Water — provider page with no bill and no link sheet/);
+  assert.match(html, /aria-label="Remove Water from the menu"/, 'the orphaned page can go');
+  assert.doesNotMatch(html, /Remove Rent from the menu/, 'a provider that still has its sheet is left alone');
+
+  // A provider page already out of the menu is not offered twice.
+  const hidden = dataset({
+    settings: { billSheets: [sheet('Rent', 'rent')] },
+    dataset: { providers: { water: { ...newProviderData('water', 2026), enabled: false } } },
+  });
+  assert.doesNotMatch(render(Bills, props(hidden, { engine: buildEngine(hidden) })), /Remove Water from the menu/);
+});
+
 test('a provider-linked bill reads its plan amount in a future year too', async () => {
   const { Bills } = await server.ssrLoadModule('/src/views/money.tsx');
   const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');

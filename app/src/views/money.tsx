@@ -5,7 +5,8 @@ import { Badge, Bar, Empty, Field, Money, Section, Table } from '../components';
 import { dateUk, dateTimeUk, download, gbp, gbpBlank, MONTH_LONG, parseMoney, pct, todayIso, toCsv } from '../format';
 import { auditFieldChanges, deletedTransactions, formatAuditValue, recordHistory, revertAuditEntry, type AuditEntry } from '../../../core/audit';
 import { advanceAsOfToLatestTransaction } from '../../../core/engine';
-import { billSheetsFor, providerKeyForSheetName } from '../billSheets';
+import { billSheetsFor, LINK_SHEET_PROVIDER_KEYS, providerKeyForSheetName } from '../billSheets';
+import { isProviderEnabled, providerDisplayName } from '../providerSetup';
 import { buildCardPaymentLegs, buildTransferLegs, findTransferPartner } from '../../../core/transfers';
 import { accountClassifier, commentsMention, knownAccountNames, linkedCommentSummary } from '../../../core/accounts';
 import { categoryOptions, normaliseCategory, normaliseTags, tagOptions, tagsText, transactionMatches } from '../../../core/categories';
@@ -1185,6 +1186,24 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
   const stoppedBillCount = ds.bills.length - activeBillCount;
   const hiddenBillLabel = planning ? 'stopped and removed bills' : 'stopped bills';
 
+  /**
+   * A provider page whose bill and link sheet have both gone is orphaned: the
+   * ledger is still stored, so its page is offered here to take out of the menu.
+   */
+  const orphanProviders = Object.entries(LINK_SHEET_PROVIDER_KEYS)
+    .filter(([sheetName, key]) => isProviderEnabled(ds, key)
+      && !sheets.some((sheet) => sheet.providerKey === key)
+      && !ds.bills.some((bill) => bill.providerKey === key || bill.linkedSheet === sheetName))
+    .map(([, key]) => ({ key, label: providerDisplayName(ds, key) }));
+
+  /** Hide an orphaned provider page. Its ledger, payments and settings stay. */
+  const removeProviderFromMenu = (key: string) => {
+    const label = providerDisplayName(ds, key);
+    if (!confirm(`Remove ${label} from the menu? Its ledger, payments and settings stay, and Set up can add the page back.`)) return;
+    update((d) => { if (d.providers[key]) d.providers[key].enabled = false; });
+    notify(`${label} removed from the menu — its data is kept`);
+  };
+
   const addSheet = () => {
     const name = sheetDraft.trim();
     if (!name) return notify('Give the link sheet a name');
@@ -1544,6 +1563,20 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
               </div>
             )}
         </div>
+        {orphanProviders.length > 0 && (
+          <div style={{ padding: '0 16px 8px', display: 'grid', gap: 6 }}>
+            {orphanProviders.map((provider) => (
+              <div key={provider.key} className="muted small" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>{provider.label} — provider page with no bill and no link sheet</span>
+                <button
+                  className="btn ghost sm"
+                  aria-label={`Remove ${provider.label} from the menu`}
+                  onClick={() => removeProviderFromMenu(provider.key)}
+                >Remove from menu</button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="inline-form">
           <Field label="New link sheet"><input className="input" placeholder="e.g. TV Licence" value={sheetDraft} onChange={(e) => setSheetDraft(e.target.value)} /></Field>
           <button className="btn primary" onClick={addSheet}>Add link sheet</button>
