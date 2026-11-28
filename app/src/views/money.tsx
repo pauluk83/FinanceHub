@@ -1097,6 +1097,13 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
     }
     return undefined;
   };
+  /** The change that keeps this bill out of the year being planned: a removal or a stop. */
+  const removedForYear = (name: string) => (planning ? skipChangeFor(ds.billChanges, name) : undefined);
+  /** A removal made with “Remove from {year}”, which this tab can undo. */
+  const planRemovalFor = (name: string) => {
+    const removal = removedForYear(name);
+    return removal?.changeType === 'Removed' ? removal : undefined;
+  };
   const removeFromYear = (name: string) => update((d) => {
     const yearPlan = planChangeFor(d.billChanges, name);
     if (yearPlan) {
@@ -1114,6 +1121,18 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
       note: `Removed from ${year} and later years`,
       skip: true,
     });
+  });
+  /**
+   * Undo a removal from this tab. A removal that carried a planned amount or due
+   * day goes back to being the year's plan; one that was only a removal is dropped.
+   */
+  const keepInYear = (name: string) => update((d) => {
+    const removal = skipChangeFor(d.billChanges, name);
+    if (!removal || removal.changeType !== 'Removed') return;
+    Object.assign(removal, { skip: false, appliesTo: planEnd, changeType: `Year plan ${year}`, note: `Planned for ${year}` });
+    if (removal.amountOverridePence == null && !removal.dueDateOverride && typeof removal.dueDayOverride !== 'number') {
+      d.billChanges = d.billChanges.filter((entry) => entry !== removal);
+    }
   });
   const setPlan = (name: string, patch: { amountOverridePence?: number | null; dueDayOverride?: number | null; skip?: boolean }) => update((d) => {
     let change = planChangeFor(d.billChanges, name);
@@ -1156,8 +1175,11 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
     const key = providerKeyForSheetName(bill.linkedSheet ?? '');
     return key && (ds.providers as any)?.[key] ? key : undefined;
   };
-  const activeBillCount = ds.bills.filter((bill) => bill.active !== false).length;
+  // A bill removed from the year being planned hides with the stopped ones, so
+  // the toggle below is the way back to it.
+  const activeBillCount = ds.bills.filter((bill) => bill.active !== false && !removedForYear(bill.name)).length;
   const stoppedBillCount = ds.bills.length - activeBillCount;
+  const hiddenBillLabel = planning ? 'stopped and removed bills' : 'stopped bills';
 
   const addSheet = () => {
     const name = sheetDraft.trim();
@@ -1289,14 +1311,14 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
       <Section
         title={planning ? `${year} bill plan and link sheets` : 'Bills and link sheets'}
         sub={planning
-          ? `Amount, due day and removal apply to ${year} only. Method, account and linked sheet stay shared.`
+          ? `Amount and due day apply to ${year} only; a removal lasts from ${year} onwards. Method, account and linked sheet stay shared.`
           : "Edit a bill in place. A bill linked to a provider sheet shows that plan's amount here and is changed on the provider page. Link sheets below are optional labels that group bills."}
       >
         <Table className="ledger-table-start" head={['Bill', planning ? `${year} £` : 'Base £', planning ? 'Due day' : 'Due', 'Method', 'Paid from', 'Linked sheet', 'Effective from', planning ? `In ${year}` : 'Active', '']} numHead={[1, 2]}>
           {/* Active bills first; stopped ones sit behind a count so the list stays short. */}
           {ds.bills.map((b, i) => ({ b, i }))
             .sort((x, y) => (x.b.active === false ? 1 : 0) - (y.b.active === false ? 1 : 0))
-            .filter(({ b }) => (showStopped || b.active !== false) && !(planning && skipChangeFor(ds.billChanges, b.name)))
+            .filter(({ b }) => showStopped || (b.active !== false && !removedForYear(b.name)))
             .map(({ b, i }) => (
             <Fragment key={b.name || i}>
             <tr>
@@ -1313,7 +1335,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
                     inputMode="decimal"
                     aria-label={`${planning ? `${year} ` : ''}amount ${b.name}`}
                     value={((planning ? planAmount(b) : b.baseAmountPence) / 100).toFixed(2)}
-                    disabled={planning && yearChange(b.name)?.skip === true}
+                    disabled={planning && Boolean(removedForYear(b.name))}
                     onChange={(e) => planning
                       ? setPlan(b.name, { amountOverridePence: e.target.value.trim() ? parseMoney(e.target.value) : null })
                       : update((d) => {
@@ -1333,7 +1355,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
                   max={31}
                   aria-label={`${planning ? `${year} ` : ''}due day ${b.name}`}
                   value={planning ? planDueDay(b) : b.dueDay}
-                  disabled={planning && yearChange(b.name)?.skip === true}
+                  disabled={planning && Boolean(removedForYear(b.name))}
                   onChange={(e) => planning
                     ? setPlan(b.name, { dueDayOverride: Number(e.target.value) || null })
                     : update((d) => {
@@ -1367,7 +1389,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
                 ? <input
                     type="checkbox"
                     aria-label={`Include ${b.name} in ${year}`}
-                    checked={yearChange(b.name)?.skip !== true}
+                    checked={!removedForYear(b.name)}
                     onChange={(e) => setPlan(b.name, { skip: !e.target.checked })}
                   />
                 : <>
@@ -1393,18 +1415,27 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
               <tr className="row-actions">
                 <td colSpan={9}>
                   <div className="page-actions">
-                    <button className="btn sm" onClick={() => {
-                      setOpenActions(null);
-                      if (planning) {
-                        if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
-                        removeFromYear(b.name);
-                        notify(`${b.name} removed from ${year} and later years`);
-                        return;
-                      }
-                      if (!confirm(`Stop ${b.name} from ${MONTH_LONG[month - 1]} ${year}? Earlier months and earlier years keep their payments.`)) return;
-                      stopBillFrom(b.name);
-                      notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
-                    }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button>
+                    {planning && planRemovalFor(b.name) && (
+                      <button className="btn sm" onClick={() => {
+                        setOpenActions(null);
+                        keepInYear(b.name);
+                        notify(`${b.name} kept in ${year}`);
+                      }}>{`Keep in ${year}`}</button>
+                    )}
+                    {!removedForYear(b.name) && (
+                      <button className="btn sm" onClick={() => {
+                        setOpenActions(null);
+                        if (planning) {
+                          if (!confirm(`Remove ${b.name} from ${year} and every later year? Earlier years stay untouched.`)) return;
+                          removeFromYear(b.name);
+                          notify(`${b.name} removed from ${year} and later years`);
+                          return;
+                        }
+                        if (!confirm(`Stop ${b.name} from ${MONTH_LONG[month - 1]} ${year}? Earlier months and earlier years keep their payments.`)) return;
+                        stopBillFrom(b.name);
+                        notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
+                      }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button>
+                    )}
                     {planning && (
                       <button className="btn sm danger" onClick={() => { setOpenActions(null); deleteBill(b.name); }}>Delete</button>
                     )}
@@ -1417,10 +1448,10 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
         </Table>
         {stoppedBillCount > 0 && (
           <div className="toolbar" style={{ borderTop: '1px solid var(--line)' }}>
-            <span className="muted small">{activeBillCount} active · {stoppedBillCount} stopped</span>
+            <span className="muted small">{activeBillCount} active · {stoppedBillCount} {planning ? 'stopped or removed' : 'stopped'}</span>
             <div className="toolbar-spacer" />
             <button className="btn ghost sm" onClick={() => setShowStopped((open) => !open)}>
-              {showStopped ? 'Hide stopped bills' : 'Show stopped bills'}
+              {showStopped ? `Hide ${hiddenBillLabel}` : `Show ${hiddenBillLabel}`}
             </button>
           </div>
         )}
@@ -1435,7 +1466,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
         {planning && (
           <div style={{ padding: '0 16px 16px' }}>
             <div className="notice info">
-              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}. Removing a bill takes it out of {year} and every later year; delete that removal in Bill changes to bring it back. Delete removes the bill from every year so you can start the year's list afresh.
+              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill added here starts in {year}. Remove from {year} takes a bill out of {year} and every later year, and Keep in {year} undoes that removal. A stopped or removed bill sits behind the toggle below, where Delete removes it from every year so the year's list can start afresh.
             </div>
           </div>
         )}

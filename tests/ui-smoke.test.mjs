@@ -441,6 +441,35 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
 
+test('a future year keeps removed and stopped bills behind one toggle, with Delete', async () => {
+  const { Bills } = await server.ssrLoadModule('/src/views/money.tsx');
+  const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
+  const bill = (name, active) => ({
+    name, amountPence: 3000, dueDay: 5, linkedSheet: '', frequency: 'Monthly',
+    latestBalancePence: 0, latestPaymentPence: 0, sortOrder: 1, active,
+    effectiveFrom: '', paymentMethod: 'Direct Debit', baseAmountPence: 3000, baseDueDay: 5,
+  });
+  const ds = dataset({
+    dataset: {
+      bills: [bill('Rent', true), bill('Broadband', true), bill('Old Gym', false)],
+      billChanges: [{
+        bill: 'Broadband', appliesFrom: '2027-01-01', appliesTo: '', amountOverridePence: null,
+        dueDateOverride: '', dueDayOverride: null, changeType: 'Removed',
+        note: 'Removed from 2027 and later years', skip: true,
+      }],
+    },
+  });
+  const html = render(Bills, props(ds, { engine: buildEngine(ds), year: 2027 }));
+
+  assert.match(html, /2027 bill plan and link sheets/);
+  assert.match(html, /1 active · 2 stopped or removed/, 'a removal counts with the stopped bills');
+  assert.match(html, /Show stopped and removed bills/, 'one toggle reaches both kinds');
+  assert.doesNotMatch(html, /Bill name Broadband/, 'a removed bill is out of the plan list');
+  assert.doesNotMatch(html, /Bill name Old Gym/, 'a stopped bill is out of the plan list');
+  assert.match(html, /Keep in 2027 undoes that removal/, 'the removal is undone from this tab');
+  assert.match(html, /Delete removes it from every year/, 'the clean-slate delete is reachable');
+});
+
 test('settings keeps only its own controls, not record or sign-in editors', async () => {
   const { SettingsView } = await server.ssrLoadModule('/src/views/tools/index.ts');
   const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');

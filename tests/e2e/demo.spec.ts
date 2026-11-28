@@ -83,6 +83,38 @@ test('a bank CSV is staged and only added after confirmation', async ({ page }) 
   await expect(page.getByText('1 transactions appended — nothing was auto-posted')).toBeVisible();
 });
 
+test('a bill removed from a future year can be kept or deleted from Bills', async ({ page }) => {
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.getByLabel('Viewing year').selectOption('2027');
+  await page.getByRole('button', { name: /^Bills$/ }).click();
+
+  // Removing a bill hides it with the stopped ones, not out of reach.
+  await page.getByRole('button', { name: 'Actions for Rent' }).click();
+  await page.getByRole('button', { name: 'Remove from 2027' }).click();
+  await expect(page.getByRole('button', { name: 'Actions for Rent' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Show stopped and removed bills' }).click();
+  await page.getByRole('button', { name: 'Actions for Rent' }).click();
+  await page.getByRole('button', { name: 'Keep in 2027' }).click();
+  await expect(page.getByRole('button', { name: 'Actions for Rent' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show stopped and removed bills' })).toHaveCount(0);
+
+  // A bill stopped in the live year is deleted here, giving the new year a clean slate.
+  await page.getByLabel('Viewing year').selectOption('2026');
+  await page.getByRole('button', { name: 'Actions for Energy' }).click();
+  await page.getByRole('button', { name: /^Stop from/ }).click();
+  await page.getByLabel('Viewing year').selectOption('2027');
+
+  // The stopped bill sits behind the same toggle, where it can be deleted.
+  await page.getByRole('button', { name: 'Hide stopped and removed bills' }).click();
+  await expect(page.getByRole('button', { name: 'Actions for Energy' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show stopped and removed bills' }).click();
+  await page.getByRole('button', { name: 'Actions for Energy' }).click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Actions for Energy' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /stopped and removed bills/ })).toHaveCount(0);
+});
+
 test('month end can be locked and unlocked', async ({ page }) => {
   page.on('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: /Settings/ }).click();
