@@ -95,8 +95,10 @@ test('a bill removed from a future year can be kept or deleted from Bills', asyn
   await page.getByRole('button', { name: 'Hide Paid from' }).click();
   await expect(page.getByRole('columnheader', { name: 'Paid from' })).toHaveCount(0);
 
-  // Removing a bill hides it with the stopped ones, not out of reach.
+  // Removing a bill hides it with the stopped ones, not out of reach. A plan year
+  // offers no whole-bill Delete, so it can never reach an earlier year.
   await page.getByRole('button', { name: 'Actions for Rent' }).click();
+  await expect(page.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Remove from 2027' }).click();
   await expect(page.getByRole('button', { name: 'Actions for Rent' })).toHaveCount(0);
 
@@ -106,18 +108,17 @@ test('a bill removed from a future year can be kept or deleted from Bills', asyn
   await expect(page.getByRole('button', { name: 'Actions for Rent' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Show stopped and removed bills' })).toHaveCount(0);
 
-  // A bill stopped in the live year is deleted here, giving the new year a clean slate.
+  // A bill stopped in the live year is deleted from its own year's view, so the
+  // delete starts where the bill still is rather than in a plan year.
   await page.getByLabel('Viewing year').selectOption('2026');
   await page.getByRole('button', { name: 'Actions for Energy' }).click();
   await page.getByRole('button', { name: /^Stop from/ }).click();
-  await page.getByLabel('Viewing year').selectOption('2027');
-
-  // The stopped bill sits behind the same toggle, where it can be deleted.
-  await page.getByRole('button', { name: 'Hide stopped and removed bills' }).click();
-  await expect(page.getByRole('button', { name: 'Actions for Energy' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Show stopped and removed bills' }).click();
   await page.getByRole('button', { name: 'Actions for Energy' }).click();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Actions for Energy' })).toHaveCount(0);
+
+  // The deleted bill is gone from the new year too, with no toggle left behind.
+  await page.getByLabel('Viewing year').selectOption('2027');
   await expect(page.getByRole('button', { name: 'Actions for Energy' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /stopped and removed bills/ })).toHaveCount(0);
 });

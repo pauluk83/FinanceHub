@@ -443,7 +443,7 @@ test('accounts, cards, people and bills edit their own records on their own page
   assert.doesNotMatch(bills, /Scheduled for /, 'the monthly run lives on Monthly');
 });
 
-test('a future year keeps removed and stopped bills behind one toggle, with Delete', async () => {
+test('a future year keeps removed and stopped bills behind one toggle, without a whole-bill delete', async () => {
   const { Bills } = await server.ssrLoadModule('/src/views/money.tsx');
   const { buildEngine } = await server.ssrLoadModule('/../core/engine.ts');
   const bill = (name, active) => ({
@@ -469,7 +469,8 @@ test('a future year keeps removed and stopped bills behind one toggle, with Dele
   assert.doesNotMatch(html, /Bill name Broadband/, 'a removed bill is out of the plan list');
   assert.doesNotMatch(html, /Bill name Old Gym/, 'a stopped bill is out of the plan list');
   assert.match(html, /Keep in 2027 undoes that removal/, 'the removal is undone from this tab');
-  assert.match(html, /Delete removes it from every year/, 'the clean-slate delete is reachable');
+  assert.match(html, /to delete a bill from every year, use the current year/, 'a whole-bill delete is not offered in a plan year');
+  assert.doesNotMatch(html, /Delete/, 'so a plan year can never take the bill out of an earlier year');
 });
 
 test('a provider-linked bill reads its plan amount in a future year too', async () => {

@@ -155,6 +155,43 @@ export function endPureCremationPlan(dataset: Dataset) {
   }];
 }
 
+/** The Pure Cremation bill exactly as its sheet defines it. */
+export const PURE_CREMATION_BILL = {
+  row: 54,
+  name: 'Pure Cremation',
+  amountPence: 10666,
+  dueDayLabel: '27th',
+  dueDay: 27,
+  linkedSheet: 'Pure Cremation',
+  frequency: 'Monthly',
+  latestBalancePence: 138668,
+  latestPaymentPence: 10666,
+  sortOrder: 5,
+  active: true,
+  effectiveFrom: '',
+  paymentMethod: 'Standing Order',
+  baseAmountPence: 10666,
+  baseDueDay: 27,
+};
+
+/**
+ * Put the Pure Cremation bill back when it was deleted from every year.
+ *
+ * Removing a bill from a future year is a dated skip, and this plan's skip runs
+ * from 2028. A whole-bill delete takes the record and that skip with it, which
+ * drops the bill out of 2026 and 2027 as well — the years it is actually paid.
+ * Restoring the record and re-applying the payoff leaves the plan exactly as it
+ * should be: paid in 2026 and 2027, gone from 2028 on.
+ */
+export function restorePureCremationBill(dataset: Dataset): boolean {
+  if (!dataset.providers?.pureCremation) return false;
+  const bills = (dataset.bills ??= []);
+  if (bills.some((entry) => /pure\s*cremation/i.test(String(entry.name ?? '')))) return false;
+  bills.push({ ...PURE_CREMATION_BILL });
+  endPureCremationPlan(dataset);
+  return true;
+}
+
 /**
  * Re-align a later block's month and bill period to the sheet it repeats.
  *

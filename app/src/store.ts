@@ -6,7 +6,7 @@ import type { Theme } from './types';
 import { HOSTED_WEB } from './runtime';
 import { applyDataFixes } from './dataFixes';
 import { rekeyHolidaysByStartYear } from '../../core/holidays';
-import { dropYearsAfter, fillPlanYears, PLAN_LAST_YEAR, PURE_CREMATION_END_YEAR, recordLiveYear, shapeRestartYear } from '../../core/providerPlans';
+import { dropYearsAfter, fillPlanYears, PLAN_LAST_YEAR, PURE_CREMATION_END_YEAR, recordLiveYear, restorePureCremationBill, shapeRestartYear } from '../../core/providerPlans';
 import { syncProviderPaymentsFromBills } from '../../core/providerBillLink';
 import { repairDataset } from '../../core/datasetSchema';
 import { mergeProviderSeed } from '../../core/providerMerge';
@@ -248,6 +248,9 @@ export function seedState(): AppState {
  * This runs on every load instead of once per budget, and only adds rows to a
  * block that has none — a typed statement is never replaced.
  */
+/** Repair id for a Pure Cremation bill that a plan-year delete removed everywhere. */
+const PURE_CREMATION_BILL_REPAIR = 'pure-cremation-bill-2026-11-28';
+
 function healPlanYears(state: AppState): AppState {
   fillPlanYears(state.dataset as unknown as { providers?: Record<string, any>; settings?: { targetYear?: number } });
   const parkXmas = (state.dataset as unknown as { providers?: Record<string, any> }).providers?.parkXmas;
@@ -268,6 +271,14 @@ function healPlanYears(state: AppState): AppState {
     // Paid off at the end of 2027: later blocks are copies of a payment that no
     // longer exists, so they go and those years open blank.
     if (Number(cremation.paymentsRemaining) === 0) dropYearsAfter(cremation, PURE_CREMATION_END_YEAR);
+    // A whole-bill delete in a plan year once took the bill out of 2026 and 2027
+    // too. Repair that once per budget; the 2028 payoff is re-applied with it.
+    const meta = (state.dataset.meta ?? {}) as { repairs?: string[] };
+    const repairs = Array.isArray(meta.repairs) ? meta.repairs : [];
+    if (!repairs.includes(PURE_CREMATION_BILL_REPAIR)) {
+      restorePureCremationBill(state.dataset as unknown as Dataset);
+      state.dataset.meta = { ...(state.dataset.meta ?? {}), repairs: [...repairs, PURE_CREMATION_BILL_REPAIR] };
+    }
   }
   syncProviderPaymentsFromBills(state.dataset as unknown as Dataset);
   return state;

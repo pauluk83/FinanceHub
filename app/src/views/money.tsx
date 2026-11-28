@@ -1450,7 +1450,9 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
                         notify(`${b.name} stops from ${MONTH_LONG[month - 1]} ${year}`);
                       }}>{planning ? `Remove from ${year}` : `Stop from ${MONTH_LONG[month - 1]}`}</button>
                     )}
-                    {planning && (
+                    {/* Delete takes a bill out of every year, so it belongs to the live
+                        year's view; a plan year can only remove it from that year on. */}
+                    {!planning && (
                       <button className="btn sm danger" onClick={() => { setOpenActions(null); deleteBill(b.name); }}>Delete</button>
                     )}
                   </div>
@@ -1480,7 +1482,7 @@ export function Bills({ ds, engine, year, month, update, notify, go }: ViewProps
         {planning && (
           <div style={{ padding: '0 16px 16px' }}>
             <div className="notice info">
-              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill linked to a provider sheet keeps its plan amount and due day, both set on the provider page. A bill added here starts in {year}. Remove from {year} takes a bill out of {year} and every later year, and Keep in {year} undoes that removal. A stopped or removed bill sits behind the toggle below, where Delete removes it from every year so the year's list can start afresh.
+              You are planning <strong>{year}</strong>. Amount and due-day edits create a {year}-only bill change; the base definitions and earlier years are not rewritten. A bill linked to a provider sheet keeps its plan amount and due day, both set on the provider page. A bill added here starts in {year}. Remove from {year} takes a bill out of {year} and every later year, and Keep in {year} undoes that removal — a plan year never rewrites an earlier one. A stopped or removed bill sits behind the toggle below; to delete a bill from every year, use the current year's Bills tab.
             </div>
           </div>
         )}

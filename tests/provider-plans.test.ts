@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLAN_LAST_YEAR, PLAN_PROVIDERS, PURE_CREMATION_END_YEAR, alignMonthsToTemplate, blankYearBills, dropYearsAfter, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears, recordLiveYear, shapeRestartYear } from '../core/providerPlans.ts';
+import { PLAN_LAST_YEAR, PLAN_PROVIDERS, PURE_CREMATION_END_YEAR, alignMonthsToTemplate, blankYearBills, dropYearsAfter, endPureCremationPlan, extendProvidersToPlanYear, fillEmptyProviderYears, fillPlanYears, recordLiveYear, restorePureCremationBill, shapeRestartYear } from '../core/providerPlans.ts';
 import { rowsForYear } from '../core/providerYears.ts';
 import { buildEngine } from '../core/engine.ts';
 
@@ -146,6 +146,27 @@ test('the Pure Cremation plan ends with the December 2027 payoff', () => {
 
   endPureCremationPlan(ds);
   assert.equal(ds.billChanges.filter((change: any) => /pure cremation/i.test(change.bill)).length, 1, 'a second pass adds nothing');
+});
+
+test('a plan-year delete that took Pure Cremation out of every year is repaired', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const ds = JSON.parse(fs.readFileSync(path.join(root, 'data', 'workbook.json'), 'utf8'));
+  endPureCremationPlan(ds);
+  // A whole-bill delete: the record and its 2028 payoff both go.
+  ds.bills = ds.bills.filter((bill: any) => !/pure cremation/i.test(bill.name));
+  ds.billChanges = ds.billChanges.filter((change: any) => !/pure cremation/i.test(change.bill));
+  const billed = (year: number) => buildEngine(ds).scheduledBills(year, 6).some((bill: any) => /pure cremation/i.test(bill.name));
+  assert.equal(billed(2026), false, 'the earlier year lost the bill');
+
+  assert.equal(restorePureCremationBill(ds), true, 'the bill comes back');
+  assert.equal(billed(2026), true, 'and is paid in 2026 again');
+  assert.equal(billed(2027), true, 'and in 2027');
+  assert.equal(billed(2028), false, 'while the plan still ends in 2027');
+  const restored = ds.bills.find((bill: any) => /pure cremation/i.test(bill.name));
+  assert.equal(restored.linkedSheet, 'Pure Cremation');
+  assert.equal(restored.dueDay, 27);
+  assert.equal(restorePureCremationBill(ds), false, 'a second pass adds nothing');
+  assert.equal(ds.billChanges.filter((change: any) => /pure cremation/i.test(change.bill)).length, 1);
 });
 
 test('every later year is laid out with its bill left blank', () => {
